@@ -1,0 +1,2 @@
+#!/bin/sh
+valac --pkg gstreamer-0.10 --pkg dbus-glib-1 -o server server.vala

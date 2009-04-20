@@ -1,0 +1,2 @@
+#!/bin/sh
+GST_DEBUG=spotify:5 LD_LIBRARY_PATH=/home/spotifoil/sandbox/lib/ ./server
