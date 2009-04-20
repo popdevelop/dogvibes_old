@@ -131,7 +131,6 @@ static int music_delivery(sp_session *sess, const sp_audioformat *format,
   len = num_frames * sizeof(int16_t) * format->channels;
 
   if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &givenLen)) {
-    printf("%d %d\n", givenLen, len);
     memcpy (writeptr, frames, givenLen);
 
     /* we wrote one segment */
