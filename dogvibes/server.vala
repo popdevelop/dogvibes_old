@@ -36,7 +36,6 @@ public class TestServer : GLib.Object {
         Element src;
         Element sink;
         Element apexsink;
-        Bin bin;
         stdout.printf ("PLAY\n");
 
         if (input == 0) {
@@ -48,11 +47,11 @@ public class TestServer : GLib.Object {
 			this.spotify.set ("uri", key);
 			this.alsasink.set ("sync", false);
             src = this.spotify;
-            bin.add(src);
 		} else if (input == 1) {
 			stdout.printf("Disc command\n");
 		} else {
    			stdout.printf("Error not correct input %d\n", input);
+            return;
 		}
 
         if (output == 0){
@@ -61,8 +60,10 @@ public class TestServer : GLib.Object {
 		} else if (output == 1) {
             apexsink = ElementFactory.make ("apexsink", "apexsink");
 			apexsink.set ("host", "ADDYOURAIRPORTEXRESSIPHERE");
+            sink = apexsink;
 		} else {
    			stdout.printf("Error not correct output %d\n", output);
+            return;
 		}
 
         this.pipeline.add_many (src, sink);
