@@ -1,0 +1,2 @@
+#!/bin/sh
+dbus-send --print-reply dbus-send --print-reply --session --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Stop
