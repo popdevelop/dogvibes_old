@@ -1,6 +1,26 @@
 #!/bin/sh
-if [ $1 = "apex" ]; then
-dbus-send --print-reply --system --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Play int32:0 int32:1 string:spotify:track:3odhGRfxHMVIwtNtc4BOZk
+
+# inputs
+if [ "$1" = "mp3" ]; then
+INPUT=1
+elif [ "$1" = "sr" ]; then
+INPUT=2
+elif [ "$1" = "lastfm" ]; then
+INPUT=3
 else
-dbus-send --print-reply --system --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Play int32:0 int32:0 string:spotify:track:3odhGRfxHMVIwtNtc4BOZk
+INPUT=0
 fi
+
+# outputs
+if [ "$2" = "apex" ]; then
+OUTPUT=1
+elif [ "$2" = "http" ]; then
+OUTPUT=2
+elif [ "$2" = "iphone" ]; then
+OUTPUT=3
+else
+OUTPUT=0
+fi
+
+# send request to dogvibes daemon
+dbus-send --print-reply --system --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Play int32:${INPUT} int32:${OUTPUT} string:spotify:track:3odhGRfxHMVIwtNtc4BOZk

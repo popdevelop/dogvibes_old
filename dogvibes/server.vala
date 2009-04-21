@@ -21,24 +21,32 @@ public class TestServer : GLib.Object {
 
     public void play (int input, int output, string key) {
 		/* elements for final pipeline */
-        Element src;
-        Element sink;
+		Element filter = null;
+        Element src = null;
+        Element sink = null;
 		/* inputs */
 		Element spotify;
-		//Element localmp3;
-		//Element srse;
+		Element localmp3;
+		Element srse;
 		//Element lastfm;
 		/* outputs */
 		Element apexsink;
 		Element alsasink;
+		/* filter */
+		Element madfilter;
 
-        stdout.printf ("PLAY\n");
+		bool use_filter = false;
+		bool use_playbin = false;
+
+        stdout.printf ("PLAYING ");
 		
 		/* FIXME, one pipeline isn't enough */
 		this.pipeline = (Pipeline) new Pipeline ("dogvibes");
 		this.pipeline.set_state (State.NULL);
 
+		/* inputs */
         if (input == 0) {
+			stdout.printf ("SPOTIFY ");
 			spotify = ElementFactory.make ("spotify", "spotify");
 			stdout.printf("Logging on: playing %s\n", key);
 			spotify.set ("user", "gyllen");
@@ -47,18 +55,34 @@ public class TestServer : GLib.Object {
 			spotify.set ("uri", key);
             src = spotify;
 		} else if (input == 1) {
-			stdout.printf("Disc command\n");
-			return;
+			use_filter = true;
+			stdout.printf("MP3 input ");
+			localmp3 = ElementFactory.make ("filesrc", "file reader");
+			madfilter = ElementFactory.make ("mad" , "mp3 decoder");
+			localmp3.set("location", "../testmedia/beep.mp3");
+			src = localmp3;
+			filter = madfilter;
+		} else if (input == 2) {
+			use_playbin = true;
+			/* swedish webradio */
+			stdout.printf("Internet radio ");
+			srse = ElementFactory.make ("playbin", "Internet radio");
+			srse.set ("uri", "mms://wm-live.sr.se/SR-P3-High");
+			src = srse;
 		} else {
-   			stdout.printf("Error not correct input %d\n", input);
+			stdout.printf("Error not correct input %d\n", input);
             return;
 		}
 
+		stdout.printf("on");
+
         if (output == 0){
+			stdout.printf(" ALSA sink \n");
 			alsasink = ElementFactory.make ("alsasink", "alsasink");
 			alsasink.set ("sync", false);
             sink = alsasink;
 		} else if (output == 1) {
+			stdout.printf(" APEX sink \n");
             apexsink = ElementFactory.make ("apexsink", "apexsink");
 			apexsink.set ("host", "192.168.1.3");
 			apexsink.set ("volume", 100);
@@ -69,11 +93,30 @@ public class TestServer : GLib.Object {
             return;
 		}
 		
-		if (src != null && sink != null) {
-			this.pipeline.add_many (src, sink);
-			src.link (sink);
-			this.pipeline.set_state (State.PLAYING);
+		/* ugly */
+		if (use_filter) {
+			if (src != null && sink != null && filter != null) {
+				this.pipeline.add_many (src, filter, sink);
+				src.link (filter);
+				filter.link (sink);
+				this.pipeline.set_state (State.PLAYING);
+			}
+		} else if (use_playbin) {
+			if (src != null && sink != null) {
+				((Bin)this.pipeline).add (src);
+				this.pipeline.set_state (State.PLAYING);
+			}
+		} else {
+			if (src != null && sink != null) {
+				this.pipeline.add_many (src, sink);
+				src.link (sink);
+				this.pipeline.set_state (State.PLAYING);
+			}	
 		}
+
+		use_playbin = false;
+		use_filter = false;
+
     }
 
     public void stop () {
