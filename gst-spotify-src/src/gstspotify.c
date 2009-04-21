@@ -16,4 +16,4 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
     "spotify",
     "spotify plugin",
-    spotify_init, VERSION, "LGPL", "Spotifoil", "http://code.google.com/p/dogvibes/");
+    spotify_init, VERSION, "LGPL", "dogvibes", "http://code.google.com/p/dogvibes/");
