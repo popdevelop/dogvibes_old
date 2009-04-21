@@ -40,16 +40,17 @@
  * Boston, MA 02111-1307, USA.
  */
 #include <gst/gst.h>
-#include <spotify/api.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "gstspotifysrc.h"
+#include "gstspotifyringbuffer.h"
+
+#include <spotify/api.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "gstspotifysrc.h"
-#include "gstspotifyringbuffer.h"
 
 #define DEFAULT_USER "anonymous"
 #define DEFAULT_PASS ""
@@ -57,61 +58,12 @@
 
 GST_DEBUG_CATEGORY_STATIC (gst_spotify_debug);
 #define GST_CAT_DEFAULT gst_spotify_debug
-
-#define _do_init(bla) \
-  GST_DEBUG_CATEGORY_INIT (gst_spotify_debug, "spotify", 0, "spotifysrc element");
-
-GST_BOILERPLATE_FULL (GstSpotify, gst_spotify, GstBaseAudioSrc,
-    GST_TYPE_BASE_AUDIO_SRC, _do_init);
-
-/* spotifysrc */
-static void gst_spotify_set_property (GObject * object, guint prop_id,
-    const GValue * value, GParamSpec * pspec);
-static void gst_spotify_get_property (GObject * object, guint prop_id,
-    GValue * value, GParamSpec * pspec);
-static GstCaps *gst_spotify_getcaps (GstBaseSrc * bsrc);
-static GstRingBuffer *gst_spotify_create_ringbuffer (GstBaseAudioSrc * src);
-static void gst_spotify_finalize (GObject * object);
-
-/* libspotify */
-static void logged_in (sp_session *session, sp_error error);
-static void logged_out (sp_session *session);
-static void connection_error (sp_session *session, sp_error error);
-static void notify_main_thread (sp_session *session);
-static int music_delivery (sp_session *sess, const sp_audioformat *format,
-                          const void *frames, int num_frames);
-static void log_message (sp_session *session, const char *data);
-
-static GstStaticPadTemplate spotify_src_factory = GST_STATIC_PAD_TEMPLATE ("src",
-    GST_PAD_SRC,
-    GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("audio/x-raw-int, "
-        "endianness = (int) { 1234 }, "
-        "signed = (boolean) { TRUE }, "
-        "width = (int) 16, "
-        "depth = (int) 16, "
-        "rate = (int) 44100, channels = (int) 2; ")
-    );
-
-
 enum
 {
   PROP_0,
   PROP_USER,
   PROP_PASS,
   PROP_URI,
-};
-
-static sp_session_callbacks g_callbacks = {
-  &logged_in,
-  &logged_out,
-  NULL,
-  &connection_error,
-  NULL,
-  &notify_main_thread,
-  &music_delivery,
-  NULL,
-  &log_message
 };
 
 const uint8_t g_appkey[] = {
@@ -137,18 +89,30 @@ const uint8_t g_appkey[] = {
 	0x65, 0x7D, 0x9C, 0x3D, 0x97, 0x7A, 0x76, 0xE0, 0xAE, 0xED, 0x96, 0x74, 0xD5, 0x01, 0x41, 0x61,
 	0xAD,
 };
-const size_t g_appkey_size = sizeof (g_appkey);
+const size_t g_appkey_size = sizeof(g_appkey);
 
 //FIXME this should probably be a private property of the object
 sp_session *session;
 gboolean buffered = FALSE;
-static gboolean loggedin = FALSE;
+
+void session_ready(sp_session *session)
+{
+  sp_error error = sp_session_logout(session);
+
+  if (SP_ERROR_OK != error) {
+    GST_ERROR("failed to log out from Spotify: %s\n",
+	    sp_error_message(error));
+    return;
+  }
+}
+
+void session_terminated(void)
+{
+}
+
 GstRingBuffer *arg;
 
-
-/* libspotify */
-
-static int music_delivery (sp_session *sess, const sp_audioformat *format,
+static int music_delivery(sp_session *sess, const sp_audioformat *format,
                           const void *frames, int num_frames)
 {
   GstRingBuffer *buf;
@@ -164,10 +128,9 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
 
   //FIXME this needs to be looked over
   channels = format->channels;
-  len = num_frames * sizeof (int16_t) * format->channels;
+  len = num_frames * sizeof(int16_t) * format->channels;
 
   if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &givenLen)) {
-    printf ("%d %d\n", givenLen, len);
     memcpy (writeptr, frames, givenLen);
 
     /* we wrote one segment */
@@ -176,52 +139,73 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   return num_frames;
 }
 
-static void connection_error (sp_session *session, sp_error error)
+static void connection_error(sp_session *session, sp_error error)
 {
   GST_ERROR ("connection to Spotify failed: %s\n",
-      sp_error_message (error));
+      sp_error_message(error));
 }
 
-static void logged_in (sp_session *session, sp_error error)
+static gboolean loggedin = FALSE;
+
+static void logged_in(sp_session *session, sp_error error)
 {
   if (SP_ERROR_OK != error) {
     GST_ERROR ("failed to log in to Spotify: %s\n",
-        sp_error_message (error));
+        sp_error_message(error));
     return;
   }
 
-  sp_user *me = sp_session_user (session);
-  const char *my_name = (sp_user_is_loaded (me) ?
-			 sp_user_display_name (me) :
-			 sp_user_canonical_name (me));
+  sp_user *me = sp_session_user(session);
+  const char *my_name = (sp_user_is_loaded(me) ?
+			 sp_user_display_name(me) :
+			 sp_user_canonical_name(me));
 
   //FIXME debug
   printf ("Logged in to Spotify as user %s", my_name);
   loggedin = TRUE;
 }
 
-static void logged_out (sp_session *session)
+static void logged_out(sp_session *session)
 {
   //FIXME debug
   printf ("LOGGED OUT FROM SPOTIFY");
 }
 
-static void log_message (sp_session *session, const char *data)
+static void log_message(sp_session *session, const char *data)
 {
   //FIXME debug
   printf ("log_message: %s", data);
 }
 
-static void notify_main_thread (sp_session *session)
+static void notify_main_thread(sp_session *session)
 {
-  printf ("FIXME notified but NOT handled\n");
+  printf("FIXME notified but NOT handled\n");
 }
 
-/* end libspotifyr */
+static sp_session_callbacks g_callbacks = {
+  &logged_in,
+  &logged_out,
+  NULL,
+  &connection_error,
+  NULL,
+  &notify_main_thread,
+  &music_delivery,
+  NULL,
+  &log_message
+};
 
+static GstStaticPadTemplate spotify_src_factory = GST_STATIC_PAD_TEMPLATE ("src",
+    GST_PAD_SRC,
+    GST_PAD_ALWAYS,
+    GST_STATIC_CAPS ("audio/x-raw-int, "
+        "endianness = (int) { 1234 }, "
+        "signed = (boolean) { TRUE }, "
+        "width = (int) 16, "
+        "depth = (int) 16, "
+        "rate = (int) 44100, channels = (int) 2; ")
+    );
 
-/* ringbuffer */
-
+/* ringbuffer abstract base class */
 static GType
 gst_spotify_ring_buffer_get_type ()
 {
@@ -322,56 +306,56 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
   config.user_agent = "spotify-gstreamer-src";
   config.callbacks = &g_callbacks;
 
-  error = sp_session_init (&config, &session);
+  error = sp_session_init(&config, &session);
 
   if (SP_ERROR_OK != error) {
-    GST_ERROR ("failed to create session: %s\n", sp_error_message (error));
+    GST_ERROR ("failed to create session: %s\n", sp_error_message(error));
     return FALSE;
   }
 
   /* Login using the credentials given on the command line */
-  error = sp_session_login (session, GST_SPOTIFY_USER (spotify) , GST_SPOTIFY_PASS (spotify));
+  error = sp_session_login(session, GST_SPOTIFY_USER (spotify) , GST_SPOTIFY_PASS (spotify));
 
   if (SP_ERROR_OK != error) {
-    GST_ERROR ("failed to login: %s\n", sp_error_message (error));
+    GST_ERROR ("failed to login: %s\n", sp_error_message(error));
     return FALSE;
   }
 
   //FIXME this is probably not the best way to wait to be logged in
   while (!loggedin) {
     int timeout = -1;
-    sp_session_process_events (session, &timeout);
-    usleep (timeout * 100);
+    sp_session_process_events(session, &timeout);
+    usleep(timeout * 100);
   }
 
-  sp_link *link = sp_link_create_from_string (GST_SPOTIFY_URI (spotify));
+  sp_link *link = sp_link_create_from_string(GST_SPOTIFY_URI (spotify));
   if (!link) {
     GST_ERROR_OBJECT (spotify, "Incorrect track ID");
     return FALSE;
   }
 
   sp_track *t;
-  t = sp_link_as_track (link);
+  t = sp_link_as_track(link);
   if (!t) {
     GST_DEBUG_OBJECT (spotify, "Only track ID:s are currently supported");
     return FALSE;
   }
 
-  sp_track_add_ref (t);
-  sp_link_release (link);
+  sp_track_add_ref(t);
+  sp_link_release(link);
 
   //FIXME not the best way to wait for a track to be loaded
-  while (sp_track_is_loaded (t) == 0) {
+  while (sp_track_is_loaded(t) == 0) {
     int timeout = -1;
-    sp_session_process_events (session, &timeout);
-    usleep (timeout * 100);
+    sp_session_process_events(session, &timeout);
+    usleep(timeout * 100);
   }
 
-  GST_DEBUG_OBJECT (spotify, "Now playing \"%s\"...\n", sp_track_name (t));
+  GST_DEBUG_OBJECT (spotify, "Now playing \"%s\"...\n", sp_track_name(t));
 
   //FIXME unload at end of src life
-  sp_session_player_load (session, t);
-  sp_session_player_play (session, 1);
+  sp_session_player_load(session, t);
+  sp_session_player_play(session, 1);
 
   return TRUE;
 }
@@ -381,8 +365,8 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
 static gboolean
 gst_spotify_ring_buffer_close_device (GstRingBuffer * buf)
 {
-  sp_session_player_unload (session);
-  g_print ("CLOSE DEVICE\n");
+  sp_session_player_unload(session);
+  g_print("CLOSE DEVICE\n");
   return TRUE;
 }
 
@@ -394,7 +378,7 @@ gst_spotify_ring_buffer_acquire (GstRingBuffer * buf, GstRingBufferSpec * spec)
   gint buffer_size;
   gint channels;
 
-  printf ("ACUIRE\n");
+  printf("ACUIRE\n");
 
   abuf = GST_SPOTIFY_RING_BUFFER_CAST (buf);
 
@@ -434,21 +418,21 @@ gst_spotify_ring_buffer_release (GstRingBuffer * buf)
 static gboolean
 gst_spotify_ring_buffer_start (GstRingBuffer * buf)
 {
-  g_print ("START\n");
+  g_print("START\n");
   return TRUE;
 }
 
 static gboolean
 gst_spotify_ring_buffer_pause (GstRingBuffer * buf)
 {
-  g_print ("PAUSE\n");
+  g_print("PAUSE\n");
   return TRUE;
 }
 
 static gboolean
 gst_spotify_ring_buffer_stop (GstRingBuffer * buf)
 {
-  g_print ("STOP\n");
+  g_print("STOP\n");
   return TRUE;
 }
 
@@ -459,10 +443,22 @@ gst_spotify_ring_buffer_delay (GstRingBuffer * buf)
   return 0;
 }
 
-/* end ringbuffer */
+#define _do_init(bla) \
+  GST_DEBUG_CATEGORY_INIT(gst_spotify_debug, "spotify", 0, "spotifysrc element");
 
+GST_BOILERPLATE_FULL (GstSpotify, gst_spotify, GstBaseAudioSrc,
+    GST_TYPE_BASE_AUDIO_SRC, _do_init);
 
-/* spotifysrc */
+static void gst_spotify_set_property (GObject * object, guint prop_id,
+    const GValue * value, GParamSpec * pspec);
+static void gst_spotify_get_property (GObject * object, guint prop_id,
+    GValue * value, GParamSpec * pspec);
+
+static GstCaps *gst_spotify_getcaps (GstBaseSrc * bsrc);
+static GstRingBuffer *gst_spotify_create_ringbuffer (GstBaseAudioSrc *
+    src);
+
+/* GObject vmethod implementations */
 
 static void
 gst_spotify_base_init (gpointer gclass)
@@ -499,12 +495,9 @@ gst_spotify_class_init (GstSpotifyClass * klass)
   gobject_class->get_property =
       GST_DEBUG_FUNCPTR (gst_spotify_get_property);
 
-  gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_spotify_finalize);
-
   gstbasesrc_class->get_caps = GST_DEBUG_FUNCPTR (gst_spotify_getcaps);
   gstbaseaudiosrc_class->create_ringbuffer =
       GST_DEBUG_FUNCPTR (gst_spotify_create_ringbuffer);
-
 
   /* ref class from a thread-safe context to work around missing bit of
    * thread-safety in GObject */
@@ -531,16 +524,6 @@ gst_spotify_init (GstSpotify * spotify, GstSpotifyClass * gclass)
   GST_SPOTIFY_USER (spotify) = g_strdup (DEFAULT_USER);
   GST_SPOTIFY_PASS (spotify) = g_strdup (DEFAULT_PASS);
   GST_SPOTIFY_URI (spotify) = g_strdup (DEFAULT_URI);
-}
-
-static void
-gst_spotify_finalize (GObject *object)
-{
-  GstSpotify *src = GST_SPOTIFY (object);
-  g_free (GST_SPOTIFY_USER (src));
-  g_free (GST_SPOTIFY_PASS (src));
-  g_free (GST_SPOTIFY_URI (src));
-  //call parent
 }
 
 static void
@@ -610,7 +593,7 @@ gst_spotify_getcaps (GstBaseSrc * bsrc)
   pad_template = gst_element_class_get_pad_template (element_class, "src");
   g_return_val_if_fail (pad_template != NULL, NULL);
 
-  caps = gst_caps_ref (gst_pad_template_get_caps (pad_template));
+  caps = gst_caps_ref (gst_pad_template_get_caps(pad_template));
   return caps;
 }
 
@@ -620,7 +603,7 @@ gst_spotify_create_ringbuffer (GstBaseAudioSrc * src)
   GstRingBuffer *buffer;
 
   buffer = g_object_new (GST_TYPE_SPOTIFY_RING_BUFFER, NULL);
+  arg = buffer;
 
   return buffer;
 }
-/* end spotify */
