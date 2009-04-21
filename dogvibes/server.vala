@@ -4,29 +4,69 @@ using GLib;
 [DBus (name = "com.DogVibes.www")]
 public class TestServer : GLib.Object {
     private Pipeline pipeline;
-    private Element src;
-    private Element sink;
+    /* Inputs */
+	private Element spotify;
+    private Element filesrc;
+
+    /* Outputs */
+    private Element alsasink;
+    //private Element apexsink;
 
     construct {
-        string[] bup = {"test", "test"};
-        Gst.init (ref bup);
+		//All of this should not be intiated here nono
+
+        /* make a global pipeline, a really bad idea */
         this.pipeline = (Pipeline) new Pipeline ("test");
-        this.src = ElementFactory.make ("spotify", "spotify");
-		this.src.set ("buffer-time", (int64) 10000000);
-        this.sink = ElementFactory.make ("alsasink", "alsasink");
-        this.pipeline.add_many (this.src, this.sink);
-        this.src.link (this.sink);
+
+        /* Inputs */
+        /* init spotify gstreamer elements */
+        this.spotify = ElementFactory.make ("spotify", "spotify");
+
+        /* init file gstreamer elements */
+        this.filesrc = ElementFactory.make ("filesrc", "filesrc");
+
+        /* Outputs */
+        /* init alsasink out element */
+        this.alsasink = ElementFactory.make ("alsasink", "alsasink");
+
+        /* init apexsink out element */
 	}
 
-    public void play (string user, string pass, string uri) {
-		stdout.printf("Logging on as user %s playing %s\n", "gyllen", uri);
-		this.pipeline.set_state (State.NULL);
-		this.src.set ("user", user);
-		this.src.set ("pass", pass);
-		this.src.set ("buffer-internal-bytes", 1);
-		this.src.set ("buffer-time", (int64) 10000000);
-		this.src.set ("uri", uri);
-		this.sink.set ("sync", false);
+    public void play (int input, int output, string key) {
+        Element src;
+        Element sink;
+        Element apexsink;
+        Bin bin;
+        stdout.printf ("PLAY\n");
+
+        if (input == 0) {
+			stdout.printf("Logging on: playing %s\n", key);
+			this.pipeline.set_state (State.NULL);
+			this.spotify.set ("user", "username");
+			this.spotify.set ("pass", "password");
+			this.spotify.set ("buffer-time", (int64) 10000000);
+			this.spotify.set ("uri", key);
+			this.alsasink.set ("sync", false);
+            src = this.spotify;
+            bin.add(src);
+		} else if (input == 1) {
+			stdout.printf("Disc command\n");
+		} else {
+   			stdout.printf("Error not correct input %d\n", input);
+		}
+
+        if (output == 0){
+            sink = this.alsasink;
+            this.pipeline.set_state (State.PLAYING);
+		} else if (output == 1) {
+            apexsink = ElementFactory.make ("apexsink", "apexsink");
+			apexsink.set ("host", "ADDYOURAIRPORTEXRESSIPHERE");
+		} else {
+   			stdout.printf("Error not correct output %d\n", output);
+		}
+
+        this.pipeline.add_many (src, sink);
+        src.link (sink);
 		this.pipeline.set_state (State.PLAYING);
     }
 
