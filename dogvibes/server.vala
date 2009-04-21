@@ -41,14 +41,15 @@ public class TestServer : GLib.Object {
         if (input == 0) {
 			stdout.printf("Logging on: playing %s\n", key);
 			this.pipeline.set_state (State.NULL);
-			this.spotify.set ("user", "username");
-			this.spotify.set ("pass", "password");
+			this.spotify.set ("user", "gyllen");
+			this.spotify.set ("pass", "bobidob");
 			this.spotify.set ("buffer-time", (int64) 10000000);
 			this.spotify.set ("uri", key);
 			this.alsasink.set ("sync", false);
             src = this.spotify;
 		} else if (input == 1) {
 			stdout.printf("Disc command\n");
+			return;
 		} else {
    			stdout.printf("Error not correct input %d\n", input);
             return;
