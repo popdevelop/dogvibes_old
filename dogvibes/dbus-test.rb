@@ -24,6 +24,7 @@ obj.Search(query)[0].each { |song|
     puts song
     if key.nil?
       key = song.split(",")[2]
+    end
   end
 }
 

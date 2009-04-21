@@ -3,50 +3,40 @@ using GLib;
 
 [DBus (name = "com.DogVibes.www")]
 public class TestServer : GLib.Object {
-    private Pipeline pipeline;
-    /* Inputs */
-	private Element spotify;
-    private Element filesrc;
 
-    /* Outputs */
-    private Element alsasink;
-    //private Element apexsink;
+	private Pipeline pipeline;
 
     construct {
-		//All of this should not be intiated here nono
-
-        /* make a global pipeline, a really bad idea */
-        this.pipeline = (Pipeline) new Pipeline ("test");
-
-        /* Inputs */
-        /* init spotify gstreamer elements */
-        this.spotify = ElementFactory.make ("spotify", "spotify");
-
-        /* init file gstreamer elements */
-        this.filesrc = ElementFactory.make ("filesrc", "filesrc");
-
-        /* Outputs */
-        /* init alsasink out element */
-        this.alsasink = ElementFactory.make ("alsasink", "alsasink");
-
-        /* init apexsink out element */
+		/* initialize globals */
 	}
 
     public void play (int input, int output, string key) {
+		/* elements for final pipeline */
         Element src;
         Element sink;
-        Element apexsink;
+		/* inputs */
+		Element spotify;
+		//Element localmp3;
+		//Element srse;
+		//Element lastfm;
+		/* outputs */
+		Element apexsink;
+		Element alsasink;
+
         stdout.printf ("PLAY\n");
+		
+		/* FIXME, one pipeline isn't enough */
+		this.pipeline = (Pipeline) new Pipeline ("dogvibes");
+		this.pipeline.set_state (State.NULL);
 
         if (input == 0) {
+			spotify = ElementFactory.make ("spotify", "spotify");
 			stdout.printf("Logging on: playing %s\n", key);
-			this.pipeline.set_state (State.NULL);
-			this.spotify.set ("user", "gyllen");
-			this.spotify.set ("pass", "bobidob");
-			this.spotify.set ("buffer-time", (int64) 10000000);
-			this.spotify.set ("uri", key);
-			this.alsasink.set ("sync", false);
-            src = this.spotify;
+			spotify.set ("user", "gyllen");
+			spotify.set ("pass", "bobidob");
+			spotify.set ("buffer-time", (int64) 10000000);
+			spotify.set ("uri", key);
+            src = spotify;
 		} else if (input == 1) {
 			stdout.printf("Disc command\n");
 			return;
@@ -56,20 +46,25 @@ public class TestServer : GLib.Object {
 		}
 
         if (output == 0){
-            sink = this.alsasink;
-            this.pipeline.set_state (State.PLAYING);
+			alsasink = ElementFactory.make ("alsasink", "alsasink");
+			alsasink.set ("sync", false);
+            sink = alsasink;
 		} else if (output == 1) {
             apexsink = ElementFactory.make ("apexsink", "apexsink");
-			apexsink.set ("host", "ADDYOURAIRPORTEXRESSIPHERE");
+			apexsink.set ("host", "192.168.1.3");
+			apexsink.set ("volume", 100);
+			apexsink.set ("sync", false);
             sink = apexsink;
 		} else {
    			stdout.printf("Error not correct output %d\n", output);
             return;
 		}
-
-        this.pipeline.add_many (src, sink);
-        src.link (sink);
-		this.pipeline.set_state (State.PLAYING);
+		
+		if (src != null && sink != null) {
+			this.pipeline.add_many (src, sink);
+			src.link (sink);
+			this.pipeline.set_state (State.PLAYING);
+		}
     }
 
     public void stop () {
@@ -86,7 +81,7 @@ public class TestServer : GLib.Object {
 
         try {
             string[] argus = {"search", user, pass, searchstring};
-            string[] envps = {"LD_LIBRARY_PATH=/home/spotifoil/sandbox/lib/"};
+            string[] envps = {"LD_LIBRARY_PATH=/home/johan/spotroot/lib/"};
             string uris;
             GLib.Process.spawn_sync(".", argus, envps, 0, runsearch, out uris);
             test = uris.split("\n");
