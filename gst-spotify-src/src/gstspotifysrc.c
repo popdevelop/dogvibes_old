@@ -143,7 +143,7 @@ const size_t g_appkey_size = sizeof (g_appkey);
 sp_session *session;
 gboolean buffered = FALSE;
 static gboolean loggedin = FALSE;
-GstRingBuffer *arg;
+GstRingBuffer *ring_buffer;
 
 
 /* libspotify */
@@ -159,8 +159,8 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   gint writeseg;
   gint channels;
 
-  buf = GST_RING_BUFFER_CAST (arg);
-  abuf = GST_SPOTIFY_RING_BUFFER_CAST (arg);
+  buf = GST_RING_BUFFER_CAST (ring_buffer);
+  abuf = GST_SPOTIFY_RING_BUFFER_CAST (ring_buffer);
 
   //FIXME this needs to be looked over
   channels = format->channels;
@@ -624,6 +624,7 @@ gst_spotify_create_ringbuffer (GstBaseAudioSrc * src)
 
   buffer = g_object_new (GST_TYPE_SPOTIFY_RING_BUFFER, NULL);
 
+  ring_buffer = buffer;
   return buffer;
 }
 /* end spotify */
