@@ -1,6 +1,15 @@
 using Gst;
 using GLib;
 
+public interface InPut : GLib.Object {
+    public abstract Element get_src(string key);
+    public abstract string[] search(string searchstring);
+}
+
+public interface OutPut : GLib.Object {
+    public abstract Element get_sink(string key);
+}
+
 [DBus (name = "com.DogVibes.www")]
 public class TestServer : GLib.Object {
 
