@@ -1,2 +1,2 @@
 #!/bin/sh
-GST_DEBUG=spotify:5 LD_LIBRARY_PATH=/home/johan/spotroot/lib/ ./server
+GST_DEBUG=spotify:5 LD_LIBRARY_PATH=/home/gyllen/X11bin/lib ./server
