@@ -23,7 +23,9 @@ public class TestServer : GLib.Object {
   }
 
   public void set_spotify_prefs (string user, string pass) {
-    stdout.printf ("Spotify user: %s, pass: %s\n", user, pass);
+	  this.spotify_user = user;
+	  this.spotify_pass = pass;
+	  stdout.printf ("Spotify user: %s, pass: %s\n", user, pass);
   }
 
   public void play (int input, int output, string key) {
