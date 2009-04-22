@@ -79,8 +79,9 @@ static gboolean gst_spotify_ring_buffer_close_device(GstRingBuffer * buf);
 static gboolean gst_spotify_ring_buffer_acquire(GstRingBuffer * buf,GstRingBufferSpec * spec);
 static gboolean gst_spotify_ring_buffer_release(GstRingBuffer * buf);
 static gboolean gst_spotify_ring_buffer_start(GstRingBuffer * buf);
-static gboolean gst_spotify_ring_buffer_pause(GstRingBuffer * buf);
 static gboolean gst_spotify_ring_buffer_stop(GstRingBuffer * buf);
+static gboolean gst_spotify_ring_buffer_pause(GstRingBuffer * buf);
+static gboolean gst_spotify_ring_buffer_resume(GstRingBuffer * buf);
 static guint gst_spotify_ring_buffer_delay(GstRingBuffer * buf);
 
 #endif

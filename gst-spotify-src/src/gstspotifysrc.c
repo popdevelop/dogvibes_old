@@ -274,7 +274,7 @@ gst_spotify_ring_buffer_class_init (GstSpotifyRingBufferClass * klass)
       GST_DEBUG_FUNCPTR (gst_spotify_ring_buffer_release);
   gstringbuffer_class->start = GST_DEBUG_FUNCPTR (gst_spotify_ring_buffer_start);
   gstringbuffer_class->pause = GST_DEBUG_FUNCPTR (gst_spotify_ring_buffer_pause);
-  gstringbuffer_class->resume = GST_DEBUG_FUNCPTR (gst_spotify_ring_buffer_start);
+  gstringbuffer_class->resume = GST_DEBUG_FUNCPTR (gst_spotify_ring_buffer_resume);
   gstringbuffer_class->stop = GST_DEBUG_FUNCPTR (gst_spotify_ring_buffer_stop);
 
   gstringbuffer_class->delay = GST_DEBUG_FUNCPTR (gst_spotify_ring_buffer_delay);
@@ -345,35 +345,6 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
     usleep (timeout * 100);
   }
 
-  sp_link *link = sp_link_create_from_string (GST_SPOTIFY_URI (spotify));
-  if (!link) {
-    GST_ERROR_OBJECT (spotify, "Incorrect track ID");
-    return FALSE;
-  }
-
-  sp_track *t;
-  t = sp_link_as_track (link);
-  if (!t) {
-    GST_DEBUG_OBJECT (spotify, "Only track ID:s are currently supported");
-    return FALSE;
-  }
-
-  sp_track_add_ref (t);
-  sp_link_release (link);
-
-  //FIXME not the best way to wait for a track to be loaded
-  while (sp_track_is_loaded (t) == 0) {
-    int timeout = -1;
-    sp_session_process_events (session, &timeout);
-    usleep (timeout * 100);
-  }
-
-  GST_DEBUG_OBJECT (spotify, "Now playing \"%s\"...\n", sp_track_name (t));
-
-  //FIXME unload at end of src life
-  sp_session_player_load (session, t);
-  sp_session_player_play (session, 1);
-
   return TRUE;
 }
 
@@ -382,8 +353,15 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
 static gboolean
 gst_spotify_ring_buffer_close_device (GstRingBuffer * buf)
 {
-  sp_session_player_unload (session);
-  g_print ("CLOSE DEVICE\n");
+  sp_error error;
+  error = sp_session_logout (session);
+
+  if (SP_ERROR_OK != error) {
+    GST_ERROR ("failed to logout: %s\n", sp_error_message (error));
+    return FALSE;
+  }
+
+  g_print ("SRC:CLOSE DEVICE\n");
   return TRUE;
 }
 
@@ -395,7 +373,7 @@ gst_spotify_ring_buffer_acquire (GstRingBuffer * buf, GstRingBufferSpec * spec)
   gint buffer_size;
   gint channels;
 
-  printf ("ACUIRE\n");
+  printf ("SRC:ACQUIRE\n");
 
   abuf = GST_SPOTIFY_RING_BUFFER_CAST (buf);
 
@@ -433,24 +411,76 @@ gst_spotify_ring_buffer_release (GstRingBuffer * buf)
   return TRUE;
 }
 
+sp_track *t;
+
+static gboolean
+gst_spotify_ring_buffer_resume (GstRingBuffer * buf)
+{
+  printf("SRC:RESUME\n");
+  sp_session_player_play (session, 1);
+  return TRUE;
+}
+
 static gboolean
 gst_spotify_ring_buffer_start (GstRingBuffer * buf)
 {
-  g_print ("START\n");
+  GstSpotify *spotify;
+  spotify = GST_SPOTIFY (GST_OBJECT_PARENT (buf));
+
+  printf("SRC:START %s\n", GST_SPOTIFY_URI (spotify));
+
+  sp_link *link = sp_link_create_from_string (GST_SPOTIFY_URI (spotify));
+
+  if (!link) {
+    GST_ERROR_OBJECT (spotify, "Incorrect track ID");
+    return FALSE;
+  }
+
+  t = sp_link_as_track (link);
+  if (!t) {
+    GST_DEBUG_OBJECT (spotify, "Only track ID:s are currently supported");
+    return FALSE;
+  }
+
+  sp_track_add_ref (t);
+  sp_link_release (link);
+
+  //FIXME not the best way to wait for a track to be loaded
+  while (sp_track_is_loaded (t) == 0) {
+    int timeout = -1;
+    sp_session_process_events (session, &timeout);
+    usleep (timeout * 100);
+  }
+
+  GST_DEBUG_OBJECT (spotify, "Now playing \"%s\"...\n", sp_track_name (t));
+
+  sp_session_player_load (session, t);
+  sp_session_player_play (session, 1);
+
   return TRUE;
 }
 
 static gboolean
 gst_spotify_ring_buffer_pause (GstRingBuffer * buf)
 {
-  g_print ("PAUSE\n");
+  printf("SRC:PAUSE\n");
+  sp_session_player_play (session, 0);
   return TRUE;
 }
 
 static gboolean
 gst_spotify_ring_buffer_stop (GstRingBuffer * buf)
 {
-  g_print ("STOP\n");
+  printf("SRC:STOP\n");
+  sp_session_player_unload (session);
+
+  //FIXME someone is holding references
+  sp_track_release (t);
+  sp_track_release (t);
+  sp_track_release (t);
+  sp_track_release (t);
+  sp_track_release (t);
+
   return TRUE;
 }
 
@@ -507,7 +537,6 @@ gst_spotify_class_init (GstSpotifyClass * klass)
   gstbaseaudiosrc_class->create_ringbuffer =
       GST_DEBUG_FUNCPTR (gst_spotify_create_ringbuffer);
 
-
   /* ref class from a thread-safe context to work around missing bit of
    * thread-safety in GObject */
   g_type_class_ref (GST_TYPE_SPOTIFY);
@@ -538,11 +567,13 @@ gst_spotify_init (GstSpotify * spotify, GstSpotifyClass * gclass)
 static void
 gst_spotify_finalize (GObject *object)
 {
+  printf("SRC:FINALIZED\n");
   GstSpotify *src = GST_SPOTIFY (object);
   g_free (GST_SPOTIFY_USER (src));
   g_free (GST_SPOTIFY_PASS (src));
   g_free (GST_SPOTIFY_URI (src));
-  //call parent
+
+  G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 
 static void
