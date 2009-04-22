@@ -1,5 +1,6 @@
 using Gst;
 using GLib;
+using GConf;
 
 public interface InPut : GLib.Object {
   public abstract Element get_src(string key);
@@ -14,9 +15,15 @@ public interface OutPut : GLib.Object {
 public class TestServer : GLib.Object {
 
   private Pipeline pipeline;
+  private string spotify_user;
+  private string spotify_pass;
 
   construct {
 	/* initialize globals */
+  }
+
+  public void set_spotify_prefs (string user, string pass) {
+    stdout.printf ("Spotify user: %s, pass: %s\n", user, pass);
   }
 
   public void play (int input, int output, string key) {
@@ -49,8 +56,8 @@ public class TestServer : GLib.Object {
 	  stdout.printf ("SPOTIFY ");
 	  spotify = ElementFactory.make ("spotify", "spotify");
 	  stdout.printf("Logging on: playing %s\n", key);
-	  spotify.set ("user", "gyllen");
-	  spotify.set ("pass", "bobidob");
+	  spotify.set ("user", spotify_user);
+	  spotify.set ("pass", spotify_pass);
 	  spotify.set ("buffer-time", (int64) 10000000);
 	  spotify.set ("uri", key);
 	  src = spotify;
@@ -138,7 +145,7 @@ public class TestServer : GLib.Object {
 	  GLib.Process.spawn_sync(".", argus, envps, 0, runsearch, out uris);
 	  test = uris.split("\n");
 	  stdout.printf("%s\n", uris);
-	} catch (Error e) {
+	} catch (GLib.Error e) {
 	  stdout.printf("ERROR SO INTERNAL: %s\n", e.message);
 	}
 
@@ -168,10 +175,20 @@ public void main (string[] args) {
 	  // start server
 
 	  var server = new TestServer ();
+
+    try {
+      var gc = GConf.Client.get_default ();
+      string user = gc.get_string ("/apps/dogvibes/spotify/username");
+      string pass = gc.get_string ("/apps/dogvibes/spotify/password");
+      server.set_spotify_prefs(user, pass);
+    } catch (GLib.Error e) {
+        stderr.printf ("Oops: %s\n", e.message);
+    }
+
 	  conn.register_object ("/com/dogvibes/www", server);
 	  loop.run ();
 	}
-  } catch (Error e) {
+  } catch (GLib.Error e) {
 	stderr.printf ("Oops: %s\n", e.message);
   }
 }

@@ -1,2 +1,4 @@
 #!/bin/sh
-valac --pkg gstreamer-0.10 --pkg dbus-glib-1 -o server server.vala
+valac --pkg gconf-2.0 -o setup_spotify setup_spotify.vala
+./setup_spotify
+valac --pkg gstreamer-0.10 --pkg dbus-glib-1 --pkg gconf-2.0 -o server server.vala
