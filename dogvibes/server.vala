@@ -128,9 +128,17 @@ public class TestServer : GLib.Object {
 
   }
 
+  public void pause () {
+	this.pipeline.set_state (State.PAUSED);
+  }
+
+  public void resume () {
+	this.pipeline.set_state (State.PLAYING);
+  }
+
   public void stop () {
 	stdout.printf("BEF\n");
-	this.pipeline.set_state (State.NULL);
+	this.pipeline.set_state (State.READY);
 	stdout.printf("AF\n");
   }
 
