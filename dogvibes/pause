@@ -1,0 +1,2 @@
+#!/bin/sh
+dbus-send --print-reply --system --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Pause
