@@ -144,6 +144,9 @@ sp_session *session;
 gboolean buffered = FALSE;
 static gboolean loggedin = FALSE;
 GstRingBuffer *ring_buffer;
+static GMutex *mutex;
+static GCond *cond;
+static GThread *thread;
 
 
 /* libspotify */
@@ -165,9 +168,16 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   //FIXME this needs to be looked over
   channels = format->channels;
   len = num_frames * sizeof (int16_t) * format->channels;
+  GST_DEBUG ("got num_frames=%d, channels=%d, len=%d sample_rate %d", num_frames, channels, len, format->sample_rate);
+  if (num_frames == 0) {
+    //think we have a new song?
+    printf ("num_frames == 0\n");
+    g_cond_broadcast(cond);
+    return 0;
+  }
 
   if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &givenLen)) {
-    printf ("%d %d\n", givenLen, len);
+    GST_DEBUG ("givenLen=%d, len=%d", givenLen, len);
     memcpy (writeptr, frames, givenLen);
 
     /* we wrote one segment */
@@ -189,14 +199,13 @@ static void logged_in (sp_session *session, sp_error error)
         sp_error_message (error));
     return;
   }
-
   sp_user *me = sp_session_user (session);
   const char *my_name = (sp_user_is_loaded (me) ?
                          sp_user_display_name (me) :
                          sp_user_canonical_name (me));
 
   //FIXME debug
-  printf ("Logged in to Spotify as user %s", my_name);
+  GST_DEBUG ("Logged in to Spotify as user %s", my_name);
   loggedin = TRUE;
 }
 
@@ -215,7 +224,28 @@ static void log_message (sp_session *session, const char *data)
 
 static void notify_main_thread (sp_session *session)
 {
-  printf ("FIXME notified but NOT handled\n");
+  GST_DEBUG ("BROADCAST COND\n");
+  /* signal thread to process events */
+  g_cond_broadcast (cond);
+}
+
+/* only used to trigger sp_session_process_events when needed,
+ * looks like about once a second */
+void *thread_func( void *ptr )
+{
+   GTimeVal t;
+   int timeout = -1;
+   g_get_current_time(&t);
+   //first broadcast should come before this
+   g_time_val_add(&t, 10*1000*1000);
+   while (1) {
+     g_print ("\n\nWAITING FOR BROADCAST (timeout = %d ms)\n\n\n", timeout);
+     g_cond_timed_wait (cond, mutex, &t);
+     GST_DEBUG ("GOT BROADCAST OR TIMEOUT\n");
+     sp_session_process_events (session, &timeout);
+     g_get_current_time(&t);
+     g_time_val_add(&t, timeout*1000);
+   }
 }
 
 /* end libspotifyr */
@@ -339,12 +369,11 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
   }
 
   //FIXME this is probably not the best way to wait to be logged in
+  g_cond_broadcast(cond);
   while (!loggedin) {
-    int timeout = -1;
-    sp_session_process_events (session, &timeout);
-    usleep (timeout * 100);
+    usleep(10000);
   }
-
+  g_print ("logged in!\n");
   return TRUE;
 }
 
@@ -387,7 +416,13 @@ gst_spotify_ring_buffer_acquire (GstRingBuffer * buf, GstRingBufferSpec * spec)
   spec->latency_time = gst_util_uint64_scale (spec->segsize,
       (GST_SECOND / GST_USECOND), spec->rate * spec->bytes_per_sample);
   /* segtotal based on buffer-time latency */
+  g_print ("spec->bytes_per_sample = %u\n", spec->bytes_per_sample);
+  g_print ("spec->rate = %u\n", spec->rate);
+  g_print ("spec->latency_time = %llu\n", spec->latency_time);
   spec->segtotal = spec->buffer_time / spec->latency_time;
+  g_print ("spec->buffer_time = %llu\n", spec->buffer_time);
+  g_print ("%lld / %lld = %d\n", spec->buffer_time , spec->latency_time, spec->segtotal);
+  g_print ("segtotal = %d\n", spec->segtotal);
 
   /* allocate the ringbuffer memory now */
   buf->data = gst_buffer_new_and_alloc (spec->segtotal * spec->segsize);
@@ -446,11 +481,11 @@ gst_spotify_ring_buffer_start (GstRingBuffer * buf)
   sp_link_release (link);
 
   //FIXME not the best way to wait for a track to be loaded
+  g_cond_broadcast(cond);
   while (sp_track_is_loaded (t) == 0) {
-    int timeout = -1;
-    sp_session_process_events (session, &timeout);
-    usleep (timeout * 100);
+    usleep(10000);
   }
+  g_print ("track loaded!\n");
 
   GST_DEBUG_OBJECT (spotify, "Now playing \"%s\"...\n", sp_track_name (t));
 
@@ -558,10 +593,28 @@ gst_spotify_class_init (GstSpotifyClass * klass)
 static void
 gst_spotify_init (GstSpotify * spotify, GstSpotifyClass * gclass)
 {
+  GError *err = NULL ;
   //gst_base_src_set_live(GST_BASE_SRC (src), TRUE);
   GST_SPOTIFY_USER (spotify) = g_strdup (DEFAULT_USER);
   GST_SPOTIFY_PASS (spotify) = g_strdup (DEFAULT_PASS);
   GST_SPOTIFY_URI (spotify) = g_strdup (DEFAULT_URI);
+
+  if (g_thread_supported() ) {
+     printf("g_thread_supported\n");
+  } else {
+     g_thread_init(NULL);
+     printf("error !g_thread_supported\n");
+  }
+
+  cond = g_cond_new ();
+  mutex = g_mutex_new ();
+
+  if ((thread = g_thread_create((GThreadFunc)thread_func, (void *)NULL, TRUE, &err)) == NULL) {
+     printf("g_thread_create failed: %s!!\n", err->message );
+     g_error_free (err) ;
+  }
+  printf ("thread created\n");
+
 }
 
 static void
@@ -572,6 +625,9 @@ gst_spotify_finalize (GObject *object)
   g_free (GST_SPOTIFY_USER (src));
   g_free (GST_SPOTIFY_PASS (src));
   g_free (GST_SPOTIFY_URI (src));
+
+  g_cond_free (cond);
+  g_mutex_free (mutex);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
