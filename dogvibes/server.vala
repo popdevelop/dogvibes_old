@@ -1,31 +1,15 @@
 using Gst;
-using GLib;
 using GConf;
 
-public interface InPut : GLib.Object {
-  public abstract Element get_src(string key);
-  public abstract string[] search(string searchstring);
-}
-
-public interface OutPut : GLib.Object {
-  public abstract Element get_sink(string key);
-}
-
 [DBus (name = "com.DogVibes.www")]
-public class TestServer : GLib.Object {
+public class DogvibesServer : GLib.Object {
 
   private Pipeline pipeline;
-  private string spotify_user;
-  private string spotify_pass;
+  private Input spotify;
 
   construct {
-	/* initialize globals */
-  }
-
-  public void set_spotify_prefs (string user, string pass) {
-	  this.spotify_user = user;
-	  this.spotify_pass = pass;
-	  stdout.printf ("Spotify user: %s, pass: %s\n", user, pass);
+    /* FIXME all of this should be in a list */
+    this.spotify = new SpotifyInput();
   }
 
   public void play (int input, int output, string key) {
@@ -34,7 +18,6 @@ public class TestServer : GLib.Object {
 	Element src = null;
 	Element sink = null;
 	/* inputs */
-	Element spotify;
 	Element localmp3;
 	Element srse;
 	//Element lastfm;
@@ -55,14 +38,7 @@ public class TestServer : GLib.Object {
 
 	/* inputs */
 	if (input == 0) {
-	  stdout.printf ("SPOTIFY ");
-	  spotify = ElementFactory.make ("spotify", "spotify");
-	  stdout.printf("Logging on: playing %s\n", key);
-	  spotify.set ("user", spotify_user);
-	  spotify.set ("pass", spotify_pass);
-	  spotify.set ("buffer-time", (int64) 10000000);
-	  spotify.set ("uri", key);
-	  src = spotify;
+      src = this.spotify.get_src(key);
 	} else if (input == 1) {
 	  use_filter = true;
 	  stdout.printf("MP3 input ");
@@ -137,36 +113,20 @@ public class TestServer : GLib.Object {
   }
 
   public void stop () {
-	stdout.printf("BEF\n");
 	this.pipeline.set_state (State.READY);
-	stdout.printf("AF\n");
   }
 
   public void runsearch () {
   }
 
   public string[] search (string user, string pass, string searchstring) {
-	string[] test = {};
-
-	try {
-	  string[] argus = {"search", user, pass, searchstring};
-	  string[] envps = {"LD_LIBRARY_PATH=/home/johan/spotroot/lib/"};
-	  string uris;
-	  GLib.Process.spawn_sync(".", argus, envps, 0, runsearch, out uris);
-	  test = uris.split("\n");
-	  stdout.printf("%s\n", uris);
-	} catch (GLib.Error e) {
-	  stdout.printf("ERROR SO INTERNAL: %s\n", e.message);
-	}
-
-	stdout.printf("I did a search on %s\n", searchstring);
-
-	return test;
+    stdout.printf ("%s %s not used anymore\n", user, pass);
+    return spotify.search (searchstring);
   }
 }
 
 public void main (string[] args) {
-  // Creating a GLib main loop with a default context
+    // Creating a GLib main loop with a default context
   var loop = new MainLoop (null, false);
 
   // Initializing GStreamer
@@ -182,21 +142,10 @@ public void main (string[] args) {
 	uint request_name_result = bus.request_name ("com.DogVibes.www", (uint) 0);
 
 	if (request_name_result == DBus.RequestNameReply.PRIMARY_OWNER) {
-	  // start server
+	  var server = new DogvibesServer ();
 
-	  var server = new TestServer ();
-
-    try {
-      var gc = GConf.Client.get_default ();
-      string user = gc.get_string ("/apps/dogvibes/spotify/username");
-      string pass = gc.get_string ("/apps/dogvibes/spotify/password");
-      server.set_spotify_prefs(user, pass);
-    } catch (GLib.Error e) {
-        stderr.printf ("Oops: %s\n", e.message);
-    }
-
-	  conn.register_object ("/com/dogvibes/www", server);
-	  loop.run ();
+      conn.register_object ("/com/dogvibes/www", server);
+      loop.run ();
 	}
   } catch (GLib.Error e) {
 	stderr.printf ("Oops: %s\n", e.message);

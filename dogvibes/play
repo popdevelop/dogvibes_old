@@ -22,5 +22,12 @@ else
 OUTPUT=0
 fi
 
+# key
+if [ "$3" = "dogs" ]; then
+KEY=spotify:track:1H5tvpoApNDxvxDexoaAUo
+else
+KEY=spotify:track:3odhGRfxHMVIwtNtc4BOZk
+fi
+
 # send request to dogvibes daemon
-dbus-send --print-reply --system --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Play int32:${INPUT} int32:${OUTPUT} string:spotify:track:3odhGRfxHMVIwtNtc4BOZk
+dbus-send --print-reply --system --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Play int32:${INPUT} int32:${OUTPUT} string:${KEY}
