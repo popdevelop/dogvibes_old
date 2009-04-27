@@ -4,11 +4,91 @@
 <head>
     <title>GUI a la Spotify</title>
     <link rel="stylesheet" type="text/css" href="extjs/resources/css/ext-all.css" />
+
+
     <script type="text/javascript" src="extjs/adapter/ext/ext-base.js"></script>
     <script type="text/javascript" src="extjs/ext-all-debug.js"></script>
     <script type="text/javascript">
 
-		Ext.onReady(function() {
+Ext.onReady(function() {
+			
+			var simple = new Ext.FormPanel({
+			        labelWidth: 120, // label settings here cascade unless overridden
+			        //url:'save-form.php',
+			        frame:true,
+		            title: 'Preferences',
+			        bodyStyle:'padding:5px 5px 0',
+			        width: 350,
+			        defaults: {width: 230},
+			        defaultType: 'textfield',
+
+			        items: [{
+			                fieldLabel: 'Spotify username',
+			                name: 'first',
+			                allowBlank:false
+			            },{
+			                fieldLabel: 'Spotify password',
+			                name: 'last'
+			            },{
+			                fieldLabel: 'Path to music',
+			                name: 'company'
+			            }
+			        ],
+
+			        buttons: [{
+			            text: 'Save'
+			        },{
+			            text: 'Cancel'
+			        }]
+			    });
+			
+			
+			Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
+			    initComponent : function(){
+			        Ext.app.SearchField.superclass.initComponent.call(this);
+			        this.on('specialkey', function(f, e){
+			            if(e.getKey() == e.ENTER){
+			                this.onTrigger2Click();
+			            }
+			        }, this);
+			    },
+
+			    validationEvent:false,
+			    validateOnBlur:false,
+			    trigger1Class:'x-form-clear-trigger',
+			    trigger2Class:'x-form-search-trigger',
+			    hideTrigger1:true,
+			    width:180,
+			    hasSearch : false,
+			    paramName : 'query',
+
+			    onTrigger1Click : function(){
+			        if(this.hasSearch){
+			            this.el.dom.value = '';
+			            var o = {start: 0};
+			            this.store.baseParams = this.store.baseParams || {};
+			            this.store.baseParams[this.paramName] = '';
+			            this.store.reload({params:o});
+			            this.triggers[0].hide();
+			            this.hasSearch = false;
+			        }
+			    },
+
+			    onTrigger2Click : function(){
+			        var v = this.getRawValue();
+			        if(v.length < 1){
+			            this.onTrigger1Click();
+			            return;
+			        }
+			        var o = {start: 0};
+			        this.store.baseParams = this.store.baseParams || {};
+			        this.store.baseParams[this.paramName] = v;
+			        this.store.reload({params:o});
+			        this.hasSearch = true;
+			        this.triggers[0].show();
+			    }
+			});
+			
 
 			Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
 
@@ -77,23 +157,6 @@
 				        minValue: 0,
 				        maxValue: 100
 				    });
-				
-			
-
-
-			var cont = new Ext.Container({
-			  layout: 'form',
-			  autoEl: 'div',
-			  items: [{
-			    height: 100,
-			    html: 'Total No of Bad Records:150'
-			  },
-			  grid,
-			  {
-			    //height: 100,
-			    html: 'Other Contant'
-			  }]
-			});
 
 			tabs = new Ext.TabPanel({
 	              region:'center',
@@ -103,22 +166,12 @@
 	              items:[
 				{
 	                  title: 'Play queue',
-	                  autoScroll:true
+	                  autoScroll:true,
+	                  html: "empty..."
 	              },
-				    grid,
-				    {
-		                  title: 'Preferences',
-		                  autoScroll:true
-		              }
+				    grid, simple
 				  ]
 	          });
-
-	/*
-			tabs.add({
-			            title: 'New Tab',
-			            html: 'Tab Body'
-			        }).show();
-	*/
 
 	    playButton = new Ext.Button({
 	        text: 'Play',
@@ -132,36 +185,11 @@
 				playButton.setText('Play')
 	    }
 
-		searchForm = new Ext.form.FormPanel({
-		    labelWidth: 50,
-		    bodyStyle:'padding:10px',
-		    //width: 350,
-		    //labelPad: 10,
-		    border: false,
-		    defaultType: 'textfield',
-		    defaults: {
-		        // applied to each contained item
-		        width: 230,
-		        msgTarget: 'side'
-		    },
-		    layoutConfig: {
-		        // layout-specific configs go here
-		        labelSeparator: ''
-		    },
-			items: [{
-			            fieldLabel: 'Search',
-			            name: 'query'
-			        }],
-			/*
-			buttons: [{
-			            text: 'Search'
-			        }]
-			*/
-		});
 		
 		var Tree = Ext.tree;
 
 	    var tree = new Tree.TreePanel({
+			border: false,
 		region: 'center',
 	        animate:true,
 	        enableDD:false,
@@ -213,6 +241,24 @@
 		        root.appendChild(tree.getLoader().createNode(json[i]));
 		    }
 	
+tb = new Ext.Toolbar({			
+	        region: 'south', items: [
+			{
+		        text: 'Prev',
+		    },
+			{
+		        text: 'Play',
+		        enableToggle: true,
+		        //toggleHandler: onItemToggle,
+		    },
+			{
+		        text: 'Next',
+		    }, timeSlider,
+		]
+		});
+		
+
+
 
 
 		  var viewport = new Ext.Viewport({
@@ -220,8 +266,12 @@
 		    items:[
 		      {
 		        region: 'north',
-	            height: 45,
-				items: [searchForm]
+			    border: false,
+				tbar: [
+		            'Search: ', ' ',
+		            new Ext.app.SearchField({
+		                width:320
+		            })],
 		      },
 		      {
 		        region: 'west',
@@ -230,49 +280,16 @@
 				layout: 'border',
 				items:[
 				tree,
-				/*
-				{
-		              region: 'center',
-					  html: "playlists"
-					  
-		          },
-		*/
 		{
 			          region: 'south',
 					  height: 172,
 	     			  html: '<img src="cover.jpg" width="172" height="172">'
 		          }]
 		      },
-		      tabs,
-		      {
-		        region: 'south',
-	            height: 60,
-				layout: 'border',
-				items:[{
-	                  region: 'west',
-					  width: 60,
-					  items: [playButton]
-	              },{
-		              region: 'center',
-					  items: [timeSlider]
-		          },{
-			          region: 'east',
-					  width: 80,
-					  items: [
-						new Ext.Button({text: 'Shuffle'}),
-						new Ext.Button({text: 'Repeat'}),					
-					]
-		          }]
-		      },
-
-
-
+		      tabs, tb,
 		    ]
 		  });
 		});
-		
-		//tree.render();
-	    //root.expand();
 
 </script>
 
