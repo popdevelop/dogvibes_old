@@ -116,9 +116,6 @@ public class DogvibesServer : GLib.Object {
 	this.pipeline.set_state (State.READY);
   }
 
-  public void runsearch () {
-  }
-
   public string[] search (string user, string pass, string searchstring) {
     stdout.printf ("%s %s not used anymore\n", user, pass);
     return spotify.search (searchstring);
