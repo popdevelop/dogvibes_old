@@ -1,2 +1,2 @@
 #!/bin/sh
-dbus-send --print-reply --system --dest=com.DogVibes.www /com/dogvibes/www com.DogVibes.www.Resume
+dbus-send --print-reply --system --dest=com.Dogvibes /com/dogvibes/amp/0 com.Dogvibes.Amp.Resume
