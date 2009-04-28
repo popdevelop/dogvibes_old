@@ -2,4 +2,4 @@
 /usr/bin/valac --pkg gconf-2.0 -o setup_spotify setup_spotify.vala
 ./setup_spotify
 /usr/bin/valac --pkg glib-2.0 --pkg gmodule-2.0 --pkg gstreamer-0.10 --pkg dbus-glib-1 --pkg gconf-2.0 -o server  \
-               output-interface.vala spotify-input.vala input-interface.vala amplifier-interface.vala server.vala
+               spotify-input.vala input-interface.vala amplifier-interface.vala server.vala
