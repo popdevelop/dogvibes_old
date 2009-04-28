@@ -1,6 +1,6 @@
 using Gst;
 
-public class SpotifyInput : GLib.Object, Input {
+public class SpotifySource : GLib.Object, Source {
   public string user;
   public string pass;
   private Element spotify;
@@ -11,7 +11,7 @@ public class SpotifyInput : GLib.Object, Input {
       var gc = GConf.Client.get_default ();
       user = gc.get_string ("/apps/dogvibes/spotify/username");
       pass = gc.get_string ("/apps/dogvibes/spotify/password");
-      stdout.printf ("Creating spotify input with %s %s\n", user, pass);
+      stdout.printf ("Creating spotify source with %s %s\n", user, pass);
     } catch (GLib.Error e) {
       stderr.printf ("Oops: %s\n", e.message);
     }

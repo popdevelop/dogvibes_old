@@ -14,14 +14,14 @@ public class Dogvibes : GLib.Object {
 [DBus (name = "com.Dogvibes.Amp")]
 public class Amp : GLib.Object {
   private Pipeline pipeline = null;
-  private Input spotify;
+  private Source spotify;
   private Element src = null;
   private Element sink = null;
   //private List playqueue;
 
   construct {
     /* FIXME all of this should be in a list */
-    this.spotify = new SpotifyInput();
+    this.spotify = new SpotifySource();
     //playqueue = new List("queuelist");
   }
 
