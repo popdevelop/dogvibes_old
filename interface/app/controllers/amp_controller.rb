@@ -2,28 +2,28 @@ class AmpController < ApplicationController
   require "dbus"
 
   def queue
-    render(:text => "Queued track with id <b>" + params[:track] + "</b>")
     get_amp(params[:id]).Queue(params[:track])
+    render(:text => "Queued track with id <b>" + params[:track] + "</b>")
   end
 
   def play
-    render(:text => "Playing...")
     get_amp(params[:id]).Play()
+    render(:text => "Playing...")
   end
 
   def stop
-    render(:text => "Stopped")
     get_amp(params[:id]).Stop()
+    render(:text => "Stopped")
   end
 
   def pause
-    render(:text => "Paused")
     get_amp(params[:id]).Pause()
+    render(:text => "Paused")
   end
 
   def resume
-    render(:text => "Resumed")
     get_amp(params[:id]).Resume()
+    render(:text => "Resumed")
   end
 
   private
