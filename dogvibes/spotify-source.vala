@@ -22,14 +22,13 @@ public class SpotifySource : GLib.Object, Source {
   private void runsearch () {
   }
 
-  public Bin get_src (string key) {
+  public Bin get_src () {
     Bin bin = new Bin("spotifybin");
     this.spotify = ElementFactory.make ("spotify", "spotify");
-    stdout.printf ("Logging on: playing %s\n", key);
+    stdout.printf ("Logging on spotify\n");
     spotify.set ("user", user);
     spotify.set ("pass", pass);
     spotify.set ("buffer-time", (int64) 10000000);
-    spotify.set ("uri", key);
     bin.add (this.spotify);
     GhostPad gpad = new GhostPad ("src", this.spotify.get_static_pad("src"));
     bin.add_pad (gpad);
@@ -53,5 +52,9 @@ public class SpotifySource : GLib.Object, Source {
 	stdout.printf ("I did a search on %s\n", searchstring);
 
 	return test;
+  }
+
+  public void set_key (string key) {
+    spotify.set ("uri", key);
   }
 }

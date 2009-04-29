@@ -21,34 +21,39 @@ public class Amp : GLib.Object {
 
   construct {
     /* FIXME all of this should be in a list */
-    this.spotify = new SpotifySource();
-    //playqueue = new List("queuelist");
-  }
-
-  public void queue(string key) {
-    stdout.printf ("PLAY\n");
-    this.src = this.spotify.get_src (key);
-  }
-
-  public void play () {
-    stdout.printf ("PLAY\n");
-
-    if (this.src == null) {
-      stdout.printf("You must enqueue a track\n");
-      return;
-    }
-
+    this.spotify = new SpotifySource ();
+    this.src = this.spotify.get_src ();
     this.pipeline = (Pipeline) new Pipeline ("dogvibes");
-	this.pipeline.set_state (State.NULL);
     this.sink = ElementFactory.make ("alsasink", "alsasink");
     this.sink.set ("sync", false);
     this.pipeline.add_many (src, sink);
     this.src.link (sink);
-    this.pipeline.set_state (State.PLAYING);
+    /* State IS already NULL */
+    this.pipeline.set_state (State.NULL);
   }
 
+  /* Speaker API */
+  public void connect_speaker (int speaker) {
+    stdout.printf("NOT IMPLEMENTED %d\n", speaker);
+  }
+
+  public void disconnect_speaker (int speaker) {
+    stdout.printf("NOT IMPLEMENTED %d\n", speaker);
+  }
+
+  /* Play Queue API */
   public void pause () {
 	this.pipeline.set_state (State.PAUSED);
+  }
+
+  public void play () {
+	this.pipeline.set_state (State.PLAYING);
+  }
+
+  public void queue(string key) {
+	this.pipeline.set_state (State.NULL);
+    this.spotify.set_key (key);
+	this.pipeline.set_state (State.PLAYING);
   }
 
   public void resume () {
@@ -57,33 +62,29 @@ public class Amp : GLib.Object {
 
   public void stop () {
     this.pipeline.set_state (State.NULL);
-    //this.pipeline.unref();
-    stdout.printf ("STOP\n");
   }
 }
 
 public void main (string[] args) {
-    // Creating a GLib main loop with a default context
   var loop = new MainLoop (null, false);
-
-  // Initializing GStreamer
   Gst.init (ref args);
 
   try {
+    /* register DBus session */
 	var conn = DBus.Bus.get (DBus.BusType. SYSTEM);
-
 	dynamic DBus.Object bus = conn.get_object ("org.freedesktop.DBus",
 											   "/org/freedesktop/DBus",
 											   "org.freedesktop.DBus");
-	// try to register service in session bus
 	uint request_name_result = bus.request_name ("com.Dogvibes", (uint) 0);
 
 	if (request_name_result == DBus.RequestNameReply.PRIMARY_OWNER) {
+      /* register dogvibes server */
 	  var dogvibes = new Dogvibes ();
       conn.register_object ("/com/dogvibes/dogvibes", dogvibes);
+
+      /* register amplifier */
 	  var amp = new Amp ();
       conn.register_object ("/com/dogvibes/amp/0", amp);
-
       loop.run ();
 	}
   } catch (GLib.Error e) {

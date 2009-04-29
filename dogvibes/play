@@ -1,29 +1,6 @@
 #!/bin/sh
-
-# inputs
-if [ "$1" = "mp3" ]; then
-INPUT=1
-elif [ "$1" = "sr" ]; then
-INPUT=2
-elif [ "$1" = "lastfm" ]; then
-INPUT=3
-else
-INPUT=0
-fi
-
-# outputs
-if [ "$2" = "apex" ]; then
-OUTPUT=1
-elif [ "$2" = "http" ]; then
-OUTPUT=2
-elif [ "$2" = "iphone" ]; then
-OUTPUT=3
-else
-OUTPUT=0
-fi
-
 # key
-if [ "$3" = "dogs" ]; then
+if [ "$1" = "dogs" ]; then
 KEY=spotify:track:1H5tvpoApNDxvxDexoaAUo
 else
 KEY=spotify:track:3odhGRfxHMVIwtNtc4BOZk
