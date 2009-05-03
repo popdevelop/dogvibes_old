@@ -35,23 +35,23 @@ public class SpotifySource : GLib.Object, Source {
     return bin;
   }
 
-  public string[] search (string searchstring) {
-	string[] test = {};
+  public string[] search (string query) {
+    string[] test = {};
 
-	try {
-	  string[] argus = {"search", user, pass, searchstring};
-	  string[] envps = {"LD_LIBRARY_PATH=/home/gyllen/X11bin/lib/"};
-	  string uris;
-	  GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
-	  test = uris.split ("\n");
-	  stdout.printf ("%s\n", uris);
-	} catch (GLib.Error e) {
-	  stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
-	}
+    try {
+      string[] argus = {"search", user, pass, query};
+      string[] envps = {"LD_LIBRARY_PATH=/home/gyllen/X11bin/lib/"};
+      string uris;
+      GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
+      test = uris.split ("\n");
+      stdout.printf ("%s\n", uris);
+    } catch (GLib.Error e) {
+      stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
+    }
 
-	stdout.printf ("I did a search on %s\n", searchstring);
+    stdout.printf ("I did a search on %s\n", query);
 
-	return test;
+    return test;
   }
 
   public void set_key (string key) {

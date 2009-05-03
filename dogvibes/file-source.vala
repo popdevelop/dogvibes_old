@@ -22,7 +22,7 @@ public class FileSource : GLib.Object, Source {
     return bin;
   }
 
-  public string[] search (string searchstring) {
+  public string[] search (string query) {
 	string[] test = {"beep"};
 	return test;
   }

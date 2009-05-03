@@ -6,10 +6,10 @@ public class Dogvibes : GLib.Object {
   private void runsearch () {
   }
 
-  public string[] search (string searchstring) {
+  public string[] search (string query) {
     /* FIXME this should use the spotify-source search method */
 
-	string[] test = {};
+    string[] test = {};
     string user;
     string pass;
 
@@ -22,20 +22,20 @@ public class Dogvibes : GLib.Object {
       stderr.printf ("Oops: %s\n", e.message);
     }
 
-	try {
-	  string[] argus = {"search", user, pass, searchstring};
-	  string[] envps = {"LD_LIBRARY_PATH=/home/gyllen/X11bin/lib/"};
-	  string uris;
-	  GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
-	  test = uris.split ("\n");
-	  stdout.printf ("%s\n", uris);
-	} catch (GLib.Error e) {
-	  stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
-	}
+    try {
+      string[] argus = {"search", user, pass, query};
+      string[] envps = {"LD_LIBRARY_PATH=/home/gyllen/X11bin/lib/"};
+      string uris;
+      GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
+      test = uris.split ("\n");
+      stdout.printf ("%s\n", uris);
+    } catch (GLib.Error e) {
+      stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
+    }
 
-	stdout.printf ("I did a search on %s\n", searchstring);
+    stdout.printf ("I did a search on %s\n", query);
 
-	return test;
+    return test;
   }
 }
 
@@ -91,17 +91,17 @@ public class Amp : GLib.Object {
 
   /* Play Queue API */
   public void pause () {
-	this.pipeline.set_state (State.PAUSED);
+    this.pipeline.set_state (State.PAUSED);
   }
 
   public void play () {
-	this.pipeline.set_state (State.PLAYING);
+    this.pipeline.set_state (State.PLAYING);
   }
 
   public void queue(string key) {
-	this.pipeline.set_state (State.NULL);
+    this.pipeline.set_state (State.NULL);
     this.spotify.set_key (key);
-	this.pipeline.set_state (State.PLAYING);
+    this.pipeline.set_state (State.PLAYING);
   }
 
   public void resume () {
@@ -119,24 +119,24 @@ public void main (string[] args) {
 
   try {
     /* register DBus session */
-	var conn = DBus.Bus.get (DBus.BusType. SYSTEM);
-	dynamic DBus.Object bus = conn.get_object ("org.freedesktop.DBus",
-											   "/org/freedesktop/DBus",
-											   "org.freedesktop.DBus");
-	uint request_name_result = bus.request_name ("com.Dogvibes", (uint) 0);
+    var conn = DBus.Bus.get (DBus.BusType. SYSTEM);
+    dynamic DBus.Object bus = conn.get_object ("org.freedesktop.DBus",
+                                               "/org/freedesktop/DBus",
+                                               "org.freedesktop.DBus");
+    uint request_name_result = bus.request_name ("com.Dogvibes", (uint) 0);
 
-	if (request_name_result == DBus.RequestNameReply.PRIMARY_OWNER) {
+    if (request_name_result == DBus.RequestNameReply.PRIMARY_OWNER) {
       /* register dogvibes server */
-	  var dogvibes = new Dogvibes ();
+      var dogvibes = new Dogvibes ();
       conn.register_object ("/com/dogvibes/dogvibes", dogvibes);
 
       /* register amplifier */
-	  var amp = new Amp ();
+      var amp = new Amp ();
       conn.register_object ("/com/dogvibes/amp/0", amp);
       loop.run ();
-	}
+    }
   } catch (GLib.Error e) {
-	stderr.printf ("Oops: %s\n", e.message);
+    stderr.printf ("Oops: %s\n", e.message);
   }
 }
 
