@@ -8,39 +8,49 @@ public class Track : GLib.Object {
 
 [DBus (name = "com.Dogvibes.Dogvibes")]
 public class Dogvibes : GLib.Object {
-  private void runsearch () {
+  /* list of all sources */
+  public static GLib.List<Source> sources;
+
+  /* list of all speakers */
+  public static GLib.List<Speaker> speakers;
+
+  construct {
+    /* create lists of speakers and sources */
+    sources = new GLib.List<Source> ();
+    speakers = new GLib.List<Speaker> ();
+
+    /* initiate all sources */
+    sources.append (new SpotifySource ());
+    sources.append (new FileSource ());
+
+    /* initiate all speakers */
+    speakers.append (new DeviceSpeaker ());
+    speakers.append (new FakeSpeaker ());
   }
 
+  public static weak GLib.List<Source> get_sources () {
+    return sources;
+  }
+
+  public static weak GLib.List<Speaker> get_speakers () {
+    return speakers;
+  }
+
+
   public string[] search (string query) {
-    /* FIXME this should use the spotify-source search method */
+    /* this method is ugly as hell we need to understand how to concat string[] */
+    var builder = new StringBuilder ();
 
-    string[] test = {};
-    string user;
-    string pass;
-
-    try {
-      var gc = GConf.Client.get_default ();
-      user = gc.get_string ("/apps/dogvibes/spotify/username");
-      pass = gc.get_string ("/apps/dogvibes/spotify/password");
-      stdout.printf ("Creating spotify source with %s %s\n", user, pass);
-    } catch (GLib.Error e) {
-      stderr.printf ("Oops: %s\n", e.message);
+    foreach (Source item in sources) {
+      string[] res = item.search (query);
+      foreach (string s in res) {
+        stdout.printf ("%s\n", s);
+        builder.append (s);
+        builder.append ("$");
+      }
     }
 
-    try {
-      string[] argus = {"search", user, pass, query};
-      string[] envps = {"LD_LIBRARY_PATH=/home/gyllen/X11bin/lib/"};
-      string uris;
-      GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
-      test = uris.split ("\n");
-      stdout.printf ("%s\n", uris);
-    } catch (GLib.Error e) {
-      stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
-    }
-
-    stdout.printf ("I did a search on %s\n", query);
-
-    return test;
+    return builder.str.split ("$");
   }
 }
 
@@ -68,9 +78,14 @@ public class Amp : GLib.Object {
 
   construct {
     /* FIXME all of this should be in a list */
+    weak GLib.List<Source> sources = Dogvibes.get_sources ();
+    weak GLib.List<Source> speakers = Dogvibes.get_speakers ();
+
+    /* FIXME these should be removed */
     spotify = new SpotifySource ();
     fakespeaker = new FakeSpeaker ();
     devicespeaker = new DeviceSpeaker ();
+
     src = this.spotify.get_src ();
     sink1 = this.devicespeaker.get_speaker ();
     sink2 = this.fakespeaker.get_speaker ();
