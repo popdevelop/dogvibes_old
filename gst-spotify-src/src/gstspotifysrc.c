@@ -154,7 +154,7 @@ GTimeVal start_t;
 GTimeVal stop_t;
 
 //static int counter=0;
-//FIXME: used for poll function
+//FIXME:used for poll function
 static int buf_size=0;
 static int music_delivery (sp_session *sess, const sp_audioformat *format,
                           const void *frames, int num_frames)
@@ -192,7 +192,7 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
     if (buf_size == 0){
       printf ( "buf_size == 0\n");
       if (len_given == len_needed) {
-        printf ( "  len_given(%d) == len_needed(%d)\n", len_given, len_needed);
+        printf ( "  len_given(%d) == len_needed(%d), write %d frames\n", len_given, len_needed, frames_needed);
         //all good, normal case
         memcpy (writeptr, frames, len_needed);
         gst_ring_buffer_advance (buf, 1);
@@ -403,6 +403,7 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
 {
   sp_session_config config;
   sp_error error;
+  GstSpotify *spotify;
 /*   spotify = GST_SPOTIFY (asrc); */
 
   spotify = GST_SPOTIFY (GST_OBJECT_PARENT (buf));
