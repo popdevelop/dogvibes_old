@@ -10,9 +10,6 @@ public class RadioSource : GLib.Object, Source {
 	stdout.printf ("Creating radio source with\n");
   }
 
-  private void runsearch () {
-  }
-
   public Bin get_src () {
     Bin bin = new Bin("radiobin");
     this.radiosrc = ElementFactory.make ("mmssrc", "Radio source!");
