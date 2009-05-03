@@ -175,6 +175,8 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   guint8 tempbuf[MAX_SEGMENT_SIZE];
   buf = GST_RING_BUFFER_CAST (ring_buffer);
   abuf = GST_SPOTIFY_RING_BUFFER_CAST (ring_buffer);
+  GstBaseAudioSrc *src = GST_BASE_AUDIO_SRC (spotify);
+
   //printf ("sample_rate%d, channels=%d, sampletype%d\n", format->sample_rate, format->channels, format->sample_type);
   //FIXME this needs to be looked over
   channels = format->channels;
@@ -184,10 +186,10 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
     //think we have a new song?
     printf ("num_frames == 0\n");
     g_cond_broadcast (cond);
-    exit (0);
+    GstPad *src_pad = gst_element_get_pad (GST_ELEMENT (spotify), "src");
+    gst_pad_push_event (src_pad, gst_event_new_eos ());
     return 0;
   }
-  GstBaseAudioSrc *src = GST_BASE_AUDIO_SRC (spotify);
   /* if we have sent a second or more, return early */
   if (samples_in >= src->next_sample + format->sample_rate) {
     printf ("RATE CONTROL NOW!!\n");
@@ -255,7 +257,7 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
        printf ("  new bufsize %d + %d = %d\n", buf_size, len_needed, len_needed + buf_size);
        buf_size = buf_size + len_needed;
        return frames_needed;
-
+    /* end temporary code */
 
     }
     printf ("should not happen\n");
