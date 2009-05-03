@@ -3,31 +3,79 @@ using GConf;
 
 [DBus (name = "com.Dogvibes.Dogvibes")]
 public class Dogvibes : GLib.Object {
-  public string[] search (string user, string pass, string searchstring) {
-    string[] hepp = {};
-    //stdout.printf ("%s %s not used anymore\n", user, pass);
-    //return spotify.search (searchstring);
-    return hepp;
+  private void runsearch () {
+  }
+
+  public string[] search (string searchstring) {
+    /* FIXME this should use the spotify-source search method */
+
+	string[] test = {};
+    string user;
+    string pass;
+
+    try {
+      var gc = GConf.Client.get_default ();
+      user = gc.get_string ("/apps/dogvibes/spotify/username");
+      pass = gc.get_string ("/apps/dogvibes/spotify/password");
+      stdout.printf ("Creating spotify source with %s %s\n", user, pass);
+    } catch (GLib.Error e) {
+      stderr.printf ("Oops: %s\n", e.message);
+    }
+
+	try {
+	  string[] argus = {"search", user, pass, searchstring};
+	  string[] envps = {"LD_LIBRARY_PATH=/home/gyllen/X11bin/lib/"};
+	  string uris;
+	  GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
+	  test = uris.split ("\n");
+	  stdout.printf ("%s\n", uris);
+	} catch (GLib.Error e) {
+	  stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
+	}
+
+	stdout.printf ("I did a search on %s\n", searchstring);
+
+	return test;
   }
 }
 
 [DBus (name = "com.Dogvibes.Amp")]
 public class Amp : GLib.Object {
+  /* the amp pipeline */
   private Pipeline pipeline = null;
+
+  /* sources */
   private Source spotify;
+
+  /* speakers */
+  private Speaker fakespeaker = null;
+  private Speaker devicespeaker = null;
+
+  /* elements */
   private Element src = null;
-  private Element sink = null;
-  //private List playqueue;
+  private Element sink1 = null;
+  private Element sink2 = null;
+  private Element tee = null;
 
   construct {
     /* FIXME all of this should be in a list */
     this.spotify = new SpotifySource ();
+    this.fakespeaker = new FakeSpeaker ();
+    this.devicespeaker = new DeviceSpeaker ();
     this.src = this.spotify.get_src ();
+    this.sink1 = this.devicespeaker.get_speaker ();
+    this.sink2 = this.fakespeaker.get_speaker ();
+    this.tee = ElementFactory.make ("tee" , "tee");
+
     this.pipeline = (Pipeline) new Pipeline ("dogvibes");
-    this.sink = ElementFactory.make ("alsasink", "alsasink");
-    this.sink.set ("sync", false);
-    this.pipeline.add_many (src, sink);
-    this.src.link (sink);
+    /* uncomment if you want multiple speakers */
+    //this.pipeline.add_many (src, tee, sink1, sink2);
+    this.pipeline.add_many (src, tee, sink1);
+    this.src.link (tee);
+    this.tee.link (this.sink1);
+    /* uncomment if you want multiple speakers */
+    //this.tee.link (this.sink2);
+
     /* State IS already NULL */
     this.pipeline.set_state (State.NULL);
   }
@@ -91,7 +139,6 @@ public void main (string[] args) {
 	stderr.printf ("Oops: %s\n", e.message);
   }
 }
-
 
 /* Maybe neede later on */
 //	/* elements for final pipeline */
