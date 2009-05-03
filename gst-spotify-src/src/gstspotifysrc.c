@@ -150,40 +150,108 @@ static GThread *thread;
 
 
 /* libspotify */
+GTimeVal start_t;
+GTimeVal stop_t;
 
+//static int counter=0;
+//FIXME: used for poll function
+static int buf_size=0;
 static int music_delivery (sp_session *sess, const sp_audioformat *format,
                           const void *frames, int num_frames)
 {
   GstRingBuffer *buf;
   GstSpotifyRingBuffer *abuf;
-  gint len;
-  gint givenLen;
+  gint len_needed;
+  gint len_given;
   guint8 *writeptr;
   gint writeseg;
   gint channels;
-
+  gint frames_given;
+  gint frames_needed = num_frames;
+  #define BUF_SIZE 8192
+  guint8 tempbuf[BUF_SIZE];
   buf = GST_RING_BUFFER_CAST (ring_buffer);
   abuf = GST_SPOTIFY_RING_BUFFER_CAST (ring_buffer);
 
+  //printf ("sample_rate%d, channels=%d, sampletype%d\n", format->sample_rate, format->channels, format->sample_type);
   //FIXME this needs to be looked over
   channels = format->channels;
-  len = num_frames * sizeof (int16_t) * format->channels;
-  GST_DEBUG ("got num_frames=%d, channels=%d, len=%d sample_rate %d", num_frames, channels, len, format->sample_rate);
+  len_needed = num_frames * sizeof (int16_t) * format->channels;
+  //GST_DEBUG ("got num_frames=%d, channels=%d, len_needed=%d sample_rate %d", num_frames, channels, len_needed, format->sample_rate);
   if (num_frames == 0) {
     //think we have a new song?
     printf ("num_frames == 0\n");
-    g_cond_broadcast(cond);
+    g_cond_broadcast (cond);
+    exit (0);
     return 0;
   }
 
-  if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &givenLen)) {
-    GST_DEBUG ("givenLen=%d, len=%d", givenLen, len);
-    memcpy (writeptr, frames, givenLen);
+  if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &len_given)) {
+    frames_given = len_given / (sizeof (int16_t) * format->channels);
 
-    /* we wrote one segment */
-    gst_ring_buffer_advance (buf, 1);
+    if (buf_size == 0){
+      printf ( "buf_size == 0\n");
+      if (len_given == len_needed) {
+        printf ( "  len_given(%d) == len_needed(%d)\n", len_given, len_needed);
+        //all good, normal case
+        memcpy (writeptr, frames, len_needed);
+        gst_ring_buffer_advance (buf, 1);
+        //really frames, not len?
+        return frames_needed;
+      } else {
+        printf ( "  len_given(%d) != len_needed(%d)\n", len_given, len_needed);
+        //write only to buf and return
+        printf ("   write %d to buf\n", len_needed);
+        memcpy (tempbuf, frames, len_needed);
+        buf_size = len_needed;
+        return frames_needed;
+      }
+    }
+
+    if (buf_size > 0) {
+       printf ( "buf_size(%d) > 0 and len_needed=%d\n", buf_size, len_needed);
+       int buf_size_left = BUF_SIZE - buf_size;
+       int new_buf_size;
+
+       //we have enough to fill the segment, write from buf and frames
+       if (len_needed >= buf_size_left) {
+         //fill ringbuffer
+         printf ("  write %d + %d = %d to ringbuffer\n", buf_size, buf_size_left, buf_size + buf_size_left);
+         memcpy (writeptr, tempbuf, buf_size);
+         memcpy (writeptr + buf_size, frames, buf_size_left);
+         gst_ring_buffer_advance (buf, 1);
+
+         //write the rest of frames to tempbuf
+         new_buf_size = len_needed - buf_size_left;
+         printf ("  write the rest %d - %d = %d to buf\n", len_needed, buf_size_left, new_buf_size);
+         memcpy (tempbuf, frames + buf_size_left, new_buf_size);
+
+         //update buf_size
+         buf_size = new_buf_size;
+         printf ("  new bufsize %d - %d = %d\n", len_needed, buf_size_left, new_buf_size);
+         return frames_needed;
+
+       }
+
+       //cant fill, write what we have and return
+       printf ("  we cant fill writeptr, write to buf and return\n");
+       memcpy (tempbuf + buf_size, frames, len_needed);
+       printf ("  new bufsize %d + %d = %d\n", buf_size, len_needed, len_needed + buf_size);
+       buf_size = buf_size+len_needed;
+       return frames_needed;
+
+
+    }
+    printf ("should not happen\n");
+    g_assert (FALSE);
+    
+  } else {
+    printf ("should not happen\n");
+    g_assert (FALSE);
   }
-  return num_frames;
+  printf ("should not happen\n");
+  g_assert (FALSE);
+  return frames_needed;
 }
 
 static void connection_error (sp_session *session, sp_error error)
@@ -335,7 +403,6 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
 {
   sp_session_config config;
   sp_error error;
-  GstSpotify *spotify;
 /*   spotify = GST_SPOTIFY (asrc); */
 
   spotify = GST_SPOTIFY (GST_OBJECT_PARENT (buf));
@@ -405,24 +472,29 @@ gst_spotify_ring_buffer_acquire (GstRingBuffer * buf, GstRingBufferSpec * spec)
   printf ("SRC:ACQUIRE\n");
 
   abuf = GST_SPOTIFY_RING_BUFFER_CAST (buf);
+  g_print ("spec->buffer_time = %llu\n", spec->buffer_time);
+  g_print ("spec->width = %d\n", spec->width);
+  g_print ("spec->depth = %d\n", spec->depth);
+  g_print ("spec->latecy_time = %lld\n", spec->latency_time);
+  g_print ("spec->type = %d\n", spec->type);
+  g_print ("spec->format = %d\n", spec->format);
 
   /* sample rate must be that of the server */
   sample_rate = 44100;
   channels = 2;
   buffer_size = 8192/4;
 
-
   spec->segsize = buffer_size * sizeof (int16_t) * channels;
   spec->latency_time = gst_util_uint64_scale (spec->segsize,
       (GST_SECOND / GST_USECOND), spec->rate * spec->bytes_per_sample);
   /* segtotal based on buffer-time latency */
   g_print ("spec->bytes_per_sample = %u\n", spec->bytes_per_sample);
+  g_print ("spec->segsize = %u\n", spec->segsize);
   g_print ("spec->rate = %u\n", spec->rate);
   g_print ("spec->latency_time = %llu\n", spec->latency_time);
   spec->segtotal = spec->buffer_time / spec->latency_time;
-  g_print ("spec->buffer_time = %llu\n", spec->buffer_time);
   g_print ("%lld / %lld = %d\n", spec->buffer_time , spec->latency_time, spec->segtotal);
-  g_print ("segtotal = %d\n", spec->segtotal);
+  g_print ("spec-segtotal = %d\n", spec->segtotal);
 
   /* allocate the ringbuffer memory now */
   buf->data = gst_buffer_new_and_alloc (spec->segtotal * spec->segsize);
@@ -523,7 +595,8 @@ static guint
 gst_spotify_ring_buffer_delay (GstRingBuffer * buf)
 {
   //FIXME delay
-  return 0;
+  g_print ("do you poll me?\n");
+  return buf_size;
 }
 
 /* end ringbuffer */
