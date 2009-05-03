@@ -175,7 +175,6 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   guint8 tempbuf[MAX_SEGMENT_SIZE];
   buf = GST_RING_BUFFER_CAST (ring_buffer);
   abuf = GST_SPOTIFY_RING_BUFFER_CAST (ring_buffer);
-
   //printf ("sample_rate%d, channels=%d, sampletype%d\n", format->sample_rate, format->channels, format->sample_type);
   //FIXME this needs to be looked over
   channels = format->channels;
@@ -200,6 +199,12 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &len_given)) {
     frames_given = len_given / (sizeof (int16_t) * format->channels);
 
+    /* temporary code to fix choppy sound */
+    memcpy (writeptr, frames, len_given);
+    gst_ring_buffer_advance (buf, 1);
+    return num_frames;
+    /* end temporary code */
+    
     if (buf_size == 0){
       printf ( "buf_size == 0\n");
       if (len_given == len_needed) {
@@ -220,7 +225,7 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
     }
 
     if (buf_size > 0) {
-       printf ( "buf_size(%d) > 0 and len_needed=%d, frames_needed=%d\n", buf_size, len_needed, frames_needed);
+       printf ( "buf_size(%d) > 0 and len_needed=%d\n", buf_size, len_needed);
        int buf_size_left = MAX_SEGMENT_SIZE - buf_size;
        int new_buf_size;
 
@@ -248,7 +253,7 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
        printf ("  we cant fill writeptr, write to buf and return\n");
        memcpy (tempbuf + buf_size, frames, len_needed);
        printf ("  new bufsize %d + %d = %d\n", buf_size, len_needed, len_needed + buf_size);
-       buf_size = buf_size+len_needed;
+       buf_size = buf_size + len_needed;
        return frames_needed;
 
 
