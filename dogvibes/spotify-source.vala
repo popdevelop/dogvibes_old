@@ -26,7 +26,7 @@ public class SpotifySource : GLib.Object, Source {
   public Bin get_src () {
     Bin bin = new Bin("spotifybin");
     this.spotify = ElementFactory.make ("spotify", "spotify");
-    stdout.printf ("Logging on spotify\n");
+    stdout.printf ("Logging on to Spotify\n");
     spotify.set ("user", user);
     spotify.set ("pass", pass);
     spotify.set ("buffer-time", (int64) 100000000);
@@ -45,12 +45,12 @@ public class SpotifySource : GLib.Object, Source {
       string uris;
       GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
       test = uris.split ("\n");
-      stdout.printf ("%s\n", uris);
+      //stdout.printf ("%s\n", uris);
     } catch (GLib.Error e) {
       stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
     }
 
-    stdout.printf ("I did a search on %s\n", query);
+    //stdout.printf ("I did a search on %s\n", query);
 
     return test;
   }
