@@ -1,5 +1,5 @@
 #!/bin/sh
-/usr/bin/valac --pkg gconf-2.0 -o setup_spotify setup_spotify.vala
+valac --pkg gconf-2.0 -o setup_spotify setup_spotify.vala
 ./setup_spotify
-/usr/bin/valac --pkg glib-2.0 --pkg gmodule-2.0 --pkg gstreamer-0.10 --pkg dbus-glib-1 --pkg gconf-2.0 -o server  \
-               fake-speaker.vala device-speaker.vala radio-source.vala spotify-source.vala source-interface.vala amplifier-interface.vala speaker-interface.vala file-source.vala server.vala
+valac --pkg glib-2.0 --pkg gmodule-2.0 --pkg gstreamer-0.10 --pkg dbus-glib-1 --pkg gconf-2.0 --pkg sqlite3 -o server  \
+               fake-speaker.vala device-speaker.vala radio-source.vala spotify-source.vala source-interface.vala amplifier-interface.vala speaker-interface.vala file-source.vala server.vala Collection.vala
