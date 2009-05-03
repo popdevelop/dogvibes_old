@@ -68,20 +68,20 @@ public class Amp : GLib.Object {
 
   construct {
     /* FIXME all of this should be in a list */
-    this.spotify = new SpotifySource ();
-    this.fakespeaker = new FakeSpeaker ();
-    this.devicespeaker = new DeviceSpeaker ();
-    this.src = this.spotify.get_src ();
-    this.sink1 = this.devicespeaker.get_speaker ();
-    this.sink2 = this.fakespeaker.get_speaker ();
-    this.tee = ElementFactory.make ("tee" , "tee");
+    spotify = new SpotifySource ();
+    fakespeaker = new FakeSpeaker ();
+    devicespeaker = new DeviceSpeaker ();
+    src = this.spotify.get_src ();
+    sink1 = this.devicespeaker.get_speaker ();
+    sink2 = this.fakespeaker.get_speaker ();
+    tee = ElementFactory.make ("tee" , "tee");
 
-    this.pipeline = (Pipeline) new Pipeline ("dogvibes");
+    pipeline = (Pipeline) new Pipeline ("dogvibes");
     /* uncomment if you want multiple speakers */
     //this.pipeline.add_many (src, tee, sink1, sink2);
-    this.pipeline.add_many (src, tee, sink1);
-    this.src.link (tee);
-    this.tee.link (this.sink1);
+    pipeline.add_many (src, tee, sink1);
+    src.link (tee);
+    tee.link (this.sink1);
     /* uncomment if you want multiple speakers */
     //this.tee.link (this.sink2);
 
@@ -90,7 +90,7 @@ public class Amp : GLib.Object {
     playqueue_position = 0;
 
     /* State IS already NULL */
-    this.pipeline.set_state (State.NULL);
+    pipeline.set_state (State.NULL);
   }
 
   /* Speaker API */
@@ -104,14 +104,15 @@ public class Amp : GLib.Object {
 
   /* Play Queue API */
   public void pause () {
-    this.pipeline.set_state (State.PAUSED);
+    pipeline.set_state (State.PAUSED);
   }
 
   public void play () {
+    /* FIXME do we need to set key here*/
     Track track;
     track = (Track) playqueue.nth_data (playqueue_position);
     spotify.set_key (track.key);
-    this.pipeline.set_state (State.PLAYING);
+    pipeline.set_state (State.PLAYING);
   }
 
   public void queue (string key) {
@@ -145,9 +146,9 @@ public class Amp : GLib.Object {
 
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
-    this.pipeline.set_state (State.NULL);
+    pipeline.set_state (State.NULL);
     spotify.set_key (track.key);
-    this.pipeline.set_state (state);
+    pipeline.set_state (state);
   }
 
   public void previous_track () {
@@ -163,17 +164,17 @@ public class Amp : GLib.Object {
 
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
-    this.pipeline.set_state (State.NULL);
+    pipeline.set_state (State.NULL);
     spotify.set_key (track.key);
-    this.pipeline.set_state (state);
+    pipeline.set_state (state);
   }
 
   public void resume () {
-    this.pipeline.set_state (State.PLAYING);
+    pipeline.set_state (State.PLAYING);
   }
 
   public void stop () {
-    this.pipeline.set_state (State.NULL);
+    pipeline.set_state (State.NULL);
   }
 }
 
