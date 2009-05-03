@@ -19,6 +19,7 @@ public class SpotifySource : GLib.Object, Source {
     this.pass = pass;
   }
 
+  /* ugly */
   private void runsearch () {
   }
 
@@ -28,7 +29,7 @@ public class SpotifySource : GLib.Object, Source {
     stdout.printf ("Logging on spotify\n");
     spotify.set ("user", user);
     spotify.set ("pass", pass);
-    spotify.set ("buffer-time", (int64) 10000000);
+    spotify.set ("buffer-time", (int64) 100000000);
     bin.add (this.spotify);
     GhostPad gpad = new GhostPad ("src", this.spotify.get_static_pad("src"));
     bin.add_pad (gpad);
