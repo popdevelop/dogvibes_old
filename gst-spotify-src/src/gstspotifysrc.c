@@ -191,8 +191,8 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
     return 0;
   }
   /* if we have sent a second or more, return early */
-  if (samples_in >= src->next_sample + format->sample_rate) {
-    printf ("RATE CONTROL NOW!!\n");
+  if (src->next_sample != -1 && samples_in >= src->next_sample + format->sample_rate) {
+    printf ("RATE CONTROL NOW!! %lld > %lld\n",samples_in,src->next_sample + format->sample_rate);
     return 0;
   }
   samples_in += num_frames;
@@ -551,7 +551,7 @@ gst_spotify_ring_buffer_start (GstRingBuffer * buf)
 {
   GstSpotify *spotify;
   spotify = GST_SPOTIFY (GST_OBJECT_PARENT (buf));
-
+  samples_in = 0;
   printf("SRC:START %s\n", GST_SPOTIFY_URI (spotify));
 
   sp_link *link = sp_link_create_from_string (GST_SPOTIFY_URI (spotify));
