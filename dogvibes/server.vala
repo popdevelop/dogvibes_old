@@ -1,6 +1,11 @@
 using Gst;
 using GConf;
 
+public class Track : GLib.Object {
+  public string key { get; set; }
+  public string artist { get; set; }
+}
+
 [DBus (name = "com.Dogvibes.Dogvibes")]
 public class Dogvibes : GLib.Object {
   private void runsearch () {
@@ -57,6 +62,10 @@ public class Amp : GLib.Object {
   private Element sink2 = null;
   private Element tee = null;
 
+  /* playqueue */
+  List<Track> playqueue;
+  uint playqueue_position;
+
   construct {
     /* FIXME all of this should be in a list */
     this.spotify = new SpotifySource ();
@@ -75,6 +84,10 @@ public class Amp : GLib.Object {
     this.tee.link (this.sink1);
     /* uncomment if you want multiple speakers */
     //this.tee.link (this.sink2);
+
+    /* play queue */
+    playqueue = new List<Track> ();
+    playqueue_position = 0;
 
     /* State IS already NULL */
     this.pipeline.set_state (State.NULL);
@@ -95,13 +108,64 @@ public class Amp : GLib.Object {
   }
 
   public void play () {
+    Track track;
+    track = (Track) playqueue.nth_data (playqueue_position);
+    spotify.set_key (track.key);
     this.pipeline.set_state (State.PLAYING);
   }
 
-  public void queue(string key) {
-    this.pipeline.set_state (State.NULL);
+  public void queue (string key) {
     this.spotify.set_key (key);
-    this.pipeline.set_state (State.PLAYING);
+    Track track = new Track ();
+    track.key = key;
+    track.artist = "Mim";
+    playqueue.append (track);
+  }
+
+  public string[] get_all_tracks_in_queue () {
+    var builder = new StringBuilder ();
+    foreach (Track item in playqueue) {
+      builder.append (item.key);
+      builder.append (" ");
+    }
+    stdout.printf ("Play queue length %u\n", playqueue.length ());
+    return builder.str.split (" ");
+  }
+
+  public void next_track () {
+    State pending;
+    State state;
+    Track track;
+
+    if (playqueue_position < (playqueue.length () - 1)) {
+      playqueue_position = playqueue_position + 1;
+    } else {
+      stdout.printf ("Reached top of queue\n");
+    }
+
+    track = (Track) playqueue.nth_data (playqueue_position);
+    pipeline.get_state (out state, out pending, 0);
+    this.pipeline.set_state (State.NULL);
+    spotify.set_key (track.key);
+    this.pipeline.set_state (state);
+  }
+
+  public void previous_track () {
+    State pending;
+    State state;
+    Track track;
+
+    if (playqueue_position != 0) {
+      playqueue_position = playqueue_position - 1;
+    } else {
+      stdout.printf ("Reached end of queue\n");
+    }
+
+    track = (Track) playqueue.nth_data (playqueue_position);
+    pipeline.get_state (out state, out pending, 0);
+    this.pipeline.set_state (State.NULL);
+    spotify.set_key (track.key);
+    this.pipeline.set_state (state);
   }
 
   public void resume () {
