@@ -1,5 +1,6 @@
 /* GStreamer
- * Copyright (C) 2009 Johan Gyllenspetz <johan.gyllenspetz@gmail.com>
+ * Copyright (C) 2009 Johan Gyllenspetz <johan.gyllenspetz@gmail.com>,
+ *                    Joel Larsson <joelbits@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -147,6 +148,7 @@ GstRingBuffer *ring_buffer;
 static GMutex *mutex;
 static GCond *cond;
 static GThread *thread;
+GstSpotify *spotify;
 
 
 /* libspotify */
@@ -155,6 +157,7 @@ GTimeVal stop_t;
 
 //static int counter=0;
 //FIXME:used for poll function
+static guint64 samples_in = 0;
 static int buf_size=0;
 static int music_delivery (sp_session *sess, const sp_audioformat *format,
                           const void *frames, int num_frames)
@@ -185,6 +188,14 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
     exit (0);
     return 0;
   }
+  GstBaseAudioSrc *src = GST_BASE_AUDIO_SRC (spotify);
+  /* if we have sent a second or more, return early */
+  if (samples_in >= src->next_sample + format->sample_rate) {
+    printf ("RATE CONTROL NOW!!\n");
+    return 0;
+  }
+  samples_in += num_frames;
+  g_print ("NEXT SAMPLE: %lld  IN %lld\n",src->next_sample, samples_in);
 
   if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &len_given)) {
     frames_given = len_given / (sizeof (int16_t) * format->channels);
@@ -403,7 +414,6 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
 {
   sp_session_config config;
   sp_error error;
-  GstSpotify *spotify;
 /*   spotify = GST_SPOTIFY (asrc); */
 
   spotify = GST_SPOTIFY (GST_OBJECT_PARENT (buf));
@@ -612,7 +622,7 @@ gst_spotify_base_init (gpointer gclass)
     "Audio Source (Spotify)",
     "Source/Audio",
     "Input from Spotify",
-    "Johan Gyllenspetz <johan.gyllenspetz@gmail.com>"
+    "Johan Gyllenspetz, Joel Larsson <(johan.gyllenspetz|joelbits)@gmail.com>"
   };
   GstElementClass *element_class = GST_ELEMENT_CLASS (gclass);
 
