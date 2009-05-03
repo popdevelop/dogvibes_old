@@ -168,8 +168,8 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   gint channels;
   gint frames_given;
   gint frames_needed = num_frames;
-  #define BUF_SIZE 8192
-  guint8 tempbuf[BUF_SIZE];
+  #define MAX_SEGMENT_SIZE 8192
+  guint8 tempbuf[MAX_SEGMENT_SIZE];
   buf = GST_RING_BUFFER_CAST (ring_buffer);
   abuf = GST_SPOTIFY_RING_BUFFER_CAST (ring_buffer);
 
@@ -199,7 +199,7 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
         //really frames, not len?
         return frames_needed;
       } else {
-        printf ( "  len_given(%d) != len_needed(%d)\n", len_given, len_needed);
+        printf ( "  len_given(%d) != len_needed(%d), frames_needed=%d\n", len_given, len_needed, frames_needed);
         //write only to buf and return
         printf ("   write %d to buf\n", len_needed);
         memcpy (tempbuf, frames, len_needed);
@@ -209,8 +209,8 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
     }
 
     if (buf_size > 0) {
-       printf ( "buf_size(%d) > 0 and len_needed=%d\n", buf_size, len_needed);
-       int buf_size_left = BUF_SIZE - buf_size;
+       printf ( "buf_size(%d) > 0 and len_needed=%d, frames_needed=%d\n", buf_size, len_needed, frames_needed);
+       int buf_size_left = MAX_SEGMENT_SIZE - buf_size;
        int new_buf_size;
 
        //we have enough to fill the segment, write from buf and frames
@@ -302,17 +302,17 @@ static void notify_main_thread (sp_session *session)
 void *thread_func( void *ptr )
 {
    GTimeVal t;
+   gboolean in_time;
    int timeout = -1;
-   g_get_current_time(&t);
-   //first broadcast should come before this
-   g_time_val_add(&t, 10*1000*1000);
+   /* wait for first broadcast */
+   g_cond_wait (cond, mutex);
    while (1) {
-     g_print ("\n\nWAITING FOR BROADCAST (timeout = %d ms)\n\n\n", timeout);
-     g_cond_timed_wait (cond, mutex, &t);
-     GST_DEBUG ("GOT BROADCAST OR TIMEOUT\n");
      sp_session_process_events (session, &timeout);
      g_get_current_time(&t);
      g_time_val_add(&t, timeout*1000);
+     g_print ("\n\nWAITING FOR BROADCAST (timeout = %d ms)\n\n\n", timeout);
+     in_time = g_cond_timed_wait (cond, mutex, &t);
+     GST_DEBUG ("GOT %s\n", in_time ? "BROADCAST" : "TIMEOUT");
    }
 }
 
