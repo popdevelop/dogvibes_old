@@ -63,7 +63,7 @@ public class Amp : GLib.Object {
   private Element tee = null;
 
   /* playqueue */
-  List<Track> playqueue;
+  GLib.List<Track> playqueue;
   uint playqueue_position;
 
   construct {
@@ -86,7 +86,7 @@ public class Amp : GLib.Object {
     //this.tee.link (this.sink2);
 
     /* play queue */
-    playqueue = new List<Track> ();
+    playqueue = new GLib.List<Track> ();
     playqueue_position = 0;
 
     /* State IS already NULL */
