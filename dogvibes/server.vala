@@ -54,6 +54,9 @@ public class Amp : GLib.Object {
   /* the amp pipeline */
   private Pipeline pipeline = null;
 
+  /* the amp pipline bus */
+  private Bus bus = null;
+
   /* sources */
   private Source source;
 
@@ -88,9 +91,20 @@ public class Amp : GLib.Object {
     pipeline.add_many (src, tee);
     src.link (tee);
 
+    /* get pipline bus */
+    bus = pipeline.get_bus ();
+    bus.add_signal_watch ();
+    bus.message += test_func;
+
     /* initiate play queue */
     playqueue = new GLib.List<Track> ();
     playqueue_position = 0;
+  }
+
+  private void test_func (Gst.Bus bus, Gst.Message mes) {
+    if (mes.type == Gst.MessageType.EOS) {
+      next_track ();
+    }
   }
 
   /* Speaker API */
