@@ -59,14 +59,10 @@ public class Amp : GLib.Object {
 
   /* speakers */
   private Speaker speaker;
-  //private Speaker fakespeaker = null;
-  //private Speaker devicespeaker = null;
 
   /* elements */
   private Element src = null;
   private Element sink = null;
-  //private Element sink1 = null;
-  //private Element sink2 = null;
   private Element tee = null;
 
   /* playqueue */
@@ -77,32 +73,28 @@ public class Amp : GLib.Object {
   weak GLib.List<Speaker> speakers;
 
   construct {
-    /* FIXME all of this should be in a list */
     sources = Dogvibes.get_sources ();
     speakers = Dogvibes.get_speakers ();
 
-    /* FIXME these should be removed */
+    /* FIXME these should be in a list */
     source = sources.nth_data (0);
     src = this.source.get_src ();
 
+    /* create the tee */
     tee = ElementFactory.make ("tee" , "tee");
 
+    /* initiate the pipeline */
     pipeline = (Pipeline) new Pipeline ("dogvibes");
-
     pipeline.add_many (src, tee);
     src.link (tee);
 
-    /* play queue */
+    /* initiate play queue */
     playqueue = new GLib.List<Track> ();
     playqueue_position = 0;
-
-    /* state is already NULL */
-    pipeline.set_state (State.NULL);
   }
 
   /* Speaker API */
   public void connect_speaker (int nbr) {
-    /* Fixme server crashes if you try to add already added speaker */
     if (nbr > (speakers.length () - 1)) {
       stdout.printf ("Speaker %d does not exist\n", nbr);
       return;
@@ -110,7 +102,6 @@ public class Amp : GLib.Object {
 
     speaker = speakers.nth_data (nbr);
 
-    /* fixme there are probably better ways to check if speaker is connected */
     if (pipeline.get_by_name (speaker.name) == null) {
       State state;
       State pending;
@@ -134,7 +125,6 @@ public class Amp : GLib.Object {
 
     speaker = speakers.nth_data (nbr);
 
-    /* fixme there are probably better ways to check if speaker is connected */
     if (pipeline.get_by_name (speaker.name) != null) {
       State state;
       State pending;
