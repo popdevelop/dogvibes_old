@@ -60,61 +60,98 @@ public class Amp : GLib.Object {
   private Pipeline pipeline = null;
 
   /* sources */
-  private Source spotify;
+  private Source source;
 
   /* speakers */
-  private Speaker fakespeaker = null;
-  private Speaker devicespeaker = null;
+  private Speaker speaker;
+  //private Speaker fakespeaker = null;
+  //private Speaker devicespeaker = null;
 
   /* elements */
   private Element src = null;
-  private Element sink1 = null;
-  private Element sink2 = null;
+  private Element sink = null;
+  //private Element sink1 = null;
+  //private Element sink2 = null;
   private Element tee = null;
 
   /* playqueue */
   GLib.List<Track> playqueue;
   uint playqueue_position;
 
+  weak GLib.List<Source> sources;
+  weak GLib.List<Speaker> speakers;
+
   construct {
     /* FIXME all of this should be in a list */
-    weak GLib.List<Source> sources = Dogvibes.get_sources ();
-    weak GLib.List<Source> speakers = Dogvibes.get_speakers ();
+    sources = Dogvibes.get_sources ();
+    speakers = Dogvibes.get_speakers ();
 
     /* FIXME these should be removed */
-    spotify = new SpotifySource ();
-    fakespeaker = new FakeSpeaker ();
-    devicespeaker = new DeviceSpeaker ();
+    source = sources.nth_data (0);
+    src = this.source.get_src ();
 
-    src = this.spotify.get_src ();
-    sink1 = this.devicespeaker.get_speaker ();
-    sink2 = this.fakespeaker.get_speaker ();
     tee = ElementFactory.make ("tee" , "tee");
 
     pipeline = (Pipeline) new Pipeline ("dogvibes");
-    /* uncomment if you want multiple speakers */
-    //this.pipeline.add_many (src, tee, sink1, sink2);
-    pipeline.add_many (src, tee, sink1);
+
+    pipeline.add_many (src, tee);
     src.link (tee);
-    tee.link (this.sink1);
-    /* uncomment if you want multiple speakers */
-    //this.tee.link (this.sink2);
 
     /* play queue */
     playqueue = new GLib.List<Track> ();
     playqueue_position = 0;
 
-    /* State IS already NULL */
+    /* state is already NULL */
     pipeline.set_state (State.NULL);
   }
 
   /* Speaker API */
-  public void connect_speaker (int speaker) {
-    stdout.printf("NOT IMPLEMENTED %d\n", speaker);
+  public void connect_speaker (int nbr) {
+    /* Fixme server crashes if you try to add already added speaker */
+    if (nbr > (speakers.length () - 1)) {
+      stdout.printf ("Speaker %d does not exist\n", nbr);
+      return;
+    }
+
+    speaker = speakers.nth_data (nbr);
+
+    /* fixme there are probably better ways to check if speaker is connected */
+    if (pipeline.get_by_name (speaker.name) == null) {
+      State state;
+      State pending;
+
+      pipeline.get_state (out state, out pending, 0);
+      pipeline.set_state (State.NULL);
+      sink = speaker.get_speaker ();
+      pipeline.add (sink);
+      tee.link (sink);
+      pipeline.set_state (state);
+    } else {
+      stdout.printf ("Speaker already connected\n");
+    }
   }
 
-  public void disconnect_speaker (int speaker) {
-    stdout.printf("NOT IMPLEMENTED %d\n", speaker);
+  public void disconnect_speaker (int nbr) {
+    if (nbr > (speakers.length () - 1)) {
+      stdout.printf ("Speaker %d does not exist\n", nbr);
+      return;
+    }
+
+    speaker = speakers.nth_data (nbr);
+
+    /* fixme there are probably better ways to check if speaker is connected */
+    if (pipeline.get_by_name (speaker.name) != null) {
+      State state;
+      State pending;
+      pipeline.get_state (out state, out pending, 0);
+      pipeline.set_state (State.NULL);
+      Element rm = pipeline.get_by_name (speaker.name);
+      pipeline.remove (rm);
+      tee.unlink (sink);
+      pipeline.set_state (state);
+    } else {
+      stdout.printf ("Speaker not connected\n");
+    }
   }
 
   /* Play Queue API */
@@ -126,12 +163,12 @@ public class Amp : GLib.Object {
     /* FIXME do we need to set key here*/
     Track track;
     track = (Track) playqueue.nth_data (playqueue_position);
-    spotify.set_key (track.key);
+    source.set_key (track.key);
     pipeline.set_state (State.PLAYING);
   }
 
   public void queue (string key) {
-    this.spotify.set_key (key);
+    this.source.set_key (key);
     Track track = new Track ();
     track.key = key;
     track.artist = "Mim";
@@ -162,7 +199,7 @@ public class Amp : GLib.Object {
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
     pipeline.set_state (State.NULL);
-    spotify.set_key (track.key);
+    source.set_key (track.key);
     pipeline.set_state (state);
   }
 
@@ -180,7 +217,7 @@ public class Amp : GLib.Object {
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
     pipeline.set_state (State.NULL);
-    spotify.set_key (track.key);
+    source.set_key (track.key);
     pipeline.set_state (state);
   }
 
@@ -219,90 +256,3 @@ public void main (string[] args) {
     stderr.printf ("Oops: %s\n", e.message);
   }
 }
-
-/* Maybe neede later on */
-//	/* elements for final pipeline */
-//	Element filter = null;
-//	Element src = null;
-//	Element sink = null;
-//	/* inputs */
-//	Element localmp3;
-//	Element srse;
-//	//Element lastfm;
-//	/* outputs */
-//	Element apexsink;
-//	Element alsasink;
-//	/* filter */
-//	Element madfilter;
-//
-//	bool use_filter = false;
-//	bool use_playbin = false;
-//
-//	stdout.printf ("PLAYING ");
-//
-//	/* FIXME, one pipeline isn't enough */
-//	this.pipeline = (Pipeline) new Pipeline ("dogvibes");
-//	this.pipeline.set_state (State.NULL);
-//
-//	/* inputs */
-//	if (input == 0) {
-//      src = this.spotify.get_src(key);
-//	} else if (input == 1) {
-//	  use_filter = true;
-//	  stdout.printf("MP3 input ");
-//	  localmp3 = ElementFactory.make ("filesrc", "file reader");
-//	  madfilter = ElementFactory.make ("mad" , "mp3 decoder");
-//	  localmp3.set("location", "../testmedia/beep.mp3");
-//	  src = localmp3;
-//	  filter = madfilter;
-//	} else if (input == 2) {
-//	  use_playbin = true;
-//	  /* swedish webradio */
-//	  stdout.printf("Internet radio ");
-//	  srse = ElementFactory.make ("playbin", "Internet radio");
-//	  srse.set ("uri", "mms://wm-live.sr.se/SR-P3-High");
-//	  src = srse;
-//	} else {
-//	  stdout.printf("Error not correct input %d\n", input);
-//	  return;
-//	}
-//
-//	stdout.printf("on");
-//
-//	if (output == 0){
-//	  stdout.printf(" ALSA sink \n");
-//	  alsasink = ElementFactory.make ("alsasink", "alsasink");
-//	  alsasink.set ("sync", false);
-//	  sink = alsasink;
-//	} else if (output == 1) {
-//	  stdout.printf(" APEX sink \n");
-//	  apexsink = ElementFactory.make ("apexsink", "apexsink");
-//	  apexsink.set ("host", "192.168.1.3");
-//	  apexsink.set ("volume", 100);
-//	  apexsink.set ("sync", false);
-//	  sink = apexsink;
-//	} else {
-//	  stdout.printf("Error not correct output %d\n", output);
-//	  return;
-//	}
-//
-//	/* ugly */
-//	if (use_filter) {
-//	  if (src != null && sink != null && filter != null) {
-//		this.pipeline.add_many (src, filter, sink);
-//		src.link (filter);
-//		filter.link (sink);
-//		this.pipeline.set_state (State.PLAYING);
-//	  }
-//	} else if (use_playbin) {
-//	  if (src != null && sink != null) {
-//		((Bin)this.pipeline).add (src);
-//		this.pipeline.set_state (State.PLAYING);
-//	  }
-//	} else {
-//	  if (src != null && sink != null) {
-//		this.pipeline.add_many (src, sink);
-//		src.link (sink);
-//		this.pipeline.set_state (State.PLAYING);
-//	  }
-//	}

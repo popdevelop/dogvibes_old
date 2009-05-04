@@ -1,10 +1,11 @@
 using Gst;
 
 public class SpotifySource : GLib.Object, Source {
+  public Bin bin;
   public string user;
   public string pass;
   private Element spotify;
-
+  private bool created;
 
   construct {
     try {
@@ -17,6 +18,8 @@ public class SpotifySource : GLib.Object, Source {
     }
     this.user = user;
     this.pass = pass;
+
+    created = false;
   }
 
   /* ugly */
@@ -24,15 +27,19 @@ public class SpotifySource : GLib.Object, Source {
   }
 
   public Bin get_src () {
-    Bin bin = new Bin("spotifybin");
-    this.spotify = ElementFactory.make ("spotify", "spotify");
-    stdout.printf ("Logging on to Spotify\n");
-    spotify.set ("user", user);
-    spotify.set ("pass", pass);
-    spotify.set ("buffer-time", (int64) 100000000);
-    bin.add (this.spotify);
-    GhostPad gpad = new GhostPad ("src", this.spotify.get_static_pad("src"));
-    bin.add_pad (gpad);
+    /* Ugly this should be solved when we start using decodebin */
+    if (!created) {
+      bin = new Bin("spotifybin");
+      this.spotify = ElementFactory.make ("spotify", "spotify");
+      stdout.printf ("Logging on to Spotify\n");
+      spotify.set ("user", user);
+      spotify.set ("pass", pass);
+      spotify.set ("buffer-time", (int64) 100000000);
+      bin.add (this.spotify);
+      GhostPad gpad = new GhostPad ("src", this.spotify.get_static_pad("src"));
+      bin.add_pad (gpad);
+      created = true;
+    }
     return bin;
   }
 

@@ -1,5 +1,4 @@
 #!/bin/sh
-# key
 
 # send request to dogvibes daemon
 dbus-send --print-reply --system --dest=com.Dogvibes /com/dogvibes/amp/0 com.Dogvibes.Amp.Queue string:'spotify:track:1H5tvpoApNDxvxDexoaAUo'
