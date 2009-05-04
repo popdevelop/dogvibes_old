@@ -22,6 +22,7 @@ public class Dogvibes : GLib.Object {
     /* initiate all speakers */
     speakers.append (new DeviceSpeaker ());
     speakers.append (new FakeSpeaker ());
+	speakers.append (new ApexSpeaker ());
   }
 
   public static weak GLib.List<Source> get_sources () {

@@ -1,6 +1,5 @@
 using Gst;
 
-public interface Speaker : GLib.Object {
-  public abstract string name { get; set; }
-  public abstract Bin get_speaker ();
+public interface RemoteSpeaker : GLib.Object, Speaker {
+  public abstract string host { get; set; }
 }
