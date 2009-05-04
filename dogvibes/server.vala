@@ -1,11 +1,6 @@
 using Gst;
 using GConf;
 
-public class Track : GLib.Object {
-  public string key { get; set; }
-  public string artist { get; set; }
-}
-
 [DBus (name = "com.Dogvibes.Dogvibes")]
 public class Dogvibes : GLib.Object {
   /* list of all sources */
