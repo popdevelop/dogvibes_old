@@ -48,9 +48,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <gst/base/gstadapter.h>
 
 #include "gstspotifysrc.h"
 #include "gstspotifyringbuffer.h"
+
 
 #define DEFAULT_USER "anonymous"
 #define DEFAULT_PASS ""
@@ -158,6 +160,7 @@ GTimeVal stop_t;
 //static int counter=0;
 //FIXME:used for poll function
 static guint64 samples_in = 0;
+static GstAdapter *adapter;
 static int buf_size=0;
 static int music_delivery (sp_session *sess, const sp_audioformat *format,
                           const void *frames, int num_frames)
@@ -201,12 +204,13 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
   if (gst_ring_buffer_prepare_read (buf, &writeseg, &writeptr, &len_given)) {
     frames_given = len_given / (sizeof (int16_t) * format->channels);
 
-    /* temporary code to fix choppy sound */
+    /* FIRST TRY - FAIL, still best */
     memcpy (writeptr, frames, len_given);
     gst_ring_buffer_advance (buf, 1);
     return num_frames;
-    /* end temporary code */
-    
+
+   
+    /* SECOND TRY - FAIL */
     if (buf_size == 0){
       printf ( "buf_size == 0\n");
       if (len_given == len_needed) {
@@ -257,12 +261,29 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
        printf ("  new bufsize %d + %d = %d\n", buf_size, len_needed, len_needed + buf_size);
        buf_size = buf_size + len_needed;
        return frames_needed;
-    /* end temporary code */
 
     }
     printf ("should not happen\n");
     g_assert (FALSE);
-    
+  
+
+    /* THIRD TRY - FAIL */
+    guint avail; 
+    GstBuffer *new_buf = gst_buffer_new ();
+    new_buf->data = (guint8*)frames;
+    new_buf->size = len_needed;
+    gst_adapter_push (adapter, new_buf);
+    g_print ("ADAPTER - push %d\n", len_needed);
+    while ((avail = gst_adapter_available (adapter)) >= len_given) {
+      g_print ("ADAPTER - %d availiable, write %d\n", avail, len_given);
+      const guint8 *data = gst_adapter_peek (adapter, len_given);
+      memcpy (writeptr, data, len_given);
+      gst_adapter_flush (adapter, len_given);
+      gst_ring_buffer_advance (buf, 1);
+    } 
+    return num_frames;
+
+
   } else {
     printf ("should not happen\n");
     g_assert (FALSE);
@@ -699,7 +720,8 @@ gst_spotify_init (GstSpotify * spotify, GstSpotifyClass * gclass)
 
   cond = g_cond_new ();
   mutex = g_mutex_new ();
-
+ 
+  adapter = gst_adapter_new();
   if ((thread = g_thread_create((GThreadFunc)thread_func, (void *)NULL, TRUE, &err)) == NULL) {
      printf("g_thread_create failed: %s!!\n", err->message );
      g_error_free (err) ;
