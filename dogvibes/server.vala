@@ -94,14 +94,14 @@ public class Amp : GLib.Object {
     /* get pipline bus */
     bus = pipeline.get_bus ();
     bus.add_signal_watch ();
-    bus.message += test_func;
+    bus.message += pipeline_eos;
 
     /* initiate play queue */
     playqueue = new GLib.List<Track> ();
     playqueue_position = 0;
   }
 
-  private void test_func (Gst.Bus bus, Gst.Message mes) {
+  private void pipeline_eos (Gst.Bus bus, Gst.Message mes) {
     if (mes.type == Gst.MessageType.EOS) {
       next_track ();
     }
