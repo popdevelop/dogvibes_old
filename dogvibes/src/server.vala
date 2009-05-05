@@ -1,3 +1,4 @@
+
 using Gst;
 using GConf;
 
@@ -69,6 +70,7 @@ public class Amp : GLib.Object {
   private Element src = null;
   private Element sink = null;
   private Element tee = null;
+  private Element decodebin = null;
 
   /* playqueue */
   GLib.List<Track> playqueue;
@@ -81,17 +83,16 @@ public class Amp : GLib.Object {
     sources = Dogvibes.get_sources ();
     speakers = Dogvibes.get_speakers ();
 
-    /* FIXME these should be in a list */
-    source = sources.nth_data (0);
-    src = this.source.get_src ();
+    /* create the amps decodebin */
+    decodebin = ElementFactory.make ("decodebin2" , "decodebin2");
+    decodebin.pad_added += pad_added;
 
     /* create the tee */
-    tee = ElementFactory.make ("tee" , "tee");
+    tee = ElementFactory.make ("tee", "tee");
 
     /* initiate the pipeline */
     pipeline = (Pipeline) new Pipeline ("dogvibes");
-    pipeline.add_many (src, tee);
-    src.link (tee);
+    pipeline.add (decodebin);
 
     /* get pipline bus */
     bus = pipeline.get_bus ();
@@ -107,6 +108,18 @@ public class Amp : GLib.Object {
     if (mes.type == Gst.MessageType.EOS) {
       next_track ();
     }
+  }
+
+  private void pad_added (Element dec, Pad pad) {
+    stdout.printf ("Found suitable plugins lets add the speakers\n");
+    /* FIXME the speaker and the tee should not be added to the pipeline here */
+    speaker = speakers.nth_data (0);
+    sink = speaker.get_speaker ();
+    pipeline.add_many (tee, sink);
+    pad.link (tee.get_pad("sink"));
+    tee.link (sink);
+    tee.set_state (State.PAUSED);
+    sink.set_state (State.PAUSED);
   }
 
   /* Speaker API */
@@ -164,12 +177,14 @@ public class Amp : GLib.Object {
     /* FIXME do we need to set key here*/
     Track track;
     track = (Track) playqueue.nth_data (playqueue_position);
-    source.set_key (track.key);
+    src = Element.make_from_uri (URIType.SRC, track.key , "source");
+    pipeline.add (src);
+    src.link (decodebin);
     pipeline.set_state (State.PLAYING);
   }
 
   public void queue (string key) {
-    this.source.set_key (key);
+    //this.source.set_key (key);
     Track track = new Track ();
     track.key = key;
     track.artist = "Mim";
@@ -200,7 +215,7 @@ public class Amp : GLib.Object {
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
     pipeline.set_state (State.NULL);
-    source.set_key (track.key);
+    //source.set_key (track.key);
     pipeline.set_state (state);
   }
 
@@ -218,7 +233,7 @@ public class Amp : GLib.Object {
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
     pipeline.set_state (State.NULL);
-    source.set_key (track.key);
+    //source.set_key (track.key);
     pipeline.set_state (state);
   }
 
