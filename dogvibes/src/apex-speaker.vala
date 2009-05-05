@@ -15,7 +15,7 @@ public class ApexSpeaker : GLib.Object, Speaker, RemoteSpeaker {
     created = false;
   }
 
-  public Bin get_speaker () {
+  public weak Bin get_speaker () {
     if (!created) {
       bin = new Bin(this.name);
       this.apexsink = ElementFactory.make ("apexsink", "apexsink");

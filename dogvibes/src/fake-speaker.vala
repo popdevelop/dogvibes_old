@@ -13,7 +13,7 @@ public class FakeSpeaker : GLib.Object, Speaker {
     created = false;
   }
 
-  public Bin get_speaker () {
+  public weak Bin get_speaker () {
     if (!created) {
       bin = new Bin(name);
       this.fakesink = ElementFactory.make ("fakesink", "fakesink");
