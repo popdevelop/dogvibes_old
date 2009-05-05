@@ -26,7 +26,6 @@ public class RadioSource : GLib.Object, Source {
   }
 
   public GLib.List<Track> search (string query) {
-    string[] test = {};
     stdout.printf ("I did a search on %s\n", query);
     stdout.printf ("NOT IMPLEMENTED! \n");
     return new GLib.List<Track> ();
