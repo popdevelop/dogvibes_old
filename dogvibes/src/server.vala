@@ -40,17 +40,21 @@ public class Dogvibes : GLib.Object {
 
     foreach (Source source in sources) {
       foreach (Track track in source.search (query)) {
+        //stdout.printf("%s - %s [%s]\n",
+        //              track.artist, track.name, track.key);
         /* Tried to do this with concat but I ended up in an eternal loop... */
-        stdout.printf("%s - %s [%s]\n",
-                      track.artist, track.name, track.key);
         tracks.append(track);
       }
     }
 
-    stdout.printf("tracks: %d\n", (int)tracks.length ());
+    int i = 0;
+    string[] keys = new string[tracks.length ()];
+    foreach (Track track in tracks) {
+      keys[i] = track.key;
+      i++;
+    }
 
-    string[] temp = {"bobby", "knobby"};
-    return temp;
+    return keys;
   }
 }
 
