@@ -1,4 +1,3 @@
-
 using Gst;
 using GConf;
 
@@ -67,20 +66,24 @@ public class Amp : GLib.Object {
   private Bus bus = null;
 
   /* sources */
-  private Source source;
+  private weak Source source;
 
   /* speakers */
-  private Speaker speaker;
+  private weak Speaker speaker;
 
   /* elements */
   private Element src = null;
-  private Element sink = null;
+  private weak Element sink = null;
   private Element tee = null;
   private Element decodebin = null;
+  private Element spotify = null;
 
   /* playqueue */
   GLib.List<Track> playqueue;
   uint playqueue_position;
+
+  /* ugly hack waiting for mr fuck up */
+  private bool spotify_in_use;
 
   weak GLib.List<Source> sources;
   weak GLib.List<Speaker> speakers;
@@ -89,16 +92,20 @@ public class Amp : GLib.Object {
     sources = Dogvibes.get_sources ();
     speakers = Dogvibes.get_speakers ();
 
-    /* create the amps decodebin */
-    decodebin = ElementFactory.make ("decodebin2" , "decodebin2");
-    decodebin.pad_added += pad_added;
-
-    /* create the tee */
-    tee = ElementFactory.make ("tee", "tee");
+    source = sources.nth_data (0);
+    spotify = source.get_src ();
 
     /* initiate the pipeline */
     pipeline = (Pipeline) new Pipeline ("dogvibes");
-    pipeline.add (decodebin);
+
+    /* create the amps decodebin */
+    decodebin = ElementFactory.make ("decodebin2" , "decodebin2");
+    decodebin.pad_added += pad_added;
+    //pipeline.add (decodebin);
+
+    /* create the tee */
+    tee = ElementFactory.make ("tee", "tee");
+    pipeline.add (tee);
 
     /* get pipline bus */
     bus = pipeline.get_bus ();
@@ -117,15 +124,10 @@ public class Amp : GLib.Object {
   }
 
   private void pad_added (Element dec, Pad pad) {
-    stdout.printf ("Found suitable plugins lets add the speakers\n");
+    stdout.printf ("Found suitable plugins lets add the speaker\n");
     /* FIXME the speaker and the tee should not be added to the pipeline here */
-    speaker = speakers.nth_data (0);
-    sink = speaker.get_speaker ();
-    pipeline.add_many (tee, sink);
     pad.link (tee.get_pad("sink"));
-    tee.link (sink);
     tee.set_state (State.PAUSED);
-    sink.set_state (State.PAUSED);
   }
 
   /* Speaker API */
@@ -142,7 +144,7 @@ public class Amp : GLib.Object {
       State pending;
 
       pipeline.get_state (out state, out pending, 0);
-      pipeline.set_state (State.NULL);
+      pipeline.set_state (State.READY);
       sink = speaker.get_speaker ();
       pipeline.add (sink);
       tee.link (sink);
@@ -164,7 +166,7 @@ public class Amp : GLib.Object {
       State state;
       State pending;
       pipeline.get_state (out state, out pending, 0);
-      pipeline.set_state (State.NULL);
+      pipeline.set_state (State.READY);
       Element rm = pipeline.get_by_name (speaker.name);
       pipeline.remove (rm);
       tee.unlink (sink);
@@ -180,17 +182,30 @@ public class Amp : GLib.Object {
   }
 
   public void play () {
-    /* FIXME do we need to set key here*/
     Track track;
     track = (Track) playqueue.nth_data (playqueue_position);
-    src = Element.make_from_uri (URIType.SRC, track.key , "source");
-    pipeline.add (src);
-    src.link (decodebin);
+
+    if (src != null) {
+      pipeline.remove (src);
+      if (!spotify_in_use) {
+        pipeline.remove (decodebin);
+      }
+    }
+
+    if (track.key.substring(0,7) == "spotify") {
+      src = spotify;
+      source.set_key (track.key);
+      pipeline.add (spotify);
+      spotify.link (tee);
+    } else {
+      src = Element.make_from_uri (URIType.SRC, track.key , "source");
+      pipeline.add_many (decodebin, src);
+      src.link (decodebin);
+    }
     pipeline.set_state (State.PLAYING);
   }
 
   public void queue (string key) {
-    //this.source.set_key (key);
     Track track = new Track ();
     track.key = key;
     track.artist = "Mim";
@@ -254,14 +269,14 @@ public class Amp : GLib.Object {
   public void get_connected_speakers () {
 	  stdout.printf("NOT IMPLEMENTED \n");
   }
-  
+
   public void get_connected_source () {
 	  stdout.printf("NOT IMPLEMENTED \n");
   }
-  
+
   public void get_available_speakers () {
 	  stdout.printf("NOT IMPLEMENTED \n");
-  }  
+  }
 }
 
 public void main (string[] args) {
