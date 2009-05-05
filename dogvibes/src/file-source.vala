@@ -8,6 +8,9 @@ public class FileSource : GLib.Object, Source {
   construct {
     this.file = "../testmedia/beep.mp3";
     stdout.printf("Creating file input\n");
+
+    Collection c = new Collection();
+    //c.index("../testmedia");
   }
 
   public Bin get_src () {
@@ -22,25 +25,9 @@ public class FileSource : GLib.Object, Source {
     return bin;
   }
 
-  public string[] search (string query) {
-
+  public GLib.List<Track> search (string query) {
     Collection collection = new Collection ();
-
-    collection.add_track ("Johnny", "Memories in Mono", "Pikes & Perches", "file:///mim.ogg", 190);
-    collection.add_track ("Marathon", "Memories in Mono", "Pikes & Perches", "file:///Mara_.mp3", 190);
-    collection.add_track ("Wonderwall", "Oasis", "Standing...", "file:///oasis.mp3", 190);
-    GLib.List<string> tracks = collection.search (query);
-
-    string[] test = new string[0];
-    int nbr_tracks = 0;
-
-    foreach (string t in tracks) {
-      nbr_tracks++;
-      test.resize(nbr_tracks);
-      test[nbr_tracks - 1] = t;
-    }
-
-    return test;
+    return collection.search (query);
   }
 
   public void set_key (string key) {

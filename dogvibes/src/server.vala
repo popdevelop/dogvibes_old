@@ -18,12 +18,12 @@ public class Dogvibes : GLib.Object {
     /* initiate all sources */
     sources.append (new SpotifySource ());
     sources.append (new FileSource ());
-	sources.append (new RadioSource ());
+    sources.append (new RadioSource ());
 
     /* initiate all speakers */
     speakers.append (new DeviceSpeaker ());
     speakers.append (new FakeSpeaker ());
-	speakers.append (new ApexSpeaker ());
+    speakers.append (new ApexSpeaker ());
   }
 
   public static weak GLib.List<Source> get_sources () {
@@ -36,19 +36,21 @@ public class Dogvibes : GLib.Object {
 
 
   public string[] search (string query) {
-    /* this method is ugly as hell we need to understand how to concat string[] */
-    var builder = new StringBuilder ();
+    GLib.List<Track> tracks = new GLib.List<Track> ();
 
-    foreach (Source item in sources) {
-      string[] res = item.search (query);
-      foreach (string s in res) {
-        stdout.printf ("%s\n", s);
-        builder.append (s);
-        builder.append ("$");
+    foreach (Source source in sources) {
+      foreach (Track track in source.search (query)) {
+        /* Tried to do this with concat but I ended up in an eternal loop... */
+        stdout.printf("%s - %s [%s]\n",
+                      track.artist, track.name, track.key);
+        tracks.append(track);
       }
     }
 
-    return builder.str.split ("$");
+    stdout.printf("tracks: %d\n", (int)tracks.length ());
+
+    string[] temp = {"bobby", "knobby"};
+    return temp;
   }
 }
 

@@ -5,7 +5,7 @@ public class Collection : GLib.Object {
 
   private Database db;
   private int ugly_mutex = 0;
-  private List<string> tracks = new List<string> ();
+  public static List<Track> tracks = new List<Track> ();
 
   construct {
     int rc;
@@ -30,14 +30,12 @@ public class Collection : GLib.Object {
   private int callback (int n_columns, string[] values,
                         string[] column_names)
   {
-    this.tracks.append (values[1]); // todo: create Track objects instead
-
-    /*
-      for (int i = 0; i < n_columns; i++) {
-      stdout.printf ("%s = %s\n", column_names[i], values[i]);
-      }
-      stdout.printf ("\n");
-    */
+    Track track = new Track ();
+    track.key = values[4];
+    track.name = values[1];
+    track.artist = values[2];
+    track.album = values[3];
+    this.tracks.append (track);
 
     this.ugly_mutex = 0;
 
@@ -58,7 +56,7 @@ public class Collection : GLib.Object {
   }
 
 
-  public List<string> search (string query) {
+  public List<Track> search (string query) {
     this.ugly_mutex = 1;
 
     string db_query = "select * from collection where artist LIKE '%" + query + "%'";

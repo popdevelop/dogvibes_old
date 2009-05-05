@@ -43,7 +43,7 @@ public class SpotifySource : GLib.Object, Source {
     return bin;
   }
 
-  public string[] search (string query) {
+  public GLib.List<Track> search (string query) {
     string[] test = {};
 
     try {
@@ -59,7 +59,14 @@ public class SpotifySource : GLib.Object, Source {
 
     //stdout.printf ("I did a search on %s\n", query);
 
-    return test;
+    GLib.List<Track> tracks = new GLib.List<Track> ();
+    Track track = new Track ();
+    track.name = "A Spotify Track";
+    track.artist = "A Spotify Artist";
+    track.album = "A Spotify Album";
+    track.key = "spotify:track:1H5tvpoApNDxvxDexoaAUo";
+    tracks.append (track);
+    return tracks;
   }
 
   public void set_key (string key) {
