@@ -98,11 +98,6 @@ public class Amp : GLib.Object {
     /* initiate the pipeline */
     pipeline = (Pipeline) new Pipeline ("dogvibes");
 
-    /* create the amps decodebin */
-    decodebin = ElementFactory.make ("decodebin2" , "decodebin2");
-    decodebin.pad_added += pad_added;
-    //pipeline.add (decodebin);
-
     /* create the tee */
     tee = ElementFactory.make ("tee", "tee");
     pipeline.add (tee);
@@ -144,7 +139,7 @@ public class Amp : GLib.Object {
       State pending;
 
       pipeline.get_state (out state, out pending, 0);
-      pipeline.set_state (State.READY);
+      pipeline.set_state (State.NULL);
       sink = speaker.get_speaker ();
       pipeline.add (sink);
       tee.link (sink);
@@ -166,10 +161,10 @@ public class Amp : GLib.Object {
       State state;
       State pending;
       pipeline.get_state (out state, out pending, 0);
-      pipeline.set_state (State.READY);
+      pipeline.set_state (State.NULL);
       Element rm = pipeline.get_by_name (speaker.name);
       pipeline.remove (rm);
-      tee.unlink (sink);
+      tee.unlink (rm);
       pipeline.set_state (state);
     } else {
       stdout.printf ("Speaker not connected\n");
@@ -181,28 +176,47 @@ public class Amp : GLib.Object {
     pipeline.set_state (State.PAUSED);
   }
 
-  public void play () {
-    Track track;
-    track = (Track) playqueue.nth_data (playqueue_position);
+  private void play_only_if_null (Track track) {
+    State state;
+    State pending;
+    pipeline.get_state (out state, out pending, 0);
 
+    if (state != State.NULL) {
+      pipeline.set_state (State.PLAYING);
+      return;
+    }
+
+    /* waiting for mr fuckup to complete his task */
     if (src != null) {
       pipeline.remove (src);
       if (!spotify_in_use) {
+        stdout.printf("Removed a decodebin\n");
         pipeline.remove (decodebin);
       }
     }
 
-    if (track.key.substring(0,7) == "spotify") {
+    /* waiting for mr fuckup to complete his task */
+    if (track.key.substring (0,7) == "spotify") {
       src = spotify;
       source.set_key (track.key);
       pipeline.add (spotify);
       spotify.link (tee);
+      spotify_in_use = true;
     } else {
       src = Element.make_from_uri (URIType.SRC, track.key , "source");
-      pipeline.add_many (decodebin, src);
+      decodebin = ElementFactory.make ("decodebin2" , "decodebin2");
+      decodebin.pad_added += pad_added;
+      pipeline.add_many (src, decodebin);
       src.link (decodebin);
+      spotify_in_use = false;
     }
     pipeline.set_state (State.PLAYING);
+  }
+
+  public void play () {
+    Track track;
+    track = (Track) playqueue.nth_data (playqueue_position);
+    play_only_if_null (track);
   }
 
   public void queue (string key) {
@@ -236,7 +250,7 @@ public class Amp : GLib.Object {
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
     pipeline.set_state (State.NULL);
-    //source.set_key (track.key);
+    play_only_if_null (track);
     pipeline.set_state (state);
   }
 
@@ -254,7 +268,7 @@ public class Amp : GLib.Object {
     track = (Track) playqueue.nth_data (playqueue_position);
     pipeline.get_state (out state, out pending, 0);
     pipeline.set_state (State.NULL);
-    //source.set_key (track.key);
+    play_only_if_null (track);
     pipeline.set_state (state);
   }
 
