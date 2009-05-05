@@ -6,7 +6,9 @@ using GLib;
 
 public class Indexer : GLib.Object {
 
-  private static void parse_dir (File file) {
+  private static void parse_dir (string path) {
+
+    File file = File.new_for_path (path);
 
     if (!file.query_exists (null)) {
       stderr.printf ("File '%s' doesn't exist.\n", file.get_path ());
@@ -18,20 +20,22 @@ public class Indexer : GLib.Object {
     }
 
     try {
-      FileEnumerator iter = file.enumerate_children ("standard::name",
+      string attributes = FILE_ATTRIBUTE_STANDARD_NAME + "," +
+                          FILE_ATTRIBUTE_STANDARD_TYPE;
+
+      FileEnumerator iter = file.enumerate_children (attributes,
                                                      FileQueryInfoFlags.NONE,
                                                      null);
-
       FileInfo info = iter.next_file (null);
 
       while (info != null) {
-        stdout.printf ("name: %s \n", info.get_name ());
+        string full_path = file.get_path () + "/" + info.get_name ();
 
         if (info.get_file_type () == FileType.DIRECTORY) {
-          stdout.printf ("Directory\n");
-          //parse_dir (???);
+          parse_dir (full_path);
         } else {
-          stdout.printf ("File\n");
+          if (full_path.substring (-4, -1) == ".mp3")
+          stdout.printf ("Adding %s to library\n", full_path);
         }
 
         info = iter.next_file (null);
@@ -44,10 +48,7 @@ public class Indexer : GLib.Object {
   }
 
   public static int main (string[] args) {
-
-    File file = File.new_for_path (args[1]);
-    Indexer.parse_dir (file);
-
+    Indexer.parse_dir (args[1]);
     return 0;
   }
 }
