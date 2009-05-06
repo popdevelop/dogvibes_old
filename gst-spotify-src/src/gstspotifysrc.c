@@ -917,7 +917,7 @@ gst_spotify_src_set_spotify_uri (GstSpotify * src, const gchar * spotify_uri)
     src->spotify_uri = g_strdup (spotify_uri);
     src->uri = gst_uri_construct ("spotify", src->spotify_uri);
   }
-  g_object_notify (G_OBJECT (src), "spotify_uri"); /* why? */
+  g_object_notify (G_OBJECT (src), "spotifyuri"); /* why? */
   gst_uri_handler_new_uri (GST_URI_HANDLER (src), src->uri);
 
   return TRUE;
