@@ -61,10 +61,12 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_SPOTIFY))
 #define GST_IS_SPOTIFY_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPOTIFY))
-#define GST_SPOTIFY_USER(sink) ((sink)->user)
-#define GST_SPOTIFY_PASS(sink) ((sink)->pass)
-#define GST_SPOTIFY_URI(sink) ((sink)->uri)
-#define GST_SPOTIFY_BUFFER_INTERNAL_BYTES(sink) ((sink)->buffer_internal_bytes)
+
+#define GST_SPOTIFY_USER(src) ((src)->user)
+#define GST_SPOTIFY_PASS(src) ((src)->pass)
+#define GST_SPOTIFY_URI(src) ((src)->uri)
+#define GST_SPOTIFY_SPOTIFY_URI(src) ((src)->spotify_uri)
+#define GST_SPOTIFY_BUFFER_INTERNAL_BYTES(src) ((src)->buffer_internal_bytes)
 
 typedef struct _GstSpotify      GstSpotify;
 typedef struct _GstSpotifyClass GstSpotifyClass;
@@ -76,6 +78,7 @@ struct _GstSpotify
   gint buffer_internal_bytes;
   gchar *user;
   gchar *pass;
+  gchar *spotify_uri;
   gchar *uri;
 };
 

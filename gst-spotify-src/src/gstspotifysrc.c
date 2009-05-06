@@ -56,13 +56,14 @@
 
 #define DEFAULT_USER "anonymous"
 #define DEFAULT_PASS ""
-#define DEFAULT_URI "spotify:track:3odhGRfxHMVIwtNtc4BOZk"
+#define DEFAULT_URI "spotify://spotify:track:3odhGRfxHMVIwtNtc4BOZk"
+#define DEFAULT_SPOTIFY_URI "spotify:track:3odhGRfxHMVIwtNtc4BOZk"
 
 GST_DEBUG_CATEGORY_STATIC (gst_spotify_debug);
 #define GST_CAT_DEFAULT gst_spotify_debug
 
-#define _do_init(bla) \
-  GST_DEBUG_CATEGORY_INIT (gst_spotify_debug, "spotify", 0, "spotifysrc element");
+static void gst_spotify_src_uri_handler_init (gpointer g_iface, gpointer iface_data);
+static void _do_init (GType spotifysrc_type);
 
 GST_BOILERPLATE_FULL (GstSpotify, gst_spotify, GstBaseAudioSrc,
     GST_TYPE_BASE_AUDIO_SRC, _do_init);
@@ -85,6 +86,9 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
                           const void *frames, int num_frames);
 static void log_message (sp_session *session, const char *data);
 
+/* uri interface */
+static gboolean gst_spotify_src_set_spotify_uri (GstSpotify * src, const gchar * spotify_uri);
+
 static GstStaticPadTemplate spotify_src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
@@ -100,6 +104,7 @@ static GstStaticPadTemplate spotify_src_factory = GST_STATIC_PAD_TEMPLATE ("src"
 enum
 {
   PROP_0,
+  PROP_SPOTIFY_URI,
   PROP_USER,
   PROP_PASS,
   PROP_URI,
@@ -153,6 +158,19 @@ static GCond *cond;
 static GThread *thread;
 GstSpotify *spotify;
 
+static void
+_do_init (GType spotifysrc_type)
+{
+  static const GInterfaceInfo urihandler_info = {
+    gst_spotify_src_uri_handler_init,
+    NULL,
+    NULL
+  };
+
+  g_type_add_interface_static (spotifysrc_type, GST_TYPE_URI_HANDLER,
+      &urihandler_info);
+  GST_DEBUG_CATEGORY_INIT (gst_spotify_debug, "spotify", 0, "spotifysrc element");
+}
 
 /* libspotify */
 GTimeVal start_t;
@@ -585,10 +603,10 @@ gst_spotify_ring_buffer_start (GstRingBuffer * buf)
   GstSpotify *spotify;
   spotify = GST_SPOTIFY (GST_OBJECT_PARENT (buf));
   samples_in = 0;
-  printf("SRC:START %s\n", GST_SPOTIFY_URI (spotify));
+  printf("SRC:START %s\n", GST_SPOTIFY_SPOTIFY_URI (spotify));
 
   g_mutex_lock (sp_mutex);
-  sp_link *link = sp_link_create_from_string (GST_SPOTIFY_URI (spotify));
+  sp_link *link = sp_link_create_from_string (GST_SPOTIFY_SPOTIFY_URI (spotify));
   g_mutex_unlock (sp_mutex);
 
   if (!link) {
@@ -729,7 +747,11 @@ gst_spotify_class_init (GstSpotifyClass * klass)
           G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, PROP_URI,
-      g_param_spec_string ("uri", "URI", "A spotify URI currently only track uri:s are supported", "unknown",
+      g_param_spec_string ("uri", "URI", "A URI", "unknown",
+          G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_SPOTIFY_URI,
+      g_param_spec_string ("spotifyuri", "Spotify URI", "A spotify URI", "unknown",
           G_PARAM_READWRITE));
   //FIXME maybe init spotify stuff here
 }
@@ -744,6 +766,7 @@ gst_spotify_init (GstSpotify * spot, GstSpotifyClass * gclass)
   GST_SPOTIFY_USER (spotify) = g_strdup (DEFAULT_USER);
   GST_SPOTIFY_PASS (spotify) = g_strdup (DEFAULT_PASS);
   GST_SPOTIFY_URI (spotify) = g_strdup (DEFAULT_URI);
+  GST_SPOTIFY_SPOTIFY_URI (spotify) = g_strdup (DEFAULT_SPOTIFY_URI);
 
   if (g_thread_supported() ) {
      printf("g_thread_supported\n");
@@ -772,6 +795,7 @@ gst_spotify_finalize (GObject *object)
   g_free (GST_SPOTIFY_USER (src));
   g_free (GST_SPOTIFY_PASS (src));
   g_free (GST_SPOTIFY_URI (src));
+  g_free (GST_SPOTIFY_SPOTIFY_URI (src));
 
   g_cond_free (cond);
   g_mutex_free (mutex);
@@ -800,6 +824,9 @@ gst_spotify_set_property (GObject * object, guint prop_id,
       g_free (GST_SPOTIFY_URI (src));
       GST_SPOTIFY_URI (src) = g_strdup (g_value_get_string (value));
       break;
+    case PROP_SPOTIFY_URI:
+      gst_spotify_src_set_spotify_uri (src, g_value_get_string (value));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -823,6 +850,9 @@ gst_spotify_get_property (GObject * object, guint prop_id,
       break;
     case PROP_URI:
       g_value_set_string (value, GST_SPOTIFY_URI (src));
+      break;
+    case PROP_SPOTIFY_URI:
+      g_value_set_string (value, GST_SPOTIFY_SPOTIFY_URI (src));
       break;
     default:
      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -861,5 +891,111 @@ gst_spotify_create_ringbuffer (GstBaseAudioSrc * src)
   ring_buffer = buffer;
   return buffer;
 }
+
+/* used by URI interface */
+static gboolean
+gst_spotify_src_set_spotify_uri (GstSpotify * src, const gchar * spotify_uri)
+{
+  GstState state;
+
+  /* the element must be stopped in order to do this */
+  state = GST_STATE (src);
+  if (state != GST_STATE_READY && state != GST_STATE_NULL) {
+    goto wrong_state;
+  }
+
+  g_free (src->spotify_uri);
+  g_free (src->uri);
+
+  /* clear the both uri/spotify_uri if we get a NULL (is that possible?) */
+  if (spotify_uri == NULL) {
+    src->spotify_uri = NULL;
+    src->uri = NULL;
+  } else {
+    /* we store the spotify_uri as received by the application. On Windoes this
+     * should be UTF8 */
+    src->spotify_uri = g_strdup (spotify_uri);
+    src->uri = gst_uri_construct ("spotify", src->spotify_uri);
+  }
+  g_object_notify (G_OBJECT (src), "spotify_uri"); /* why? */
+  gst_uri_handler_new_uri (GST_URI_HANDLER (src), src->uri);
+
+  return TRUE;
+
+  /* ERROR */
+wrong_state:
+  {
+    GST_DEBUG_OBJECT (src, "setting spotify_uri in wrong state");
+    return FALSE;
+  }
+}
+
 /* end spotify */
+
+/* urihandler */
+
+static GstURIType
+gst_spotify_src_uri_get_type (void)
+{
+  return GST_URI_SRC;
+}
+
+static gchar **
+gst_spotify_src_uri_get_protocols (void)
+{
+  static gchar *protocols[] = { "spotify", NULL };
+
+  return protocols;
+}
+
+static const gchar *
+gst_spotify_src_uri_get_uri (GstURIHandler * handler)
+{
+  GstSpotify *src = GST_SPOTIFY (handler);
+
+  return src->uri;
+}
+
+static gboolean
+gst_spotify_src_uri_set_uri (GstURIHandler * handler, const gchar * uri)
+{
+  gchar *spotify_uri;
+  gboolean ret = FALSE;
+  GstSpotify *src = GST_SPOTIFY (handler);
+
+  if (strcmp (uri, "spotify://") == 0) { 
+    /* Special case for "spotify://" as this might be used by some applications
+     *  to test with gst_element_make_from_uri if there's an element
+     *  that supports the URI protocol. */
+    gst_spotify_src_set_spotify_uri (src, NULL);
+    return TRUE;
+  }
+
+  spotify_uri = gst_uri_get_location (uri);
+
+  if (!spotify_uri) {
+    GST_WARNING_OBJECT (src, "Invalid URI '%s' for spotifysrc", uri);
+    goto out;
+  }
+
+  ret = gst_spotify_src_set_spotify_uri (src, spotify_uri);
+
+out:
+  if (spotify_uri) {
+    g_free (spotify_uri);
+  }
+
+  return ret;
+}
+
+static void
+gst_spotify_src_uri_handler_init (gpointer g_iface, gpointer iface_data)
+{
+  GstURIHandlerInterface *iface = (GstURIHandlerInterface *) g_iface;
+
+  iface->get_type = gst_spotify_src_uri_get_type;
+  iface->get_protocols = gst_spotify_src_uri_get_protocols;
+  iface->get_uri = gst_spotify_src_uri_get_uri;
+  iface->set_uri = gst_spotify_src_uri_set_uri;
+}
 
