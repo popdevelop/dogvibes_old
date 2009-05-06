@@ -35,14 +35,38 @@ obj = service.object("/com/dogvibes/amp/0")
 obj.introspect
 obj.default_iface = "com.Dogvibes.Amp"
 
+#todo: obj.ClearQueue()
+#todo: obj.disconnectAllSpeakers()
+
 # TEST: Playing the first track
 puts "TEST: Playing the first track without speakers"
+#todo: search for these tracks instead
 obj.Queue("spotify:track:3A3WCIkkm5MqGRnc4LT6fz")
+obj.Queue("spotify:track:3ZlFUr0RBrUYYsmlcFvD0e")
+obj.Queue("spotify:track:3q50J3nI1GOjDOwZDjt5Un")
+obj.Queue("spotify:track:0S3gpZzlT9Hb7CCSV2owX7")
+obj.Queue("spotify:track:69xL3vzKISEij96FrmWYNF")
+obj.Play()
 sleep 5
 
 # TEST: Connecting the active speaker
 puts "TEST: Connecting the active speaker"
 obj.ConnectSpeaker(0)
+sleep 3
+
+# TEST: Next track
+puts "TEST: Next track"
+obj.NextTrack()
+sleep 3
+
+# TEST: Next track
+puts "TEST: Next track"
+obj.NextTrack()
+sleep 3
+
+# TEST: Next track
+puts "TEST: Previous track"
+obj.PreviousTrack()
 sleep 3
 
 # TEST: Pausing the track
@@ -58,6 +82,11 @@ sleep 3
 # TEST: Disconnecting the active speaker
 puts "TEST: Disconnecting the active speaker"
 obj.DisconnectSpeaker(0)
+sleep 3
+
+# TEST: Connecting the active speaker
+puts "TEST: Connecting the active speaker"
+obj.ConnectSpeaker(0)
 sleep 3
 
 # TEST: Stopping the track
