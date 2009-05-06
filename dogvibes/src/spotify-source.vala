@@ -52,10 +52,10 @@ public class SpotifySource : GLib.Object, Source {
       string uris;
       GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
 
-      Track track = new Track ();
       foreach (string t in uris.split ("\n")) {
         string[] s = t.split (",");
         if (s.length >= 2) {
+          Track track = new Track ();
           stdout.printf ("%s\n", s[2]);
           track.name = s[1];
           track.artist = s[0];
