@@ -148,6 +148,7 @@ gboolean buffered = FALSE;
 static gboolean loggedin = FALSE;
 GstRingBuffer *ring_buffer;
 static GMutex *mutex;
+static GMutex *sp_mutex;
 static GCond *cond;
 static GThread *thread;
 GstSpotify *spotify;
@@ -285,10 +286,12 @@ static int music_delivery (sp_session *sess, const sp_audioformat *format,
 
 
   } else {
-    printf ("should not happen\n");
-    g_assert (FALSE);
+    // FIXME: THIS COULD HAPPEN INDEED
+    return 0;
+    //printf ("should not happen 2\n");
+    //g_assert (FALSE);
   }
-  printf ("should not happen\n");
+  printf ("should not happen 3\n");
   g_assert (FALSE);
   return frames_needed;
 }
@@ -346,7 +349,9 @@ void *thread_func( void *ptr )
    /* wait for first broadcast */
    g_cond_wait (cond, mutex);
    while (1) {
+     g_mutex_lock (sp_mutex);
      sp_session_process_events (session, &timeout);
+     g_mutex_unlock (sp_mutex);
      g_get_current_time(&t);
      g_time_val_add(&t, timeout*1000);
      g_print ("\n\nWAITING FOR BROADCAST (timeout = %d ms)\n\n\n", timeout);
@@ -435,6 +440,8 @@ gst_spotify_ring_buffer_finalize (GObject * object)
   G_OBJECT_CLASS (ring_parent_class)->finalize (object);
 }
 
+static gboolean is_logged_in = FALSE;
+
 /* the _open_device method should make a connection with the server
 */
 static gboolean
@@ -442,11 +449,10 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
 {
   sp_session_config config;
   sp_error error;
-/*   spotify = GST_SPOTIFY (asrc); */
 
-  spotify = GST_SPOTIFY (GST_OBJECT_PARENT (buf));
-
-  //FIXME not nice with global
+  if (is_logged_in) {
+    return TRUE;
+  }
 
   GST_DEBUG_OBJECT (spotify, "OPEN");
 
@@ -480,6 +486,9 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
     usleep(10000);
   }
   g_print ("logged in!\n");
+
+  is_logged_in = TRUE;
+
   return TRUE;
 }
 
@@ -488,13 +497,14 @@ gst_spotify_ring_buffer_open_device (GstRingBuffer * buf)
 static gboolean
 gst_spotify_ring_buffer_close_device (GstRingBuffer * buf)
 {
-  sp_error error;
-  error = sp_session_logout (session);
+  // We would probobly like to log out in finalize instead
+  //sp_error error;
+  //error = sp_session_logout (session);
 
-  if (SP_ERROR_OK != error) {
-    GST_ERROR ("failed to logout: %s\n", sp_error_message (error));
-    return FALSE;
-  }
+  //if (SP_ERROR_OK != error) {
+  //GST_ERROR ("failed to logout: %s\n", sp_error_message (error));
+  // return FALSE;
+  //}
 
   g_print ("SRC:CLOSE DEVICE\n");
   return TRUE;
@@ -563,7 +573,9 @@ static gboolean
 gst_spotify_ring_buffer_resume (GstRingBuffer * buf)
 {
   printf("SRC:RESUME\n");
+  g_mutex_lock (sp_mutex);
   sp_session_player_play (session, 1);
+  g_mutex_unlock (sp_mutex);
   return TRUE;
 }
 
@@ -575,33 +587,51 @@ gst_spotify_ring_buffer_start (GstRingBuffer * buf)
   samples_in = 0;
   printf("SRC:START %s\n", GST_SPOTIFY_URI (spotify));
 
+  g_mutex_lock (sp_mutex);
   sp_link *link = sp_link_create_from_string (GST_SPOTIFY_URI (spotify));
+  g_mutex_unlock (sp_mutex);
 
   if (!link) {
     GST_ERROR_OBJECT (spotify, "Incorrect track ID");
     return FALSE;
   }
 
+  g_mutex_lock (sp_mutex);
   t = sp_link_as_track (link);
+  g_mutex_unlock (sp_mutex);
   if (!t) {
     GST_DEBUG_OBJECT (spotify, "Only track ID:s are currently supported");
     return FALSE;
   }
 
+  g_mutex_lock (sp_mutex);
   sp_track_add_ref (t);
+  g_mutex_unlock (sp_mutex);
+  g_mutex_lock (sp_mutex);
   sp_link_release (link);
+  g_mutex_unlock (sp_mutex);
 
   //FIXME not the best way to wait for a track to be loaded
   g_cond_broadcast(cond);
+  g_mutex_lock (sp_mutex);
   while (sp_track_is_loaded (t) == 0) {
+    g_mutex_unlock (sp_mutex);
     usleep(10000);
+    g_mutex_lock (sp_mutex);
   }
+  g_mutex_unlock (sp_mutex);
   g_print ("track loaded!\n");
 
+  g_mutex_lock (sp_mutex);
   GST_DEBUG_OBJECT (spotify, "Now playing \"%s\"...\n", sp_track_name (t));
+  g_mutex_unlock (sp_mutex);
 
+  g_mutex_lock (sp_mutex);
   sp_session_player_load (session, t);
+  g_mutex_unlock (sp_mutex);
+  g_mutex_lock (sp_mutex);
   sp_session_player_play (session, 1);
+  g_mutex_unlock (sp_mutex);
 
   return TRUE;
 }
@@ -610,7 +640,9 @@ static gboolean
 gst_spotify_ring_buffer_pause (GstRingBuffer * buf)
 {
   printf("SRC:PAUSE\n");
+  g_mutex_lock (sp_mutex);
   sp_session_player_play (session, 0);
+  g_mutex_unlock (sp_mutex);
   return TRUE;
 }
 
@@ -618,14 +650,14 @@ static gboolean
 gst_spotify_ring_buffer_stop (GstRingBuffer * buf)
 {
   printf("SRC:STOP\n");
+  g_mutex_lock (sp_mutex);
   sp_session_player_unload (session);
+  g_mutex_unlock (sp_mutex);
 
   //FIXME someone is holding references
+  g_mutex_lock (sp_mutex);
   sp_track_release (t);
-  sp_track_release (t);
-  sp_track_release (t);
-  sp_track_release (t);
-  sp_track_release (t);
+  g_mutex_unlock (sp_mutex);
 
   return TRUE;
 }
@@ -703,8 +735,10 @@ gst_spotify_class_init (GstSpotifyClass * klass)
 }
 
 static void
-gst_spotify_init (GstSpotify * spotify, GstSpotifyClass * gclass)
+gst_spotify_init (GstSpotify * spot, GstSpotifyClass * gclass)
 {
+  //FIXME UGLY
+  spotify = spot;
   GError *err = NULL ;
   //gst_base_src_set_live(GST_BASE_SRC (src), TRUE);
   GST_SPOTIFY_USER (spotify) = g_strdup (DEFAULT_USER);
@@ -720,6 +754,7 @@ gst_spotify_init (GstSpotify * spotify, GstSpotifyClass * gclass)
 
   cond = g_cond_new ();
   mutex = g_mutex_new ();
+  sp_mutex = g_mutex_new ();
  
   adapter = gst_adapter_new();
   if ((thread = g_thread_create((GThreadFunc)thread_func, (void *)NULL, TRUE, &err)) == NULL) {
@@ -727,7 +762,6 @@ gst_spotify_init (GstSpotify * spotify, GstSpotifyClass * gclass)
      g_error_free (err) ;
   }
   printf ("thread created\n");
-
 }
 
 static void
