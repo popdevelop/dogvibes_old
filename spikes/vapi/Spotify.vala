@@ -1,3 +1,5 @@
+// valac --vapidir=. --pkg spotify Spotify.vala -X -I/usr/local/include -X -L/usr/local/lib -X -lspotify
+
 using Spotify;
 
 public const uint8[] appkey = {
@@ -24,11 +26,50 @@ public const uint8[] appkey = {
   0xAD
 };
 
+/**
+ * This callback is called when an attempt to login has succeeded or failed.
+ *
+ * @sa sp_session_callbacks#logged_in
+ */
+public static void MeLoggedIn (Session session, Spotify.Error error)
+{
+  stdout.printf ("YEEEY!\n");
+/*
+	if (SP_ERROR_OK != error) {
+		fprintf(stderr, "failed to log in to Spotify: %s\n",
+		                sp_error_message(error));
+		g_exit_code = 4;
+		return;
+	}
+
+	// Let us print the nice message...
+	sp_user *me = sp_session_user(session);
+	const char *my_name = (sp_user_is_loaded(me) ?
+		sp_user_display_name(me) :
+		sp_user_canonical_name(me));
+
+	printf("Logged in to Spotify as user %s\n", my_name);
+
+	session_ready(session);
+*/
+}
+
 public static int main (string[] args)
 {
+  SessionCallbacks callbacks = SessionCallbacks ();
+  callbacks.logged_in = MeLoggedIn;
+
   SessionConfig config = SessionConfig ();
 	Spotify.Error error;
-  Session session = new Session ();
+  Session session = null;
+
+	// Sending passwords on the command line is bad in general.
+	// We do it here for brevity.
+	if (args.length < 3) {
+		stderr. printf ("usage: %s <username> <password>\n",
+                    args[0]);
+		return 1;
+	}
 
 	// Always do this. It allows libspotify to check for
 	// header/library inconsistencies.
@@ -51,12 +92,14 @@ public static int main (string[] args)
 	// free-text string [1, 255] characters.
 	config.user_agent = "spotify-session-example";
 
-  error = config.session_init(session);
+	// Register the callbacks.
+	config.callbacks = &callbacks;
+
+  error = config.init_session(&session);
 
 	if (Spotify.Error.OK != error) {
 		stderr.printf ("failed to create session: %s\n",
-                   //sp_error_message (error));
-                   "todo: not implemented...");
+                   Spotify.message (error));
 		return 2;
 	}
 
@@ -65,9 +108,13 @@ public static int main (string[] args)
 	error = session.login(args[1], args[2]);
 
 	if (Spotify.Error.OK != error) {
-		//fprintf(stderr, "failed to login: %s\n", sp_error_message(error));
+		stderr.printf ("failed to login: %s\n", Spotify.message (error));
 		return 3;
 	}
+
+  int timeout = -1;
+  session.process_events(&timeout);
+  stdout.printf("%d\n", timeout);
 
   return 0;
 }
