@@ -1,0 +1,326 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<title>Dogbone - A Dogvibes client</title>
+<link rel="stylesheet" type="text/css" media="all" href="css/reset.css" />
+<link rel="stylesheet" type="text/css" media="all" href="css/text.css" />
+<link rel="stylesheet" type="text/css" media="all" href="css/960.css" />
+<style type="text/css" media="all">
+html
+{
+   height: 100%;
+}
+body
+{
+   background: #EEE;
+   font-size: 11px;
+   margin:0;
+   padding:0;
+   height:100%;    
+}
+
+a
+{
+	color: #fff;
+	text-decoration: none;
+}
+
+a:hover
+{
+	text-decoration: underline;
+}
+
+p
+{
+	overflow: hidden;
+	padding: 0px 0px 0px 10px;
+   margin: 3px 1px 1px 1px;
+	text-align: left;
+}
+.container_12
+{
+   height: 100%;   
+}
+/*
+ *  Classes
+ */
+ /* Different shades of grey */
+.grey_1 { color: #c3c3c3 } 
+.grey_2 { color: #707070 } 
+
+/*
+ * Top, mid, bot. and columns in mid
+ */
+#header
+{
+   padding-top: 22px;
+   height:56px;
+   overflow:hidden;
+   position:absolute;
+   top:0;
+}
+#wrapper_mid 
+{
+   right:0;
+}
+#mid, #wrapper_mid
+{
+   bottom:41px;
+   overflow:auto;
+   position:fixed;
+   top:56px;   
+   left:0px; 
+}
+#footer
+{
+   bottom:0;
+   height:41px;
+   overflow:hidden;
+   position:absolute;
+   text-align:right;
+}
+
+#left_col
+{
+   overflow:hidden;
+   height: 100%;
+}
+#navigation { padding: 0px; }
+#navigation a { color: #c3c3c3; }
+#navigation a:hover { color: white; text-decoration:none; }
+#navigation ul { list-style-type: none; margin: 8px;}
+#navigation li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px;}
+#navigation li#home { background:url('img/icon_house.gif') no-repeat scroll 0 2px; }
+#navigation li#playqueue { background:url('img/icon_playlist.gif') no-repeat scroll 0 2px; }
+
+#main_col
+{
+   overflow:auto;
+   height: 100%;
+}
+#playlist_header
+{
+   height: 22px;
+}
+
+/*
+ *  The search field with submit
+ */
+#header input, #header span
+{
+   display:inline;
+   float: left; 
+   padding: 0px;
+   margin: 0px; 
+   border: 0px;   
+}
+#header span#s-left
+{
+   background: transparent url('img/search.gif') no-repeat scroll top left;
+   width: 20px;
+   height: 20px;
+}
+#header input#s-input
+{
+   background: transparent url('img/search.gif') no-repeat scroll center 0px;
+   width: 172px;
+   height: 20px;
+   font-size: 11px;
+   padding: 4px 0 0 0;
+}
+#header input#s-submit
+{
+   background: transparent url('img/search.gif') no-repeat scroll top right;
+   width: 20px;
+   height: 20px;
+   cursor: pointer;
+   text-decoration: none;
+}
+ 
+/*
+ *  "Theme". This is the beginning of making things themable
+ */
+.thm_menu_bg
+{
+   background: #474747 url('img/left_col_bg.gif') repeat-y scroll top right;
+}
+.thm_menu_group
+{
+   border-bottom: 1px solid #373737;
+   width: 159px;
+}
+.thm_playlist_bg
+{
+   background-color: #373737;
+}
+.thm_header_bg
+{
+   background: #9f9f9f url('img/header_bg.gif') repeat-x 0 0;
+}
+.thm_footer_bg
+{
+   background: #595959 url('img/footer_bg.gif') repeat-x 0 0;
+}
+.thm_playlist_header
+{
+   background: #636363 url('img/left_col_bg.gif') repeat-x scroll bottom left;
+}
+.thm_playlist_tab
+{
+   background: #636363 url('img/tab_bg.gif') repeat-x scroll bottom left;
+   color: white;
+   font-size:12px;
+   text-align: center;
+}
+
+/*
+ *  Prev, Play, Next controls
+ */
+ 
+#playback_control { margin: 5px 0 0 10px; padding: 0; }
+#playback_control li { display: inline; }
+#playback_control li a { float: left; width: 31px; height: 0; padding: 31px 0 0 0; overflow: hidden; }
+#playback_control li a { background-image: url('img/prev_play_next.gif');  background-repeat: no-repeat; _background-image: url('img/prev_play_next.gif');}
+
+/* BUTTONS */
+#playback_control li#pb-prev a { background-position: 0px 0px; }
+#playback_control li#pb-play a { background-position: -31px 0; }
+#playback_control li#pb-next a { background-position: -62px 0; }
+
+* PRESSED STATES */
+#playback_control li#pb-prev a:active { background-position: 0 -31px; }
+#playback_control li#pb-play a:active { background-position: -31px -31px; }
+#playback_control li#pb-next a:active { background-position: -62px -31px; }
+
+/*
+ * Songlist table
+ */
+#playlist table { margin: 0px; padding: 0px; width: 100%; }
+#playlist th a { 
+   color: black;
+   padding: 0 5px 0 5px; 
+   font-size: 11px;
+   font-weight: bold;
+   text-decoration:none;
+   background-image: url('img/table_head_sep.gif');  
+   background-repeat: no-repeat; 
+}
+#playlist th { 
+   margin: 0px;
+   padding: 0px;
+   text-align: left;
+   vertical-align: texttop;
+   height: 21px; 
+   background-image: url('img/table_head_bg.gif');  
+   background-repeat: repeat-x; 
+}
+#playlist th#indicator { width: 3%; }
+#playlist th#track     { width: 25%; }
+#playlist th#artist    { width: 20%; }
+#playlist th#time      { width: 7%; }
+#playlist th#rating    { width: 10%; }
+#playlist th#album     { width: 30%; }
+#playlist tr.odd { background-color: #313131; }
+#playlist td { padding: 1px 0 1px 2px; margin: 0px;}
+#playlist td a { color: #c3c3c3; }
+</style>
+
+<!-- <script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>  //-->
+</head>
+<body class="grey_1">
+<!-- HEADER //-->
+<div id="header" class="container_12 thm_header_bg">
+   <div class="grid_5">
+      <p>
+         <span id="s-left"></span><input type="text" id="s-input"><input id="s-submit" type="button">
+      </p>
+   </div>
+   <div  class="grid_7">
+      &nbsp;
+   </div>      
+</div>
+<div class="clear">&nbsp;</div>  
+<!-- CONTENT AREA //-->
+<div id="wrapper_mid">
+   <div id="mid" class="container_12" style="height: 100%">
+   <div id="left_col" class="grid_2 thm_menu_bg">
+      <div id="navigation" class="thm_menu_group">
+         <ul>
+            <li id="home"><a href="#">Home</a>
+            <li id="playqueue"><a href="#">Play queue</a>
+         </ul>
+         <div class="clear">&nbsp;</div> 
+      </div>
+      <div class="clear">&nbsp;</div>  
+   </div>
+   <div id="main_col" class="grid_10 thm_playlist_bg">
+      <div id="playlist_header" class="grid_1 thm_playlist_tab">
+         Search
+      </div>
+      <div id="playlist_header" class="grid_9 thm_playlist_header">
+         &nbsp;
+      </div>         
+      <div class="clear">&nbsp;</div>
+      <div id="playlist" class="grid_10">
+         <p>Search results for 'jularbo':</p>
+         <table cellspacing="0" cellpadding="0">
+            <thead>
+               <tr>
+               <th id="indicator">&nbsp;
+               <th id="track"><a href="#">Track</a>
+               <th id="artist"><a href="#">Artist</a>
+               <th id="time"><a href="#">Time</a>
+               <th id="rating"><a href="#">Rating</a>
+               <th id="album"><a href="#">Album</a>
+            </thead>
+            <tbody>
+               <tr>
+                  <td>&nbsp;
+                  <td>Finsmakarschottis
+                  <td><a href="#">Kalle jularbo collective</a>
+                  <td>3:45
+                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif">
+                  <td><a href="#">Dans på bryggan 6</a>
+               <tr class="odd">
+                  <td>&nbsp;
+                  <td>Suparedans
+                  <td><a href="#">Kalle jularbo collective</a>
+                  <td>3:02
+                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif">
+                  <td><a href="#">Dans på bryggan 6</a>
+               <tr>
+                  <td>&nbsp;
+                  <td>Pågapolka
+                  <td><a href="#">Kalle jularbo collective</a>
+                  <td>2:58
+                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif">
+                  <td><a href="#">Dans på bryggan 6</a>
+               <tr class="odd">
+                  <td>&nbsp;
+                  <td>Sängfösarvals
+                  <td><a href="#">Kalle jularbo collective</a>
+                  <td>4:02
+                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif">
+                  <td><a href="#">Dans på bryggan 6</a>
+            </tbody>
+         </table>
+      </div>
+      <div class="clear">&nbsp;</div>      
+   </div> 
+  <div class="clear">&nbsp;</div>   
+  </div>
+</div>
+<!-- FOOTER //-->
+<div id="footer" class="container_12 thm_footer_bg">
+   <div class="grid_4">
+      <ul id="playback_control">
+         <li id="pb-prev"><a href="#" onclick="this.blur();">Prev</a></li>
+         <li id="pb-play"><a href="#" onclick="this.blur();">Play</a></li>
+         <li id="pb-next"><a href="#" onclick="this.blur();">Next</a></li>
+      </ul>
+   </div>
+      <div class="clear">&nbsp;</div>
+</div>
+</body>
+</html>
