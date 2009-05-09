@@ -31,7 +31,7 @@ public class Collection : GLib.Object {
                         string[] column_names)
   {
     Track track = new Track ();
-    track.key = values[4];
+    track.uri = values[4];
     track.name = values[1];
     track.artist = values[2];
     track.album = values[3];

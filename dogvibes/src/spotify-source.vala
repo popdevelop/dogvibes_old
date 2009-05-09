@@ -1,9 +1,12 @@
 using Gst;
 
-public class SpotifySource : GLib.Object, Source {
+public class SpotifySource : GLib.Object, Source, SingleSource {
   public Bin bin;
   public string user;
   public string pass;
+
+  public weak Amplifier owner { get; set; }
+
   private Element spotify;
   private bool created;
 
@@ -19,6 +22,7 @@ public class SpotifySource : GLib.Object, Source {
     this.user = user;
     this.pass = pass;
 
+    owner = null;
     created = false;
   }
 
@@ -44,35 +48,36 @@ public class SpotifySource : GLib.Object, Source {
   }
 
   public GLib.List<Track> search (string query) {
-    GLib.List<Track> tracks = new GLib.List<Track> ();
+    string[] test = {};
 
     try {
       string[] argus = {"search", user, pass, query};
       string[] envps = {"LD_LIBRARY_PATH=/home/gyllen/X11bin/lib/"};
       string uris;
       GLib.Process.spawn_sync (".", argus, envps, 0, runsearch, out uris);
-
-      foreach (string t in uris.split ("\n")) {
-        string[] s = t.split (",");
-        if (s.length >= 2) {
-          Track track = new Track ();
-          stdout.printf ("%s\n", s[2]);
-          track.name = s[1];
-          track.artist = s[0];
-          track.album = "<dogvibes>";
-          track.key = s[2];
-          tracks.append (track);
-        }
-      }
-
+      test = uris.split ("\n");
+      //stdout.printf ("%s\n", uris);
     } catch (GLib.Error e) {
       stdout.printf ("ERROR SO INTERNAL: %s\n", e.message);
     }
 
+    //stdout.printf ("I did a search on %s\n", query);
+
+    GLib.List<Track> tracks = new GLib.List<Track> ();
+    Track track = new Track ();
+    track.name = "A Spotify Track";
+    track.artist = "A Spotify Artist";
+    track.album = "A Spotify Album";
+    track.uri = "spotify:track:1H5tvpoApNDxvxDexoaAUo";
+    tracks.append (track);
     return tracks;
   }
 
-  public void set_key (string key) {
-    spotify.set ("uri", key);
+  public void set_track (Track track) {
+    spotify.set ("spotifyuri", track.uri);
+  }
+
+  public string supported_uris () {
+    return "spotify";
   }
 }

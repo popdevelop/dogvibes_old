@@ -40,20 +40,20 @@ public class Dogvibes : GLib.Object {
     foreach (Source source in sources) {
       foreach (Track track in source.search (query)) {
         //stdout.printf("%s - %s [%s]\n",
-        //              track.artist, track.name, track.key);
+        //              track.artist, track.name, track.uri);
         /* Tried to do this with concat but I ended up in an eternal loop... */
         tracks.append(track);
       }
     }
 
     int i = 0;
-    string[] keys = new string[tracks.length ()];
+    string[] uris = new string[tracks.length ()];
     foreach (Track track in tracks) {
-      keys[i] = track.key;
+      uris[i] = track.uri;
       i++;
     }
 
-    return keys;
+    return uris;
   }
 }
 
@@ -93,7 +93,7 @@ public class Amp : GLib.Object {
     speakers = Dogvibes.get_speakers ();
 
     source = sources.nth_data (0);
-    spotify = source.get_src ();
+    spotify = ((SingleSource) source).get_src ();
 
     /* initiate the pipeline */
     pipeline = (Pipeline) new Pipeline ("dogvibes");
@@ -196,14 +196,14 @@ public class Amp : GLib.Object {
     }
 
     /* waiting for mr fuckup to complete his task */
-    if (track.key.substring (0,7) == "spotify") {
+    if (track.uri.substring (0,7) == "spotify") {
       src = spotify;
-      source.set_key (track.key);
+      ((SingleSource) source).set_track (track);
       pipeline.add (spotify);
       spotify.link (tee);
       spotify_in_use = true;
     } else {
-      src = Element.make_from_uri (URIType.SRC, track.key , "source");
+      src = Element.make_from_uri (URIType.SRC, track.uri , "source");
       decodebin = ElementFactory.make ("decodebin2" , "decodebin2");
       decodebin.pad_added += pad_added;
       pipeline.add_many (src, decodebin);
@@ -219,9 +219,9 @@ public class Amp : GLib.Object {
     play_only_if_null (track);
   }
 
-  public void queue (string key) {
+  public void queue (string uri) {
     Track track = new Track ();
-    track.key = key;
+    track.uri = uri;
     track.artist = "Mim";
     playqueue.append (track);
   }
@@ -229,7 +229,7 @@ public class Amp : GLib.Object {
   public string[] get_all_tracks_in_queue () {
     var builder = new StringBuilder ();
     foreach (Track item in playqueue) {
-      builder.append (item.key);
+      builder.append (item.uri);
       builder.append (" ");
     }
     stdout.printf ("Play queue length %u\n", playqueue.length ());
