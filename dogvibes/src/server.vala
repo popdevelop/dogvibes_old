@@ -180,6 +180,14 @@ public class Amp : GLib.Object {
 	  stdout.printf("NOT IMPLEMENTED \n");
   }
 
+  public int get_played_seconds () {
+    int64 duration;
+    Format for = Format.TIME;
+    pipeline.query_position (ref for, out duration);
+    duration = duration / SECOND;
+    return (int) duration;
+  }
+
   public void next_track () {
     change_track (playqueue_position + 1);
   }
@@ -211,6 +219,10 @@ public class Amp : GLib.Object {
 
   public void resume () {
     pipeline.set_state (State.PLAYING);
+  }
+
+  public void search (int msecond) {
+    pipeline.seek_simple (Format.TIME, SeekFlags.NONE, ((int64) msecond) * MSECOND);
   }
 
   public void stop () {
