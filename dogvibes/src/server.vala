@@ -80,7 +80,7 @@ public class Amp : GLib.Object {
 
   /* playqueue */
   GLib.List<Track> playqueue;
-  uint playqueue_position;
+  int playqueue_position;
 
   /* ugly hack waiting for mr fuck up */
   private bool spotify_in_use;
@@ -181,21 +181,7 @@ public class Amp : GLib.Object {
   }
 
   public void next_track () {
-    State pending;
-    State state;
-    Track track;
-
-    if (playqueue_position < (playqueue.length () - 1)) {
-      playqueue_position = playqueue_position + 1;
-    } else {
-      stdout.printf ("Reached top of queue\n");
-    }
-
-    track = (Track) playqueue.nth_data (playqueue_position);
-    pipeline.get_state (out state, out pending, 0);
-    pipeline.set_state (State.NULL);
-    play_only_if_null (track);
-    pipeline.set_state (state);
+    change_track (playqueue_position + 1);
   }
 
   public void pause () {
@@ -208,22 +194,12 @@ public class Amp : GLib.Object {
     play_only_if_null (track);
   }
 
+  public void play_track (int tracknbr) {
+    change_track (tracknbr);
+  }
+
   public void previous_track () {
-    State pending;
-    State state;
-    Track track;
-
-    if (playqueue_position != 0) {
-      playqueue_position = playqueue_position - 1;
-    } else {
-      stdout.printf ("Reached end of queue\n");
-    }
-
-    track = (Track) playqueue.nth_data (playqueue_position);
-    pipeline.get_state (out state, out pending, 0);
-    pipeline.set_state (State.NULL);
-    play_only_if_null (track);
-    pipeline.set_state (state);
+    change_track (playqueue_position - 1);
   }
 
   public void queue (string uri) {
@@ -251,6 +227,35 @@ public class Amp : GLib.Object {
   }
 
   /*** Private helper functions ***/
+
+  private void change_track (int tracknbr) {
+    State pending;
+    State state;
+    Track track;
+
+    if (tracknbr > (playqueue.length () - 1)) {
+      stdout.printf ("Track number %d is to larges play queue is %u long\n", tracknbr, playqueue.length ());
+      return;
+    }
+
+    if (tracknbr == playqueue_position) {
+      /* Do nothing we are at the correct position */
+      return;
+    }
+
+    if (tracknbr < 0) {
+      tracknbr = 0;
+    }
+
+    playqueue_position = tracknbr;
+    track = (Track) playqueue.nth_data (playqueue_position);
+
+    pipeline.get_state (out state, out pending, 0);
+    pipeline.set_state (State.NULL);
+    play_only_if_null (track);
+    pipeline.set_state (state);
+  }
+
 
   private void pipeline_eos (Gst.Bus bus, Gst.Message mes) {
     if (mes.type == Gst.MessageType.EOS) {
