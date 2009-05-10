@@ -58,7 +58,15 @@ namespace Spotify {
   [CCode (cname = "sp_session", cprefix = "sp_session_", unref_function = "")]
   public class Session {
     public Error login (string username, string password);
+    public weak User user ();
     public Error logout ();
     public void process_events (int *next_timeout);
+  }
+
+  [CCode (cname = "sp_user", cprefix = "sp_user_", ref_function = "", unref_function = "")]
+  public class User {
+    public weak string canonical_name ();
+    public weak string display_name ();
+    public bool is_loaded ();
   }
 }
