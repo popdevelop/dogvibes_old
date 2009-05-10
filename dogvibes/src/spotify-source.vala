@@ -10,18 +10,12 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
   private Element spotify;
   private bool created;
 
-  construct {
-    try {
-      var gc = GConf.Client.get_default ();
-      user = gc.get_string ("/apps/dogvibes/spotify/username");
-      pass = gc.get_string ("/apps/dogvibes/spotify/password");
-      stdout.printf ("Creating spotify source with %s %s\n", user, pass);
-    } catch (GLib.Error e) {
-      stderr.printf ("Oops: %s\n", e.message);
-    }
+  public SpotifySource (string user, string pass) {
     this.user = user;
     this.pass = pass;
+  }
 
+  construct {
     owner = null;
     created = false;
   }

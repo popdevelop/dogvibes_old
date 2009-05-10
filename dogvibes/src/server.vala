@@ -15,8 +15,23 @@ public class Dogvibes : GLib.Object {
     speakers = new GLib.List<Speaker> ();
 
     /* initiate all sources */
-    sources.append (new SpotifySource ());
-    sources.append (new FileSource ());
+    /* initiate one spotify source (this should all be done from conffiles according to last state */
+    string user;
+    string pass;
+    try {
+      var gc = GConf.Client.get_default ();
+      user = gc.get_string ("/apps/dogvibes/spotify/username");
+      pass = gc.get_string ("/apps/dogvibes/spotify/password");
+      stdout.printf ("Creating spotify source with %s %s\n", user, pass);
+    } catch (GLib.Error e) {
+      stderr.printf ("Oops: %s\n", e.message);
+    }
+    sources.append (new SpotifySource (user, pass));
+
+    /* initiate one file source */
+    sources.append (new FileSource ("../testmedia"));
+
+    /* initiate one radio source */
     sources.append (new RadioSource ());
 
     /* initiate all speakers */
@@ -41,7 +56,7 @@ public class Dogvibes : GLib.Object {
       foreach (Track track in source.search (query)) {
         //stdout.printf("%s - %s [%s]\n",
         //              track.artist, track.name, track.uri);
-        /* Tried to do this with concat but I ended up in an eternal loop... */
+        /* tried to do this with concat but I ended up in an eternal loop... */
         tracks.append(track);
       }
     }
@@ -112,7 +127,7 @@ public class Amp : GLib.Object {
     playqueue_position = 0;
   }
 
-  /*** Public D-Bus API ***/
+  /*** public D-Bus API ***/
 
   public void connect_speaker (int nbr) {
     if (!speaker_exists (nbr)) {
@@ -229,7 +244,7 @@ public class Amp : GLib.Object {
     pipeline.set_state (State.NULL);
   }
 
-  /*** State change functions ***/
+  /*** state change functions ***/
 
   private void pad_added (Element dec, Pad pad) {
     stdout.printf ("Found suitable plugins lets add the speaker\n");
@@ -238,7 +253,7 @@ public class Amp : GLib.Object {
     tee.set_state (State.PAUSED);
   }
 
-  /*** Private helper functions ***/
+  /*** private helper functions ***/
 
   private void change_track (int tracknbr) {
     State pending;
@@ -251,7 +266,7 @@ public class Amp : GLib.Object {
     }
 
     if (tracknbr == playqueue_position) {
-      /* Do nothing we are at the correct position */
+      /* do nothing we are at the correct position */
       return;
     }
 

@@ -1,11 +1,17 @@
 using Gst;
 
 public class FileSource : GLib.Object, Source {
+  private string dir;
+
+  public FileSource (string dir) {
+    this.dir = dir;
+  }
+
   construct {
     stdout.printf("Creating file source\n");
 
     Collection c = new Collection();
-    //c.index("../testmedia");
+    //c.index(dir);
   }
 
   public GLib.List<Track> search (string query) {
