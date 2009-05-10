@@ -96,8 +96,16 @@ p
 
 #main_col
 {
-   overflow:auto;
+   overflow:hidden;
    height: 100%;
+}
+#playlist
+{
+   overflow:auto;
+   bottom:41px;
+   position:fixed;
+   top:78px;   
+   left:160px; 
 }
 #playlist_header
 {
@@ -221,10 +229,23 @@ p
 #playlist th#time      { width: 7%; }
 #playlist th#rating    { width: 10%; }
 #playlist th#album     { width: 30%; }
-#playlist tr.odd { background-color: #313131; }
+#playlist td.odd { background-color: #313131; }
 #playlist td { padding: 1px 0 1px 2px; margin: 0px;}
 #playlist td a { color: #c3c3c3; }
+
+#playlist_header span#s-keyword
+{
+   font-size: 12px;
+   font-weight: bold;
+   color: white;
+   float: right;
+   margin-right: 15px;
+}
+
+
 </style>
+
+<script type='text/javascript' src='jquery.js'></script> 
 
 <!-- <script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>  //-->
 </head>
@@ -254,16 +275,15 @@ p
       </div>
       <div class="clear">&nbsp;</div>  
    </div>
-   <div id="main_col" class="grid_10 thm_playlist_bg">
+   <div id="main_col" class="grid_10 thm_playlist_bg">   
       <div id="playlist_header" class="grid_1 thm_playlist_tab">
          Search
       </div>
       <div id="playlist_header" class="grid_9 thm_playlist_header">
-         &nbsp;
-      </div>         
-      <div class="clear">&nbsp;</div>
+         <span id="s-keyword"></span>
+      </div>     
+      <div class="clear">&nbsp;</div>      
       <div id="playlist" class="grid_10">
-         <p>Search results for 'jularbo':</p>
          <table cellspacing="0" cellpadding="0">
             <thead>
                <tr>
@@ -274,7 +294,7 @@ p
                <th id="rating"><a href="#">Rating</a>
                <th id="album"><a href="#">Album</a>
             </thead>
-            <tbody>
+            <tbody id="s-results">
                <tr>
                   <td>&nbsp;
                   <td>Finsmakarschottis
@@ -322,5 +342,29 @@ p
    </div>
       <div class="clear">&nbsp;</div>
 </div>
+
+<script language="javascript" type="text/javascript">
+
+var server = "http://wallin.web.surftown.se/dw"
+
+$("#s-submit").click(function () {
+  $("#s-results").html("<tr><td colspan=6><img src=\"img/loading_small.gif\"> <i>Searching...</i>");
+  $("#s-keyword").text($("#s-input").val());
+  $.getJSON(server + "/?q=" + $("#s-input").val() + "&callback=?", function(data) {
+    $("#s-results").empty();
+    $.each(data.items, function(i, song) {
+      td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+      $("#s-results").append("<tr>" + td +"&nbsp;" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
+/*      $(".playButton").click(function () { 
+        $.ajax(server + "/play?key=" + this.id);
+        alert("Playing. Click OK to stop.");
+        $.ajax(server + "/stop");
+      });*/
+    });
+  });
+});
+
+</script>
+
 </body>
 </html>
