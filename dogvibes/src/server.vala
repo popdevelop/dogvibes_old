@@ -92,6 +92,7 @@ public class Amp : GLib.Object {
   private Element tee = null;
   private Element decodebin = null;
   private Element spotify = null;
+  private Element volume = null;
 
   /* playqueue */
   GLib.List<Track> playqueue;
@@ -113,9 +114,16 @@ public class Amp : GLib.Object {
     /* initiate the pipeline */
     pipeline = (Pipeline) new Pipeline ("dogvibes");
 
+    /* create volume element */
+    volume = ElementFactory.make ("volume", "volume");
+    pipeline.add (volume);
+
     /* create the tee */
     tee = ElementFactory.make ("tee", "tee");
     pipeline.add (tee);
+
+    /* link volume with tee */
+    volume.link (tee);
 
     /* get pipline bus */
     bus = pipeline.get_bus ();
@@ -244,12 +252,17 @@ public class Amp : GLib.Object {
     pipeline.set_state (State.NULL);
   }
 
+  public void set_volume (int vol) {
+    volume.set ("volume", (double) vol);
+  }
+
   /*** state change functions ***/
 
   private void pad_added (Element dec, Pad pad) {
     stdout.printf ("Found suitable plugins lets add the speaker\n");
     /* FIXME the speaker and the tee should not be added to the pipeline here */
-    pad.link (tee.get_pad("sink"));
+    pad.link (volume.get_pad("sink"));
+    volume.set_state (State.PAUSED);
     tee.set_state (State.PAUSED);
   }
 
@@ -314,7 +327,7 @@ public class Amp : GLib.Object {
       src = spotify;
       ((SingleSource) source).set_track (track);
       pipeline.add (spotify);
-      spotify.link (tee);
+      spotify.link (volume);
       spotify_in_use = true;
     } else {
       src = Element.make_from_uri (URIType.SRC, track.uri , "source");
