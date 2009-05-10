@@ -6,6 +6,7 @@
 <link rel="stylesheet" type="text/css" media="all" href="css/reset.css" />
 <link rel="stylesheet" type="text/css" media="all" href="css/text.css" />
 <link rel="stylesheet" type="text/css" media="all" href="css/960.css" />
+<link rel="stylesheet" type="text/css" media="all" href="jqueryFileTree.css" />
 <style type="text/css" media="all">
 html
 {
@@ -30,12 +31,17 @@ a:hover
 {
 	text-decoration: underline;
 }
-
+h1
+{
+	margin: 20px 0 10px 10px;
+	font-size: 16px;
+	font-weight: bold;
+}
 p
 {
 	overflow: hidden;
 	padding: 0px 0px 0px 10px;
-   margin: 3px 1px 1px 1px;
+    margin: 3px 1px 1px 1px;
 	text-align: left;
 }
 .container_12
@@ -91,8 +97,8 @@ p
 #navigation a:hover { color: white; text-decoration:none; }
 #navigation ul { list-style-type: none; margin: 8px;}
 #navigation li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px;}
-#navigation li#home { background:url('img/icon_house.gif') no-repeat scroll 0 2px; }
-#navigation li#playqueue { background:url('img/icon_playlist.gif') no-repeat scroll 0 2px; }
+#navigation li#p-home { background:url('img/icon_house.gif') no-repeat scroll 0 2px; }
+#navigation li#p-playqueue { background:url('img/icon_playlist.gif') no-repeat scroll 0 2px; }
 
 #main_col
 {
@@ -242,10 +248,16 @@ p
    margin-right: 15px;
 }
 
+#file_tree
+{
+	padding: 15px;
+}
+
 
 </style>
 
 <script type='text/javascript' src='jquery.js'></script> 
+<script type='text/javascript' src='jqueryFileTree.js'></script>
 
 <!-- <script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>  //-->
 </head>
@@ -257,7 +269,7 @@ p
          <span id="s-left"></span><input type="text" id="s-input"><input id="s-submit" type="button">
       </p>
    </div>
-   <div  class="grid_7">
+   <div class="grid_7">
       &nbsp;
    </div>      
 </div>
@@ -268,8 +280,9 @@ p
    <div id="left_col" class="grid_2 thm_menu_bg">
       <div id="navigation" class="thm_menu_group">
          <ul>
-            <li id="home"><a href="#">Home</a>
-            <li id="playqueue"><a href="#">Play queue</a>
+            <li id="p-home"><a href="#">Home</a>
+            <li id="p-playqueue"><a href="#">Play queue</a>
+            <li id="p-local"><a href="#">Local media</a>
          </ul>
          <div class="clear">&nbsp;</div> 
       </div>
@@ -277,54 +290,14 @@ p
    </div>
    <div id="main_col" class="grid_10 thm_playlist_bg">   
       <div id="playlist_header" class="grid_1 thm_playlist_tab">
-         Search
+         <span id="tab-title">Home</span>
       </div>
       <div id="playlist_header" class="grid_9 thm_playlist_header">
-         <span id="s-keyword"></span>
+         <span id="wait_req" style="float: right; color:white;">&nbsp;</span><span id="s-keyword"></span>
       </div>     
       <div class="clear">&nbsp;</div>      
       <div id="playlist" class="grid_10">
-         <table cellspacing="0" cellpadding="0">
-            <thead>
-               <tr>
-               <th id="indicator">&nbsp;
-               <th id="track"><a href="#">Track</a>
-               <th id="artist"><a href="#">Artist</a>
-               <th id="time"><a href="#">Time</a>
-               <th id="rating"><a href="#">Rating</a>
-               <th id="album"><a href="#">Album</a>
-            </thead>
-            <tbody id="s-results">
-               <tr>
-                  <td>&nbsp;
-                  <td>Finsmakarschottis
-                  <td><a href="#">Kalle jularbo collective</a>
-                  <td>3:45
-                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif">
-                  <td><a href="#">Dans på bryggan 6</a>
-               <tr class="odd">
-                  <td>&nbsp;
-                  <td>Suparedans
-                  <td><a href="#">Kalle jularbo collective</a>
-                  <td>3:02
-                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif">
-                  <td><a href="#">Dans på bryggan 6</a>
-               <tr>
-                  <td>&nbsp;
-                  <td>Pågapolka
-                  <td><a href="#">Kalle jularbo collective</a>
-                  <td>2:58
-                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif">
-                  <td><a href="#">Dans på bryggan 6</a>
-               <tr class="odd">
-                  <td>&nbsp;
-                  <td>Sängfösarvals
-                  <td><a href="#">Kalle jularbo collective</a>
-                  <td>4:02
-                  <td><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif"><img src="img/rating_star.gif">
-                  <td><a href="#">Dans på bryggan 6</a>
-            </tbody>
-         </table>
+		<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"www.dogvibes.com\" target=\"_new\">Dogvibes</a>
       </div>
       <div class="clear">&nbsp;</div>      
    </div> 
@@ -345,22 +318,104 @@ p
 
 <script language="javascript" type="text/javascript">
 
-var server = "http://wallin.web.surftown.se/dw"
+/* Number of wait requests */
+var wait_req = 0;
 
+var server = "http://wallin.web.surftown.se/dw"
+var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"rating\"><a href=\"#\">Rating</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
+var loading_small = "<img src=\"img/loading_small.gif\">";
+var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
+
+
+function setWait(){
+	if(wait_req == 0)
+	{
+		$("#wait_req").html("laddar");
+	}
+	wait_req++;	
+}
+function clearWait(){
+	wait_req--
+	if(wait_req == 0)
+	{
+		$("#wait_req").html("&nbsp;");		
+	}
+}
+/* Sections */
+$("#p-home").click(function () {
+	$("#tab-title").text("Home");
+	$("#playlist").html(welcome_text);
+});
+
+$("#p-local").click(function () {
+	$("#tab-title").text("Local media");
+	$("#playlist").html("<h1>Local files:</h1><div id=\"file_tree\"></div>");
+	$('#file_tree').fileTree({
+	      root: '/',
+	      script: server + '/jqueryFileTree.php',
+	      multiFolder: true,
+	      loadMessage: loading_small
+	    }, function(file) {
+	        alert(file);
+	    });	
+});
+
+/* Play queue management */
+
+$("#p-playqueue").click(function () {
+  $("#tab-title").text("Play queue");
+  $("#playlist").html(track_list_table);
+  $("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
+  $.getJSON(server + "/?pc=g&callback=?", function(data) {
+    $("#s-results").empty();
+    $.each(data.items, function(i, song) {
+      td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+      $("#s-results").append("<tr id=\"row_"+ song.key + "\">" + td + "<a href=\"#\" id=\"" + song.key + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
+    });
+    $(".remButton").click(function () { 
+    	setWait();
+        $.ajax({  
+            type: "GET",
+            dataType: 'jsonp',
+      		url: server,
+      		data: "pr=" + this.id,
+      		success: clearWait()
+  		});
+  		$("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
+      });     
+    if(data.count == 0)
+    {
+    	$("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
+    }
+  });	
+});
+
+/* Searching */
 $("#s-submit").click(function () {
-  $("#s-results").html("<tr><td colspan=6><img src=\"img/loading_small.gif\"> <i>Searching...</i>");
+  $("#playlist").html(track_list_table);	
+  $("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
   $("#s-keyword").text($("#s-input").val());
+  $("#tab-title").text("Search");
   $.getJSON(server + "/?q=" + $("#s-input").val() + "&callback=?", function(data) {
     $("#s-results").empty();
     $.each(data.items, function(i, song) {
       td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-      $("#s-results").append("<tr>" + td +"&nbsp;" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
-/*      $(".playButton").click(function () { 
-        $.ajax(server + "/play?key=" + this.id);
-        alert("Playing. Click OK to stop.");
-        $.ajax(server + "/stop");
-      });*/
+      $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.key + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
     });
+    $(".addButton").click(function () {
+      setWait();      
+      $.ajax({  
+            type: "GET",
+            dataType: 'jsonp',
+    		url: server,
+    		data: "pa=" + this.id,
+    		success: clearWait()
+  		});
+    });    
+    if(data.count == 0)
+    {
+    	$("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
+    }
   });
 });
 
