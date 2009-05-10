@@ -20,9 +20,9 @@ public class Dogvibes : GLib.Object {
     sources.append (new RadioSource ());
 
     /* initiate all speakers */
-    speakers.append (new DeviceSpeaker ());
-    speakers.append (new FakeSpeaker ());
-    speakers.append (new ApexSpeaker ());
+    speakers.append (new DeviceSpeaker ("devicesource"));
+    speakers.append (new FakeSpeaker ("fakesource"));
+    speakers.append (new ApexSpeaker ("apexsource", "192.168.0.1"));
   }
 
   public static weak GLib.List<Source> get_sources () {
@@ -112,22 +112,10 @@ public class Amp : GLib.Object {
     playqueue_position = 0;
   }
 
-  private void pipeline_eos (Gst.Bus bus, Gst.Message mes) {
-    if (mes.type == Gst.MessageType.EOS) {
-      next_track ();
-    }
-  }
+  /*** Public D-Bus API ***/
 
-  private void pad_added (Element dec, Pad pad) {
-    stdout.printf ("Found suitable plugins lets add the speaker\n");
-    /* FIXME the speaker and the tee should not be added to the pipeline here */
-    pad.link (tee.get_pad("sink"));
-    tee.set_state (State.PAUSED);
-  }
-
-  /* Speaker API */
   public void connect_speaker (int nbr) {
-    if (nbr > (speakers.length () - 1)) {
+    if (!speaker_exists (nbr)) {
       stdout.printf ("Speaker %d does not exist\n", nbr);
       return;
     }
@@ -137,7 +125,6 @@ public class Amp : GLib.Object {
     if (pipeline.get_by_name (speaker.name) == null) {
       State state;
       State pending;
-
       pipeline.get_state (out state, out pending, 0);
       pipeline.set_state (State.NULL);
       sink = speaker.get_speaker ();
@@ -150,7 +137,7 @@ public class Amp : GLib.Object {
   }
 
   public void disconnect_speaker (int nbr) {
-    if (nbr > (speakers.length () - 1)) {
+    if (!speaker_exists (nbr)) {
       stdout.printf ("Speaker %d does not exist\n", nbr);
       return;
     }
@@ -171,9 +158,104 @@ public class Amp : GLib.Object {
     }
   }
 
-  /* Play Queue API */
+  public string[] get_all_tracks_in_queue () {
+    var builder = new StringBuilder ();
+    foreach (Track item in playqueue) {
+      builder.append (item.uri);
+      builder.append (" ");
+    }
+    stdout.printf ("Play queue length %u\n", playqueue.length ());
+    return builder.str.split (" ");
+  }
+
+  public void get_connected_source () {
+	  stdout.printf("NOT IMPLEMENTED \n");
+  }
+
+  public void get_connected_speakers () {
+	  stdout.printf("NOT IMPLEMENTED \n");
+  }
+
+  public void get_available_speakers () {
+	  stdout.printf("NOT IMPLEMENTED \n");
+  }
+
+  public void next_track () {
+    State pending;
+    State state;
+    Track track;
+
+    if (playqueue_position < (playqueue.length () - 1)) {
+      playqueue_position = playqueue_position + 1;
+    } else {
+      stdout.printf ("Reached top of queue\n");
+    }
+
+    track = (Track) playqueue.nth_data (playqueue_position);
+    pipeline.get_state (out state, out pending, 0);
+    pipeline.set_state (State.NULL);
+    play_only_if_null (track);
+    pipeline.set_state (state);
+  }
+
   public void pause () {
     pipeline.set_state (State.PAUSED);
+  }
+
+  public void play () {
+    Track track;
+    track = (Track) playqueue.nth_data (playqueue_position);
+    play_only_if_null (track);
+  }
+
+  public void previous_track () {
+    State pending;
+    State state;
+    Track track;
+
+    if (playqueue_position != 0) {
+      playqueue_position = playqueue_position - 1;
+    } else {
+      stdout.printf ("Reached end of queue\n");
+    }
+
+    track = (Track) playqueue.nth_data (playqueue_position);
+    pipeline.get_state (out state, out pending, 0);
+    pipeline.set_state (State.NULL);
+    play_only_if_null (track);
+    pipeline.set_state (state);
+  }
+
+  public void queue (string uri) {
+    Track track = new Track ();
+    track.uri = uri;
+    track.artist = "Mim";
+    playqueue.append (track);
+  }
+
+  public void resume () {
+    pipeline.set_state (State.PLAYING);
+  }
+
+  public void stop () {
+    pipeline.set_state (State.NULL);
+  }
+
+  /*** State change functions ***/
+
+  private void pad_added (Element dec, Pad pad) {
+    stdout.printf ("Found suitable plugins lets add the speaker\n");
+    /* FIXME the speaker and the tee should not be added to the pipeline here */
+    pad.link (tee.get_pad("sink"));
+    tee.set_state (State.PAUSED);
+  }
+
+  /*** Private helper functions ***/
+
+  private void pipeline_eos (Gst.Bus bus, Gst.Message mes) {
+    if (mes.type == Gst.MessageType.EOS) {
+      next_track ();
+    }
   }
 
   private void play_only_if_null (Track track) {
@@ -213,83 +295,13 @@ public class Amp : GLib.Object {
     pipeline.set_state (State.PLAYING);
   }
 
-  public void play () {
-    Track track;
-    track = (Track) playqueue.nth_data (playqueue_position);
-    play_only_if_null (track);
-  }
-
-  public void queue (string uri) {
-    Track track = new Track ();
-    track.uri = uri;
-    track.artist = "Mim";
-    playqueue.append (track);
-  }
-
-  public string[] get_all_tracks_in_queue () {
-    var builder = new StringBuilder ();
-    foreach (Track item in playqueue) {
-      builder.append (item.uri);
-      builder.append (" ");
-    }
-    stdout.printf ("Play queue length %u\n", playqueue.length ());
-    return builder.str.split (" ");
-  }
-
-  public void next_track () {
-    State pending;
-    State state;
-    Track track;
-
-    if (playqueue_position < (playqueue.length () - 1)) {
-      playqueue_position = playqueue_position + 1;
+  private bool speaker_exists (int nbr) {
+    if (nbr > (speakers.length () - 1)) {
+      stdout.printf ("Speaker %d does not exist\n", nbr);
+      return false;
     } else {
-      stdout.printf ("Reached top of queue\n");
+      return true;
     }
-
-    track = (Track) playqueue.nth_data (playqueue_position);
-    pipeline.get_state (out state, out pending, 0);
-    pipeline.set_state (State.NULL);
-    play_only_if_null (track);
-    pipeline.set_state (state);
-  }
-
-  public void previous_track () {
-    State pending;
-    State state;
-    Track track;
-
-    if (playqueue_position != 0) {
-      playqueue_position = playqueue_position - 1;
-    } else {
-      stdout.printf ("Reached end of queue\n");
-    }
-
-    track = (Track) playqueue.nth_data (playqueue_position);
-    pipeline.get_state (out state, out pending, 0);
-    pipeline.set_state (State.NULL);
-    play_only_if_null (track);
-    pipeline.set_state (state);
-  }
-
-  public void resume () {
-    pipeline.set_state (State.PLAYING);
-  }
-
-  public void stop () {
-    pipeline.set_state (State.NULL);
-  }
-
-  public void get_connected_speakers () {
-	  stdout.printf("NOT IMPLEMENTED \n");
-  }
-
-  public void get_connected_source () {
-	  stdout.printf("NOT IMPLEMENTED \n");
-  }
-
-  public void get_available_speakers () {
-	  stdout.printf("NOT IMPLEMENTED \n");
   }
 }
 

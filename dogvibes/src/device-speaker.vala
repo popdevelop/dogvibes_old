@@ -2,14 +2,17 @@ using Gst;
 
 public class DeviceSpeaker : GLib.Object, Speaker {
   private Bin bin;
+  private bool created;
   private Element devicesink;
   private Element queue2;
-  private bool created;
 
   public string name { get; set; }
 
+  public DeviceSpeaker (string name)  {
+    this.name = name;
+  }
+
   construct {
-    this.name = "alsabin";
     created = false;
   }
 

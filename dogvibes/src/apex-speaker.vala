@@ -1,17 +1,20 @@
 using Gst;
 
 public class ApexSpeaker : GLib.Object, Speaker, RemoteSpeaker {
-  private Bin bin;
   private Element apexsink;
-  private Element queue2;
+  private Bin bin;
   private bool created;
+  private Element queue2;
 
   public string name { get; set; }
   public string host { get; set; }
 
+  public ApexSpeaker (string name, string host) {
+    this.name = name;
+    this.host = host;
+  }
+
   construct {
-    this.name = "apexbin";
-	this.host = "192.168.1.3";
     created = false;
   }
 

@@ -8,8 +8,11 @@ public class FakeSpeaker : GLib.Object, Speaker {
 
   public string name { get; set; }
 
+  public FakeSpeaker (string name) {
+    this.name = name;
+  }
+
   construct {
-    this.name = "fakebin";
     created = false;
   }
 
