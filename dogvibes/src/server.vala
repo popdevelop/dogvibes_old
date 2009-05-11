@@ -211,6 +211,10 @@ public class Amp : GLib.Object {
     return (int) duration;
   }
 
+  public int get_queue_position () {
+    return playqueue_position;
+  }
+
   public void next_track () {
     change_track (playqueue_position + 1);
   }
