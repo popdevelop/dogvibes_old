@@ -222,6 +222,7 @@ p
 #playback_control li#pb-play a:active { background-position: -31px -31px; }
 #playback_control li#pb-next a:active { background-position: -62px -31px; }
 
+#playback_time { color: white; font-size: 10px; text-align:left; }
 /*
  * Songlist table
  */
@@ -349,27 +350,33 @@ p
 </div>
 <!-- FOOTER //-->
 <div id="footer" class="container_12 thm_footer_bg">
-   <div class="grid_4">
+   <div class="grid_2">
       <ul id="playback_control">
          <li id="pb-prev"><a href="#" onclick="this.blur();">Prev</a></li>
          <li id="pb-play"><a href="#" onclick="this.blur();">Play</a></li>
          <li id="pb-next"><a href="#" onclick="this.blur();">Next</a></li>
       </ul>
    </div>
+   <div id="playback_time" class="grid_10">
+   </div>
       <div class="clear">&nbsp;</div>
 </div>
 
 <script language="javascript" type="text/javascript">
 
-/* Number of wait requests */
-var wait_req = 0;
-
+/* Config */
 var server = "http://wallin.web.surftown.se/dw"
+var poll_interval = 5000 /* ms */
+
+/* Misc variables */
+var wait_req = 0;
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"rating\"><a href=\"#\">Rating</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
 var loading_small = "<img src=\"img/loading_small.gif\">";
 var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
-
-
+var poll_handle = setInterval(getNowPlaying,poll_interval);
+var current_time;
+var time_count;
+/* Handy functions */
 function  setWait(){
 	if(wait_req == 0)
 	{
@@ -390,11 +397,37 @@ function setPlayStatus(data)
 	if(data.state == "playing")
 	{
 		$("#pb-play > a").addClass("playing");
+		current_time = data.duration
+		increaseCount();
+		clearInterval(time_count);
+		time_count = setInterval(increaseCount, 1000);
 	}
 	else
 	{
 		$("#pb-play > a").removeClass("playing");
+		clearInterval(time_count);
+		
 	}
+}
+
+
+function checkTime(i)
+{
+	if (i<10 && i>=0)
+  	{
+  		i="0" + i;
+  	}
+	return i;
+}
+
+function increaseCount()
+{
+	current_time = current_time + 1;
+	m = Math.round(current_time/60 - 0.5)
+	s = current_time - m*60;	
+	m=checkTime(m);
+	s=checkTime(s);
+	$("#playback_time").html(m + ":" + s);
 }
 
 function getNowPlaying()
