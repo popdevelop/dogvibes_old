@@ -58,11 +58,10 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
     //stdout.printf ("I did a search on %s\n", query);
 
     GLib.List<Track> tracks = new GLib.List<Track> ();
-    Track track = new Track ();
+    Track track = new Track ("spotify:track:1H5tvpoApNDxvxDexoaAUo");
     track.name = "A Spotify Track";
     track.artist = "A Spotify Artist";
     track.album = "A Spotify Album";
-    track.uri = "spotify:track:1H5tvpoApNDxvxDexoaAUo";
     tracks.append (track);
     return tracks;
   }

@@ -257,8 +257,7 @@ public class Amp : GLib.Object {
   }
 
   public void queue (string uri) {
-    Track track = new Track ();
-    track.uri = uri;
+    Track track = new Track (uri);
     track.artist = "Mim";
     playqueue.append (track);
   }
