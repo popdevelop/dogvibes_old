@@ -60,11 +60,11 @@ p
  */
 #header
 {
-   padding-top: 22px;
    height:56px;
    overflow:hidden;
    position:absolute;
    top:0;
+   z-index: 2;
 }
 #wrapper_mid 
 {
@@ -151,6 +151,10 @@ p
    cursor: pointer;
    text-decoration: none;
 }
+#header p
+{
+    margin-top: 23px;
+}
  
 /*
  *  "Theme". This is the beginning of making things themable
@@ -163,6 +167,12 @@ p
 {
    border-bottom: 1px solid #373737;
    width: 159px;
+}
+.thm_now_playing
+{
+    background: #9f9f9f url('img/header_bg.gif') repeat-x 0 0;
+    color: #333;
+    width: 159px;    
 }
 .thm_playlist_bg
 {
@@ -248,6 +258,16 @@ p
    margin-right: 15px;
 }
 
+#now_playing { 
+    position: fixed; 
+    bottom: 41px; 
+    z-index: 1; 
+}
+#now_playing li, ul { list-style-type: none; }
+#now_playing ul { margin: 5px 0 5px 0px; }
+#now_playing li { text-align: center; margin-left: 0px; }
+#now_playing li.artist { font-weight: bold; }
+#now_playing li.title { font-size: 10px; }
 #file_tree
 {
 	padding: 15px;
@@ -285,6 +305,9 @@ p
             <li id="p-local" class="navlink"><a href="#">Local media</a>
          </ul>
          <div class="clear">&nbsp;</div> 
+      </div>
+      <div class="clear">&nbsp;</div> 
+      <div id="now_playing" class="thm_now_playing">
       </div>
       <div class="clear">&nbsp;</div>  
    </div>
@@ -341,6 +364,22 @@ function clearWait(){
 		$("#wait_req").empty();
 	}
 };
+/* Startup: check server playback status */
+$("document").ready(function() {
+	$.getJSON(server + "/?pc=s&callback=?", function(data){
+        beg = "<ul>";
+        sepa = "<li class=\"artist\">";
+        sept = "<li class=\"title\">";
+        end = "</ul>";
+        if(data.artist){
+            $("#now_playing").html(beg + sepa + data.title + sept + data.artist + end);
+        }
+        else{
+            $("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
+        }
+    });
+});
+
 /* Sections */
 $("#p-home").click(function () {
 	$("#tab-title").text("Home");
