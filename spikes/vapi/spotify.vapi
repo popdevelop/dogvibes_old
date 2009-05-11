@@ -1,7 +1,32 @@
+/* spotify.vapi
+ *
+ * Copyright (C) 2009 Johan Brissmyr
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ *
+ * Author:
+ *  Johan Brissmyr <brissmyr@dogvibes.com>
+ */
+
+/*
+ * TODO: go through and mark out, weak etc.
+ */
+
 [CCode (lower_case_cprefix = "", cheader_filename = "spotify/api.h")]
 namespace Spotify {
 
-  [CCode (cprefix = "SPOTIFY_")]
   public const int SPOTIFY_API_VERSION;
 
   [CCode (cname = "sp_error", cprefix = "SP_ERROR_")]
@@ -13,32 +38,35 @@ namespace Spotify {
     USER_NEEDS_PREMIUM, OTHER_TRANSIENT, IS_LOADING
   }
 
+  [CCode (cname = "sp_sampletype", cprefix = "SP_SAMPLETYPE_")]
+  public enum SampleType {
+    INT16_NATIVE_ENDIAN
+  }
+
   [CCode (cname = "sp_error_message")]
   public string message (Error error);
 
   public static delegate void LoggedIn (Session session, Error error);
   public static delegate void LoggedOut (Session session);
-	public static delegate void MetadataUpdated (Session session);
-	public static delegate void ConnectionError (Session session);
-	public static delegate void MessageToUser (Session session, string message);
-	public static delegate void NotifyMainThread (Session session);
-	//public static delegate int MusicDelivery (Session session, const sp_audioformat *format, const void *frames, int num_frames);
-	public static delegate void PlayTokenLost (Session session);
-	public static delegate void LogMessage (Session session, string data);
+  public static delegate void MetadataUpdated (Session session);
+  public static delegate void ConnectionError (Session session, Error error);
+  public static delegate void MessageToUser (Session session, string message);
+  public static delegate void NotifyMainThread (Session session);
+  //public static delegate int MusicDelivery (Session session, AudioFormat format, const void *frames, int num_frames); // use Frame[]
+  public static delegate void PlayTokenLost (Session session);
+  public static delegate void LogMessage (Session session, string data);
 
   [CCode (cname = "sp_session_callbacks", destroy_function = "")]
   public struct SessionCallbacks {
     public LoggedIn logged_in;
     public LoggedOut logged_out;
     public MetadataUpdated metadata_updated;
-    /*
-      public connection_error)(sp_session *session, sp_error error);
-      public message_to_user)(sp_session *session, const char *message);
-      public notify_main_thread)(sp_session *session);
-      public usic_delivery)(sp_session *session, const sp_audioformat *format, const void *frames, int num_frames);
-      public play_token_lost)(sp_session *session);
-      public log_message)(sp_session *session, const char *data);
-    */
+    public ConnectionError connection_error;
+    public MessageToUser message_to_user;
+    public NotifyMainThread notify_main_thread;
+    //public MusicDelivery music_delivery;
+    public PlayTokenLost play_token_lost;
+    public LogMessage log_message;
   }
 
   [CCode (cname = "sp_session_config", destroy_function = "")]
@@ -55,18 +83,69 @@ namespace Spotify {
     public Error init_session (Session *session);
   }
 
+  [CCode (cname = "sp_audioformat", destroy_function = "")]
+  public struct AudioFormat {
+    public weak SampleType sample_type;
+    public int sample_rate;
+    public int channels;
+  }
+
   [CCode (cname = "sp_session", cprefix = "sp_session_", unref_function = "")]
   public class Session {
-    public Error login (string username, string password);
+    public weak Error login (string username, string password);
     public weak User user ();
-    public Error logout ();
+    public weak Error logout ();
     public void process_events (int *next_timeout);
   }
 
-  [CCode (cname = "sp_user", cprefix = "sp_user_", ref_function = "", unref_function = "")]
+  [CCode (cname = "sp_user", cprefix = "sp_user_", ref_function = "",
+          unref_function = "")]
   public class User {
     public weak string canonical_name ();
     public weak string display_name ();
     public bool is_loaded ();
+  }
+
+  [CCode (cname = "search_complete_cb")]
+  public static delegate void SearchComplete (Search result, void *userdata);
+
+  [CCode (cname = "sp_search", cprefix = "sp_search_", ref_function = "",
+          unref_function = "")]
+  public class Search {
+    public static Search create (Session session, string query, int offset,
+                                 int count, SearchComplete callback,
+                                 void *userdata); // todo: constructor ?
+    public weak Error error ();
+    public weak string query ();
+    public weak string did_you_mean ();
+    public int total_tracks ();
+    public int num_tracks ();
+    public weak Track track (int index);
+    public int num_artists ();
+    public weak Artist artist (int index);
+    public int num_albums ();
+    public weak Album album (int index);
+  }
+
+  [CCode (cname = "sp_track", cprefix = "sp_track_", ref_function = "",
+          unref_function = "")]
+  public class Track {
+    public weak string name ();
+    public int num_artists ();
+    public int duration ();
+    public int popularity ();
+  }
+
+  [CCode (cname = "sp_album", cprefix = "sp_album_", ref_function = "",
+          unref_function = "")]
+  public class Album {
+    public weak string name ();
+    public int year ();
+  }
+
+  [CCode (cname = "sp_artist", cprefix = "sp_artist_", ref_function = "",
+          unref_function = "")]
+  public class Artist {
+    public weak string name ();
   }
 }
