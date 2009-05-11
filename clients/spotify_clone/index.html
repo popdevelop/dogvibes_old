@@ -170,9 +170,13 @@ p
 }
 .thm_now_playing
 {
-    background: #9f9f9f url('img/header_bg.gif') repeat-x 0 0;
+    background: #9f9f9f url('img/now_playing_bg.gif') repeat-x top left;
     color: #333;
     width: 159px;    
+}
+.thm_album_art
+{
+	background: #474747 url('img/no_albumart.gif') no-repeat 0 0;
 }
 .thm_playlist_bg
 {
@@ -206,6 +210,7 @@ p
 #playback_control li { display: inline; }
 #playback_control li a { float: left; width: 31px; height: 0; padding: 31px 0 0 0; overflow: hidden; }
 #playback_control li a { background-image: url('img/prev_play_next.gif');  background-repeat: no-repeat; _background-image: url('img/prev_play_next.gif');}
+#playback_control li a.playing { background-image: url('img/prev_stop_next.gif'); }
 
 /* BUTTONS */
 #playback_control li#pb-prev a { background-position: 0px 0px; }
@@ -260,8 +265,9 @@ p
 
 #now_playing { 
     position: fixed; 
-    bottom: 41px; 
+    bottom: 200px; 
     z-index: 1; 
+    height: 52px;
 }
 #now_playing li, ul { list-style-type: none; }
 #now_playing ul { margin: 5px 0 5px 0px; }
@@ -273,6 +279,17 @@ p
 	padding: 15px;
 }
 
+#album_art
+{
+    position: fixed; 
+    bottom: 41px; 
+    z-index: 1; 
+    height: 159px;
+    width: 159px;
+    overflow: hidden;
+}
+#album_art img { border: 0; padding:0; margin:0;     height: 159px;
+    width: 159px;}
 
 </style>
 
@@ -309,7 +326,10 @@ p
       <div class="clear">&nbsp;</div> 
       <div id="now_playing" class="thm_now_playing">
       </div>
-      <div class="clear">&nbsp;</div>  
+      <div class="clear">&nbsp;</div>
+      <div id="album_art" class="thm_album_art">
+      </div> 
+      <div class="clear">&nbsp;</div>             
    </div>
    <div id="main_col" class="grid_10 thm_playlist_bg">   
       <div id="playlist_header" class="grid_1 thm_playlist_tab">
@@ -364,21 +384,59 @@ function clearWait(){
 		$("#wait_req").empty();
 	}
 };
-/* Startup: check server playback status */
-$("document").ready(function() {
+
+function setPlayStatus(data)
+{
+	if(data.state == "playing")
+	{
+		$("#pb-play > a").addClass("playing");
+	}
+	else
+	{
+		$("#pb-play > a").removeClass("playing");
+	}
+}
+
+function getNowPlaying()
+{
 	$.getJSON(server + "/?pc=s&callback=?", function(data){
-        beg = "<ul>";
-        sepa = "<li class=\"artist\">";
-        sept = "<li class=\"title\">";
-        end = "</ul>";
-        if(data.artist){
-            $("#now_playing").html(beg + sepa + data.title + sept + data.artist + end);
-        }
-        else{
-            $("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
-        }
-    });
+	       beg = "<ul>";
+	       sepa = "<li class=\"artist\">";
+	       sept = "<li class=\"title\">";
+	       end = "</ul>";
+	       if(data.artist){
+	           $("#now_playing").html(beg + sepa + data.title + sept + data.artist + end);
+	           setPlayStatus(data);
+	           if(data.albumart)
+	           {
+	           	$("#album_art").html("<img src=\"" + server + data.albumart + "\">");
+	           }
+	           else
+	           {
+	           	$("#album_art").empty();
+	           }
+	       }
+	       else{
+	           $("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
+	       }
+	   });
+}
+
+/* Startup: check server playback status. Fetch track if playing */
+$("document").ready(function() { getNowPlaying() });
+
+/* Play button */
+$("#pb-play").click(function() {
+	var action = $("#pb-play > a").hasClass("playing") ? "t" : "p";
+    $.ajax({ 
+        type: "GET",
+        dataType: 'jsonp',
+  		url: server,
+  		data: "pc=" + action,
+  		success: function () { getNowPlaying(); }
+	});
 });
+
 
 /* Sections */
 $("#p-home").click(function () {
@@ -407,9 +465,9 @@ $("#p-playqueue").click(function () {
   $("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
   $.getJSON(server + "/?pc=g&callback=?", function(data) {
     $("#s-results").empty();
-    $.each(data.items, function(i, song) {
+    $.each(data.tracks, function(i, song) {
       td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-      $("#s-results").append("<tr id=\"row_"+ song.key + "\">" + td + "<a href=\"#\" id=\"" + song.key + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
+      $("#s-results").append("<tr id=\"row_"+ song.uri + "\">" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
     });
     $(".remButton").click(function () { 
         $.ajax({ 
@@ -421,7 +479,17 @@ $("#p-playqueue").click(function () {
       		success: clearWait()
   		});
   		$("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
-      });     
+      });    
+    $(".playButton").click(function () { 
+        $.ajax({ 
+            beforeSend: setWait(),
+            type: "GET",
+            dataType: 'jsonp',
+      		url: server,
+      		data: "pp=" + this.id,
+      		success: function () {clearWait(); getNowPlaying(); }
+  		});
+      });      
     if(data.count == 0)
     {
     	$("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
@@ -437,9 +505,9 @@ $("#s-submit").click(function () {
   $("#tab-title").text("Search");
   $.getJSON(server + "/?q=" + $("#s-input").val() + "&callback=?", function(data) {
     $("#s-results").empty();
-    $.each(data.items, function(i, song) {
+    $.each(data.tracks, function(i, song) {
       td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-      $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.key + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
+      $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
     });
     $(".addButton").click(function () {
       $.ajax({  
