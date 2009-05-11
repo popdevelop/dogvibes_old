@@ -267,7 +267,7 @@ public class Amp : GLib.Object {
     pipeline.set_state (State.PLAYING);
   }
 
-  public void search (int msecond) {
+  public void seek (int msecond) {
     pipeline.seek_simple (Format.TIME, SeekFlags.NONE, ((int64) msecond) * MSECOND);
   }
 
