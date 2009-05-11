@@ -29,7 +29,7 @@ UL.jqueryFileTree A:hover {
 .jqueryFileTree LI.directory { background: url(img/tree/directory.png) left top no-repeat; }
 .jqueryFileTree LI.expanded { background: url(img/tree/folder_open.png) left top no-repeat; }
 .jqueryFileTree LI.file { background: url(img/tree/file.png) left top no-repeat; }
-.jqueryFileTree LI.wait { background: url(img/tree/spinner.gif) left top no-repeat; }
+.jqueryFileTree LI.wait { background: url(img/loading_small.gif) left top no-repeat; }
 /* File Extensions*/
 .jqueryFileTree LI.ext_3gp { background: url(img/tree/film.png) left top no-repeat; }
 .jqueryFileTree LI.ext_afp { background: url(img/tree/code.png) left top no-repeat; }

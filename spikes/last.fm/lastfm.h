@@ -1,5 +1,7 @@
 /*
- * lastfm.h
+ * @file lastfm.h
+ * @author sebastian.wallin
+ * @description public last.fm API 
  */
 
 #ifndef LASTFM_H_

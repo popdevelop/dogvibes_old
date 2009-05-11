@@ -1,5 +1,7 @@
 /*
- * lastfm.c
+ * @file lastfm.c
+ * @author sebastian.wallin
+ * @description last.fm API implementation
  */
 
 #include <stdio.h>
@@ -134,6 +136,10 @@ static LastFM_ResponseCode_t l_last_fm_get_response_code(char * str)
     {
         retval = LFM_BADSESSION;
     }
+    else if(strcmp(str, "BADTIME") == 0)
+    {
+        retval = LFM_BADTIME;
+    }    
     return retval;
 }
 

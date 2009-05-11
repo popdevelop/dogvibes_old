@@ -1,11 +1,7 @@
 /*
- ============================================================================
- Name        : curl.c
- Author      : sewa
- Version     :
- Copyright   : Something
- Description : Hello World in C, Ansi-style
- ============================================================================
+ * @file main.c
+ * @author sebastian.wallin
+ * @description Example on how to use the last.fm API
  */
 #include <stdio.h>
 #include "lastfm.h"
@@ -23,7 +19,7 @@ int main(void)
             "161",
             "3",
             "\0" };
-    if(last_fm_handshake("dogvibes", "futureinstereo", &session) != LFM_OK)
+    if(last_fm_handshake("dogvibes", "password", &session) != LFM_OK)
     {
         puts("Authorization failed!!\n");
         goto done;

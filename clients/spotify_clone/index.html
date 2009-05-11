@@ -280,9 +280,9 @@ p
    <div id="left_col" class="grid_2 thm_menu_bg">
       <div id="navigation" class="thm_menu_group">
          <ul>
-            <li id="p-home"><a href="#">Home</a>
-            <li id="p-playqueue"><a href="#">Play queue</a>
-            <li id="p-local"><a href="#">Local media</a>
+            <li id="p-home" class="navlink"><a href="#">Home</a>
+            <li id="p-playqueue" class="navlink"><a href="#">Play queue</a>
+            <li id="p-local" class="navlink"><a href="#">Local media</a>
          </ul>
          <div class="clear">&nbsp;</div> 
       </div>
@@ -290,14 +290,14 @@ p
    </div>
    <div id="main_col" class="grid_10 thm_playlist_bg">   
       <div id="playlist_header" class="grid_1 thm_playlist_tab">
-         <span id="tab-title">Home</span>
+         <div id="tab-title">Home</div>
       </div>
       <div id="playlist_header" class="grid_9 thm_playlist_header">
-         <span id="wait_req" style="float: right; color:white;">&nbsp;</span><span id="s-keyword"></span>
+         <span id="s-keyword"></span><span id="wait_req" style="float: right; color:white; padding-right:7px;">&nbsp;</span>
       </div>     
       <div class="clear">&nbsp;</div>      
       <div id="playlist" class="grid_10">
-		<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"www.dogvibes.com\" target=\"_new\">Dogvibes</a>
+		<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>
       </div>
       <div class="clear">&nbsp;</div>      
    </div> 
@@ -324,23 +324,23 @@ var wait_req = 0;
 var server = "http://wallin.web.surftown.se/dw"
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"rating\"><a href=\"#\">Rating</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
 var loading_small = "<img src=\"img/loading_small.gif\">";
-var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
+var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
 
 
-function setWait(){
+function  setWait(){
 	if(wait_req == 0)
 	{
-		$("#wait_req").html("laddar");
+		$("#wait_req").html(loading_small);
 	}
 	wait_req++;	
-}
+};
 function clearWait(){
 	wait_req--
 	if(wait_req == 0)
 	{
-		$("#wait_req").html("&nbsp;");		
+		$("#wait_req").empty();
 	}
-}
+};
 /* Sections */
 $("#p-home").click(function () {
 	$("#tab-title").text("Home");
@@ -373,8 +373,8 @@ $("#p-playqueue").click(function () {
       $("#s-results").append("<tr id=\"row_"+ song.key + "\">" + td + "<a href=\"#\" id=\"" + song.key + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
     });
     $(".remButton").click(function () { 
-    	setWait();
-        $.ajax({  
+        $.ajax({ 
+            beforeSend: setWait(),
             type: "GET",
             dataType: 'jsonp',
       		url: server,
@@ -403,10 +403,10 @@ $("#s-submit").click(function () {
       $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.key + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
     });
     $(".addButton").click(function () {
-      setWait();      
       $.ajax({  
-            type: "GET",
-            dataType: 'jsonp',
+         beforeSend: setWait(),
+         type: "GET",
+         dataType: 'jsonp',
     		url: server,
     		data: "pa=" + this.id,
     		success: clearWait()
@@ -417,6 +417,11 @@ $("#s-submit").click(function () {
     	$("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
     }
   });
+});
+
+/* Clear search keyword field if nav links are clicked*/
+$(".navlink").bind("click", function () {
+   $("#s-keyword").empty();
 });
 
 </script>
