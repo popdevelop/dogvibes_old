@@ -96,6 +96,8 @@ public class Amp : GLib.Object {
 
   /* playqueue */
   GLib.List<Track> playqueue;
+
+  /* FIXME: stupid to have this as a int it should be a list element instead */
   int playqueue_position;
 
   /* ugly hack waiting for mr fuck up */
@@ -235,6 +237,18 @@ public class Amp : GLib.Object {
 
   public void previous_track () {
     change_track (playqueue_position - 1);
+  }
+
+  public void remove_from_queue (int nbr) {
+    if (nbr > (playqueue.length () - 1)) {
+      stdout.printf ("Too high track number, %d does not exist in queue\n", nbr);
+    }
+    playqueue.remove (playqueue.nth_data (nbr));
+
+    /* if current track is removed do nothing */
+    if (nbr <= playqueue_position) {
+      playqueue_position = playqueue_position - 1;
+    }
   }
 
   public void queue (string uri) {
