@@ -49,7 +49,7 @@ public class Dogvibes : GLib.Object {
   }
 
 
-  public string[] search (string query) {
+  public string[,] search (string query) {
     GLib.List<Track> tracks = new GLib.List<Track> ();
 
     foreach (Source source in sources) {
@@ -61,14 +61,19 @@ public class Dogvibes : GLib.Object {
       }
     }
 
+    string[,] ret = new string[tracks.length (), 5];
+
     int i = 0;
-    string[] uris = new string[tracks.length ()];
     foreach (Track track in tracks) {
-      uris[i] = track.uri;
+      ret[i,0] = track.name;
+      ret[i,1] = track.artist;
+      ret[i,2] = "duration";
+      ret[i,3] = track.album;
+      ret[i,4] = track.uri;
       i++;
     }
 
-    return uris;
+    return ret;
   }
 }
 
