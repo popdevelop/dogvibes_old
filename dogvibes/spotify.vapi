@@ -44,7 +44,7 @@ namespace Spotify {
   }
 
   [CCode (cname = "sp_error_message")]
-  public string message (Error error);
+  public string message (Error error); // weak?
 
   public static delegate void LoggedIn (Session session, Error error);
   public static delegate void LoggedOut (Session session);
@@ -115,44 +115,45 @@ namespace Spotify {
     public static weak Search create (Session session, string query, int offset,
                                       int count, SearchComplete callback,
                                       void *userdata); // todo: constructor ?
+    public void release ();
     public weak Error error ();
     public weak string query ();
     public weak string did_you_mean ();
     public int total_tracks ();
     public int num_tracks ();
-    public weak Track track (int index);
+    public Track track (int index);
     public int num_artists ();
-    public weak Artist artist (int index);
+    public Artist artist (int index);
     public int num_albums ();
-    public weak Album album (int index);
+    public Album album (int index);
   }
 
   [CCode (cname = "sp_track", cprefix = "sp_track_", ref_function = "",
-          unref_function = "")]
+          unref_function = "sp_track_release")]
   public class Track {
     public weak string name ();
     public int num_artists ();
-    public weak Artist artist (int index);
-    public weak Album album ();
+    public Artist artist (int index);
+    public Album album ();
     public int duration ();
     public int popularity ();
   }
 
   [CCode (cname = "sp_album", cprefix = "sp_album_", ref_function = "",
-          unref_function = "")]
+          unref_function = "sp_album_release")]
   public class Album {
     public weak string name ();
     public int year ();
   }
 
   [CCode (cname = "sp_artist", cprefix = "sp_artist_", ref_function = "",
-          unref_function = "")]
+          unref_function = "sp_artist_release")]
   public class Artist {
     public weak string name ();
   }
 
   [CCode (cname = "sp_link", cprefix = "sp_link_", ref_function = "",
-          unref_function = "")]
+          unref_function = "sp_link_release")]
   public class Link {
     public static weak string create_from_track (Track track, int offset);
   }
