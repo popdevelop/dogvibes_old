@@ -11,8 +11,8 @@ class DogvibesController < ApplicationController
     #}
 
     tracks = [
-             { :title => 'Wonderwall', :artist => 'Oasis', :uri => "spotify:track:75UqWU4Y0YdCB9MrnKZZnC" },
-             { :title => 'One', :artist => 'Metallica', :uri => "spotify:track:7kXmJwrZGIhDaLT9sNo3ut" }
+             { :title => 'Wonderwall', :artist => 'Oasis', :uri => "spotify:track:75UqWU4Y0YdCB9MrnKZZnC", :album => 'Svens Kladdlåda', :duration => 103000}
+             { :title => 'One', :artist => 'Metallica', :uri => "spotify:track:7kXmJwrZGIhDaLT9sNo3ut", :album => 'Nils Kottes Bravader', :duration => 200000}
             ]
 
     # return in JSONP (JSON with padding) format
