@@ -1,0 +1,54 @@
+#!/bin/bash
+
+function command {
+  curl http://www.dogvibes.com:2000/amp/0/$1
+  echo
+}
+
+function dogvibes {
+  curl http://www.dogvibes.com:2000/dogvibes/$1
+  echo
+}
+
+dogvibes search?query=oasis
+
+exit
+
+command queue?uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz
+command queue?uri=spotify:track:3ZlFUr0RBrUYYsmlcFvD0e
+#command queue?uri=spotify:track:3q50J3nI1GOjDOwZDjt5Un
+#command queue?uri=spotify:track:0S3gpZzlT9Hb7CCSV2owX7
+#command queue?uri=spotify:track:69xL3vzKISEij96FrmWYNF
+#command queue?uri=spotify:track:3Qvf812dY5JVlaZEbzI3nZ
+#command queue?uri=spotify:track:7kXmJwrZGIhDaLT9sNo3ut
+#command queue?uri=spotify:track:7rk75X26LwTEE8slwrqMjy
+#command queue?uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n
+
+command getAllTracksInQueue # todo: fix in server
+
+command play
+sleep 2
+
+command connectSpeaker?nbr=0
+sleep 2
+
+command nextTrack
+sleep 2
+
+command nextTrack
+sleep 2
+
+command previousTrack
+sleep 2
+
+command pause
+sleep 2
+
+command play
+sleep 2
+
+command disconnectSpeaker?nbr=0
+sleep 2
+
+command stop
+sleep 2
