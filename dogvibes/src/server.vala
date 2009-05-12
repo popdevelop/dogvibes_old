@@ -1,3 +1,4 @@
+
 using Gst;
 using GConf;
 
@@ -219,6 +220,26 @@ public class Amp : GLib.Object {
 
   public int get_queue_position () {
     return playqueue_position;
+  }
+
+  public string[] get_status () {
+    if (playqueue.length () == 0) {
+      stdout.printf ("WE GONNA DIE\n");
+    }
+
+    Track track;
+    string[] ret = new string[9];
+    track = (Track) playqueue.nth_data (playqueue_position);
+    ret[0] = track.uri;
+    ret[1] = track.name;
+    ret[2] = track.artist;
+    ret[3] = "03:40";
+    ret[4] = track.album;
+    ret[5] = "playing";
+    ret[6] = "/albumart/jularbo.jpg";
+    ret[7] = track.duration;
+    ret[8] = "shouldbeahash";
+    return ret;
   }
 
   public void next_track () {
