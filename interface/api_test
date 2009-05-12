@@ -1,54 +1,79 @@
 #!/bin/bash
 
-function command {
-  curl http://www.dogvibes.com:2000/amp/0/$1
+host=localhost:2000
+
+function amp {
+  curl http://$host/amp/0/$1
   echo
 }
 
 function dogvibes {
-  curl http://www.dogvibes.com:2000/dogvibes/$1
+  curl http://$host/dogvibes/$1
   echo
 }
 
-dogvibes search?query=oasis
+dogvibes "search?query=oasis&callback=parseJSON"
+dogvibes "search?query=oasis"
 
-exit
+amp "queue?uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz"
+amp "queue?uri=spotify:track:3ZlFUr0RBrUYYsmlcFvD0e"
+amp "queue?uri=spotify:track:3q50J3nI1GOjDOwZDjt5Un"
+amp "queue?uri=spotify:track:0S3gpZzlT9Hb7CCSV2owX7"
+amp "queue?uri=spotify:track:69xL3vzKISEij96FrmWYNF"
+amp "queue?uri=spotify:track:3Qvf812dY5JVlaZEbzI3nZ"
+amp "queue?uri=spotify:track:7kXmJwrZGIhDaLT9sNo3ut"
+amp "queue?uri=spotify:track:7rk75X26LwTEE8slwrqMjy"
+amp "queue?uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n"
 
-command queue?uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz
-command queue?uri=spotify:track:3ZlFUr0RBrUYYsmlcFvD0e
-#command queue?uri=spotify:track:3q50J3nI1GOjDOwZDjt5Un
-#command queue?uri=spotify:track:0S3gpZzlT9Hb7CCSV2owX7
-#command queue?uri=spotify:track:69xL3vzKISEij96FrmWYNF
-#command queue?uri=spotify:track:3Qvf812dY5JVlaZEbzI3nZ
-#command queue?uri=spotify:track:7kXmJwrZGIhDaLT9sNo3ut
-#command queue?uri=spotify:track:7rk75X26LwTEE8slwrqMjy
-#command queue?uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n
+amp "getAllTracksInQueue?callback=parseJSON"
+amp "removeFromQueue?nbr=0"
+amp "getAllTracksInQueue"
 
-command getAllTracksInQueue # todo: fix in server
-
-command play
+amp "play"
 sleep 2
 
-command connectSpeaker?nbr=0
+amp "connectSpeaker?nbr=0"
 sleep 2
 
-command nextTrack
+amp "setVolume?level=2.0"
+sleep 1
+amp "setVolume?level=4.0"
+sleep 1
+amp "setVolume?level=8.0"
+sleep 1
+
+amp "nextTrack"
+amp "getQueuePosition"
 sleep 2
 
-command nextTrack
+amp "nextTrack"
+amp "getQueuePosition"
 sleep 2
 
-command previousTrack
+amp "previousTrack"
+amp "getQueuePosition"
 sleep 2
 
-command pause
+# fixme: this one seems unstable...
+#amp "playTrack?nbr=4"
+#amp "getQueuePosition"
+#sleep 2
+
+
+amp "pause"
 sleep 2
 
-command play
+amp "play"
+
+amp "getPlayedSeconds"
+sleep 1
+amp "getPlayedSeconds"
+sleep 1
+amp "getPlayedSeconds"
+sleep 1
+
+amp "disconnectSpeaker?nbr=0"
 sleep 2
 
-command disconnectSpeaker?nbr=0
-sleep 2
-
-command stop
+amp stop
 sleep 2
