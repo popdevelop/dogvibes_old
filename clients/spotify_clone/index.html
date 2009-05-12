@@ -294,6 +294,38 @@ p
 }
 #album_art img { border: 0; padding:0; margin:0; height: 159px; width: 159px; }
 
+#shade {
+	position:fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 960px;
+   z-index:50;
+	background-color: #FFFFFF;
+	filter:alpha(opacity=40);
+	-moz-opacity:0.4;
+	opacity: 0.4;
+}
+#message
+{
+	position:fixed;
+	top: 55px;
+	left: 0;
+	height: 31px;
+	width: 960px;
+   z-index:100;
+   background: white url('img/error_bg.gif') repeat-x 0 0;
+   color: #333;
+   padding:0;
+   margin:0;
+   border:0;
+   overflow: hidden;
+}
+#message div { float: left; display: inline; }
+#message div.icon { background: white url('img/error_icon.gif') no-repeat 0 0; width:30px; height: 31px; margin-right: 10px;}
+#message div.text { padding-top: 8px; height: 31px;}
+#message div.loading { background: transparent url('img/error_loading_small.gif') no-repeat 0 7px; padding-left: 20px; }
+
 </style>
 
 <script type='text/javascript' src='jquery.js'></script> 
@@ -363,11 +395,15 @@ p
    </div>
       <div class="clear">&nbsp;</div>
 </div>
+<!-- OTHER //-->
+<div id="shade"></div>
+<div id="message"><div class="icon"></div><div class="text loading">Connecting to server</div></div>
 
 <script language="javascript" type="text/javascript">
 
 /* Config */
 var server = "http://wallin.web.surftown.se/dw"
+//var server = false;
 var poll_interval = 5000 /* ms */
 
 /* Misc variables */
@@ -375,9 +411,11 @@ var wait_req = 0;
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"rating\"><a href=\"#\">Rating</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
 var loading_small = "<img src=\"img/loading_small.gif\">";
 var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
-var poll_handle = setInterval(getNowPlaying,poll_interval);
+var poll_handle = false;
 var current_time;
 var current_song = false;
+var current_playqueue = false;
+var current_page = "home";
 var time_count;
 var request_in_progress = false;
 
@@ -407,7 +445,7 @@ function setPlayStatus(data)
       }
       current_song = data.uri;
    }
-   /* Update */
+   /* Update play status */
 	if(data.state == "playing"){
 		$("#pb-play > a").addClass("playing");
       $("#row_" + current_song + " td:first").addClass("playing_icon");      
@@ -421,8 +459,12 @@ function setPlayStatus(data)
 		$("#pb-play > a").removeClass("playing");
 		clearInterval(time_count);
 	}
+   /* Update playqueue if applicable */
+   if(data.playqueue != current_playqueue && current_page == "playqueue")
+   {
+      getPlayQueue();
+   }
 }
-
 
 function checkTime(i)
 {
@@ -448,31 +490,103 @@ function getNowPlaying()
    if(!request_in_progress)
    {
    request_in_progress = true;
-	$.getJSON(server + "/?pc=s&callback=?", function(data){
-	       beg = "<ul>";
-	       sepa = "<li class=\"artist\">";
-	       sept = "<li class=\"title\">";
-	       end = "</ul>";
-	       if(data.artist){
-	           $("#now_playing").html(beg + sepa + data.title + sept + data.artist + end);
-	           setPlayStatus(data);
-	           if(data.albumart){
-	           	$("#album_art").html("<img src=\"" + server + data.albumart + "\">");
-	           }
-	           else {
-	           	$("#album_art").empty();
-	           }
-	       }
-	       else{
-	           $("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
-	       }
-          request_in_progress = false;
-	   });
+	$.ajax({
+      url: server,
+      data:  "pc=s",
+      type: "GET",
+      dataType: 'jsonp',
+      error: function (req, text, error) { connectionBad(); },
+      success: function(data){
+             beg = "<ul>";
+             sepa = "<li class=\"artist\">";
+             sept = "<li class=\"title\">";
+             end = "</ul>";
+             if(data.artist){
+                 $("#now_playing").html(beg + sepa + data.title + sept + data.artist + end);
+                 setPlayStatus(data);
+                 if(data.albumart){
+                  $("#album_art").html("<img src=\"" + server + data.albumart + "\">");
+                 }
+                 else {
+                  $("#album_art").empty();
+                 }
+             }
+             else{
+                 $("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
+             }
+             if(data.playqueue){
+               current_playqueue = data.playqueue;
+             }
+             request_in_progress = false;
+             connectionOK();
+         }
+      });
    }
 }
 
+function getPlayQueue(){
+   $("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
+     $.getJSON(server + "/?pc=g&callback=?", function(data) {
+       $("#s-results").empty();
+       $.each(data.tracks, function(i, song) {
+         td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+         $("#s-results").append("<tr id=\"row_"+ song.uri + "\">" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
+       });
+       $(".remButton").click(function () { 
+           $.ajax({ 
+               beforeSend: setWait(),
+               type: "GET",
+               dataType: 'jsonp',
+               url: server,
+               data: "pr=" + this.id,
+               success: function () {clearWait(); getNowPlaying(); }
+         });
+         $("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
+         });    
+       $(".playButton").click(function () { 
+           $.ajax({ 
+               beforeSend: setWait(),
+               type: "GET",
+               dataType: 'jsonp',
+               url: server,
+               data: "pp=" + this.id,
+               success: function () {clearWait(); getNowPlaying(); }
+         });
+         });      
+       if(data.count == 0)
+       {
+         $("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
+       }
+       getNowPlaying();
+     });   
+}
+
+/* Connection */
+
+function connectionOK()
+{
+   $("#shade").hide();
+   $("#message").hide();
+}
+
+function connectionBad()
+{
+   $("#shade").show();
+   $("#message").show(); 
+   /* Try reconnect */
+   request_in_progress = false;   
+}
+
 /* Startup: check server playback status. Fetch track if playing */
-$("document").ready(function() { getNowPlaying() });
+$("document").ready(function() { 
+   /* Do we have a server? otherwise prompt */ 
+   if(!server){
+      server = prompt("Enter Dogvibes server URL:", "");
+   }
+   connectionBad();
+   poll_handle = setInterval(getNowPlaying,poll_interval);
+   getNowPlaying();
+});
 
 /* Playback control */
 /* Play button */
@@ -509,16 +623,15 @@ $("#pb-prev").click(function() {
 });
 
 
-
-
-
 /* Sections */
 $("#p-home").click(function () {
+   current_page = "home";
 	$("#tab-title").text("Home");
 	$("#playlist").html(welcome_text);
 });
 
 $("#p-local").click(function () {
+   current_page = "local";
 	$("#tab-title").text("Local media");
 	$("#playlist").html("<h1>Local files:</h1><div id=\"file_tree\"></div>");
 	$('#file_tree').fileTree({
@@ -534,46 +647,15 @@ $("#p-local").click(function () {
 /* Play queue management */
 
 $("#p-playqueue").click(function () {
+   current_page = "playqueue";
   $("#tab-title").text("Play queue");
   $("#playlist").html(track_list_table);
-  $("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
-  $.getJSON(server + "/?pc=g&callback=?", function(data) {
-    $("#s-results").empty();
-    $.each(data.tracks, function(i, song) {
-      td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-      $("#s-results").append("<tr id=\"row_"+ song.uri + "\">" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
-    });
-    $(".remButton").click(function () { 
-        $.ajax({ 
-            beforeSend: setWait(),
-            type: "GET",
-            dataType: 'jsonp',
-      		url: server,
-      		data: "pr=" + this.id,
-      		success: function () {clearWait(); getNowPlaying(); }
-  		});
-  		$("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
-      });    
-    $(".playButton").click(function () { 
-        $.ajax({ 
-            beforeSend: setWait(),
-            type: "GET",
-            dataType: 'jsonp',
-      		url: server,
-      		data: "pp=" + this.id,
-      		success: function () {clearWait(); getNowPlaying(); }
-  		});
-      });      
-    if(data.count == 0)
-    {
-    	$("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
-    }
-    getNowPlaying();
-  });	
+  getPlayQueue();
 });
 
 /* Searching */
 $("#s-submit").click(function () {
+   current_page = "search";
   $("#playlist").html(track_list_table);	
   $("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
   $("#s-keyword").text($("#s-input").val());
