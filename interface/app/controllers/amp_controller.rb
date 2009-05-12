@@ -3,16 +3,20 @@ class AmpController < ApplicationController
 
   def connectSpeaker
     get_amp(params[:id]).ConnectSpeaker(params[:nbr].to_i)
-    render(:text => "Connected speaker <b>" + params[:nbr]+ "</b>")
+    render(:text => "Connected speaker " + params[:nbr])
   end
 
   def disconnectSpeaker
     get_amp(params[:id]).DisconnectSpeaker(params[:nbr].to_i)
-    render(:text => "Disconnected speaker <b>" + params[:nbr]+ "</b>")
+    render(:text => "Disconnected speaker " + params[:nbr])
   end
 
   def getAllTracksInQueue
-    render(:text => get_amp(params[:id]).GetAllTracksInQueue()[0].to_json)
+    if params[:callback].nil?
+      render(:json => get_amp(params[:id]).GetAllTracksInQueue()[0].to_json)
+    else
+      render(:json => params[:callback] + '(' + get_amp(params[:id]).GetAllTracksInQueue()[0].to_json + ')')
+    end
   end
 
   def getPlayedSeconds
@@ -41,7 +45,7 @@ class AmpController < ApplicationController
   end
 
   def playTrack
-    get_amp(params[:id]).PlayTrack(params[:nbr])
+    get_amp(params[:id]).PlayTrack(params[:nbr].to_i)
     render(:text => "Play track " + params[:nbr])
   end
 
@@ -56,18 +60,18 @@ class AmpController < ApplicationController
   end
 
   def removeFromQueue
-    get_amp(params[:id]).RemoveFromQueue(params[:track].to_i)
-    render(:text => "Removed track <b>" + params[:mseconds]+ "</b> from queue")
+    get_amp(params[:id]).RemoveFromQueue(params[:nbr].to_i)
+    render(:text => "Removed track " + params[:nbr]+ " from queue")
   end
 
   def seek
     get_amp(params[:id]).Seek(params[:mseconds].to_i)
-    render(:text => "Seek to position <b>" + params[:mseconds]+ "</b>")
+    render(:text => "Seek to position " + params[:mseconds])
   end
 
   def setVolume
-    get_amp(params[:id]).SetVolume(params[:volume].to_i)
-    render(:text => "Set volume to <b>" + params[:volume]+ "</b>")
+    get_amp(params[:id]).SetVolume(params[:level].to_f)
+    render(:text => "Set volume to " + params[:level])
   end
 
   def stop

@@ -2,21 +2,25 @@ class DogvibesController < ApplicationController
   require "dbus"
 
   def search
-    get_dogvibes.Search(params[:query])[0].each { |song|
-      unless(song.empty?)
-        splitted = song.split(",")
-        s = {:title => splitted[1], :artist => splitted[0], :key => splitted[2]}
-        songs << s
-      end
-    }
+    #get_dogvibes.Search(params[:query])[0].each { |track|
+    #  unless(track.empty?)
+    #    splitted = track.split(",")
+    #    s = {:title => splitted[1], :artist => splitted[0], :key => splitted[2]}
+    #    tracks << s
+    #  end
+    #}
 
-    songs = [
-             { :title => 'Wonderwall', :artist => 'Oasis', :key => "C:/Music/Oasis.mp3" },
-             { :title => 'One', :artist => 'Metallica', :key => "C:/Music/Metallica.mp3" }
+    tracks = [
+             { :title => 'Wonderwall', :artist => 'Oasis', :uri => "spotify:track:75UqWU4Y0YdCB9MrnKZZnC" },
+             { :title => 'One', :artist => 'Metallica', :uri => "spotify:track:7kXmJwrZGIhDaLT9sNo3ut" }
             ]
 
     # return in JSONP (JSON with padding) format
-    render :json => params[:callback] + '(' + songs.to_json + ')'
+    if params[:callback].nil?
+      render :json => tracks.to_json
+    else
+      render :json => params[:callback] + '(' + tracks.to_json + ')'
+    end
   end
 
   private
