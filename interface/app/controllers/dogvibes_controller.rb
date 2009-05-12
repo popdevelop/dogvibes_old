@@ -2,7 +2,6 @@ class DogvibesController < ApplicationController
   require "dbus"
 
   def search
-    render(:text => "Searched for <b>" + params[:query] + "</b>")
     get_dogvibes.Search(params[:query])[0].each { |song|
       unless(song.empty?)
         splitted = song.split(",")
