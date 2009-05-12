@@ -19,6 +19,26 @@ class AmpController < ApplicationController
     end
   end
 
+  def getStatus
+    ret = get_amp(params[:id]).GetStatus()[0]
+    status = {
+      :uri => ret[0],
+      :title => ret[1],
+      :artist => ret[2],
+      :time => ret[3],
+      :album => ret[4],
+      :state => ret[5],
+      :albumart => ret[6],
+      :duration => ret[7],
+      :playqueue => ret[8]
+    }
+    if params[:callback].nil?
+      render(:json => status.to_json)
+    else
+      render(:json => params[:callback] + '(' + status.to_json + ')')
+    end
+  end
+
   def getPlayedSeconds
     ret = get_amp(params[:id]).GetPlayedSeconds()
     render(:text => ret)
