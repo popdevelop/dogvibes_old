@@ -189,13 +189,13 @@ public class Amp : GLib.Object {
   }
 
   public string[] get_all_tracks_in_queue () {
-    var builder = new StringBuilder ();
+    int i = 0;
+    string[] ret = new string[playqueue.length ()];
     foreach (Track item in playqueue) {
-      builder.append (item.uri);
-      builder.append (" ");
+      ret[i] = item.uri;
+      i++;
     }
-    stdout.printf ("Play queue length %u\n", playqueue.length ());
-    return builder.str.split (" ");
+    return ret;
   }
 
   public void get_connected_source () {
