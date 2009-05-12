@@ -57,10 +57,11 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
   public string pass;
 
   public weak Amplifier owner { get; set; }
-  public static GLib.List<Track> tracks = new GLib.List<Track> ();
 
   private Element spotify;
   private bool created;
+
+  public static GLib.List<Track> tracks;
 
   public SpotifySource (string user, string pass) {
     this.user = user;
@@ -137,34 +138,35 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
   }
 
   public static void MySearchComplete(Search search, void *userdata) {
-    if (Spotify.Error.OK == search.error ()) {
-      stdout.printf ("SEARCH!\n");
-    } else {
+    if (Spotify.Error.OK != search.error ()) {
       stderr.printf ("Failed to search: %s\n",
                      Spotify.message (search.error ()));
     }
 
     int i;
+    Track track;
     for (i = 0; i < search.num_tracks () && i < 10; ++i) {
-      Track track = new Track ();
-      track.uri = "dummy"; //Link.create_from_track (search.track (i), 0);
-      track.name = search.track (i).name ();
-      track.artist = search.track (i).artist (0).name ();
-      track.album = search.track (i).album ().name ();
-      stdout.printf ("debug: %s\n", track.album);
+      track = new Track ();
+      track.name = search.track (i).name ().printf ();
+      //track.artist = search.track (i).artist (0).name ();
+      //track.album = search.track (i).album ().name ();
+      //track.uri = "dummy"; //Link.create_from_track (search.track (i), 0);
+      //track.duration = "0";
       SpotifySource.tracks.append (track);
     }
 
     search_done = true;
 
-
-    search.release ();
+    //search.release ();
     //g_search = NULL;
     //terminate...
   }
 
-  public GLib.List<Track> search (string query) {
+  public weak GLib.List<Track> search (string query) {
     search_done = false;
+
+    tracks = new GLib.List<Track> ();
+
     Search search = Search.create(session, query, 0, 10,
                                   MySearchComplete, null);
 
@@ -174,7 +176,7 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
       Thread.usleep(100 * timeout);
     }
 
-    return tracks.copy ();
+    return tracks;
   }
 
   public void set_track (Track track) {

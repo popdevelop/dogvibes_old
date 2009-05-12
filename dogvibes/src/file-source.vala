@@ -14,7 +14,7 @@ public class FileSource : GLib.Object, Source {
     //c.index(dir);
   }
 
-  public GLib.List<Track> search (string query) {
+  public weak GLib.List<Track> search (string query) {
     Collection collection = new Collection ();
     return collection.search (query);
   }

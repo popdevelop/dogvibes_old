@@ -5,7 +5,7 @@ public class Collection : GLib.Object {
 
   private Database db;
   private int ugly_mutex = 0;
-  public static List<Track> tracks = new List<Track> ();
+  public static List<Track> tracks;
 
   construct {
     int rc;
@@ -55,15 +55,17 @@ public class Collection : GLib.Object {
   }
 
 
-  public List<Track> search (string query) {
+  public weak List<Track> search (string query) {
     this.ugly_mutex = 1;
+
+    tracks = new List<Track> ();
 
     string db_query = "select * from collection where artist LIKE '%" + query + "%'";
     this.db.exec (db_query, callback, null);
 
     while (this.ugly_mutex == 1); // todo: beware! busy-wait...
 
-    return this.tracks.copy ();
+    return this.tracks;
   }
 
 

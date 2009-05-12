@@ -54,8 +54,6 @@ public class Dogvibes : GLib.Object {
 
     foreach (Source source in sources) {
       foreach (Track track in source.search (query)) {
-        //stdout.printf("%s - %s [%s]\n",
-        //              track.artist, track.name, track.uri);
         /* tried to do this with concat but I ended up in an eternal loop... */
         tracks.append(track);
       }
@@ -64,10 +62,11 @@ public class Dogvibes : GLib.Object {
     string[,] ret = new string[tracks.length (), 5];
 
     int i = 0;
+
     foreach (Track track in tracks) {
       ret[i,0] = track.name;
       ret[i,1] = track.artist;
-      ret[i,2] = "duration";
+      ret[i,2] = "180000";
       ret[i,3] = track.album;
       ret[i,4] = track.uri;
       i++;
