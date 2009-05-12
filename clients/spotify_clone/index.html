@@ -264,6 +264,9 @@ p
    margin-right: 15px;
 }
 
+#playlist tr td.playing_icon { background-image: url('img/play_indicator.gif'); background-repeat: no-repeat; }
+#playlist tr td.playing { background-color: #707070; }
+
 #now_playing { 
     position: fixed; 
     bottom: 200px; 
@@ -289,8 +292,7 @@ p
     width: 159px;
     overflow: hidden;
 }
-#album_art img { border: 0; padding:0; margin:0;     height: 159px;
-    width: 159px;}
+#album_art img { border: 0; padding:0; margin:0; height: 159px; width: 159px; }
 
 </style>
 
@@ -375,7 +377,10 @@ var loading_small = "<img src=\"img/loading_small.gif\">";
 var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
 var poll_handle = setInterval(getNowPlaying,poll_interval);
 var current_time;
+var current_song = false;
 var time_count;
+var request_in_progress = false;
+
 /* Handy functions */
 function  setWait(){
 	if(wait_req == 0)
@@ -394,19 +399,27 @@ function clearWait(){
 
 function setPlayStatus(data)
 {
-	if(data.state == "playing")
-	{
+   /* Check if song has switched */
+   if(current_song != data.uri){
+      if(current_song){
+         $("#row_" + current_song + " td:first").removeClass("playing_icon");      
+         $("#row_" + current_song + " td").removeClass("playing");      
+      }
+      current_song = data.uri;
+   }
+   /* Update */
+	if(data.state == "playing"){
 		$("#pb-play > a").addClass("playing");
+      $("#row_" + current_song + " td:first").addClass("playing_icon");      
+      $("#row_" + current_song + " td").addClass("playing"); 
 		current_time = data.duration
 		increaseCount();
 		clearInterval(time_count);
 		time_count = setInterval(increaseCount, 1000);
 	}
-	else
-	{
+	else{
 		$("#pb-play > a").removeClass("playing");
 		clearInterval(time_count);
-		
 	}
 }
 
@@ -432,6 +445,9 @@ function increaseCount()
 
 function getNowPlaying()
 {
+   if(!request_in_progress)
+   {
+   request_in_progress = true;
 	$.getJSON(server + "/?pc=s&callback=?", function(data){
 	       beg = "<ul>";
 	       sepa = "<li class=\"artist\">";
@@ -440,24 +456,25 @@ function getNowPlaying()
 	       if(data.artist){
 	           $("#now_playing").html(beg + sepa + data.title + sept + data.artist + end);
 	           setPlayStatus(data);
-	           if(data.albumart)
-	           {
+	           if(data.albumart){
 	           	$("#album_art").html("<img src=\"" + server + data.albumart + "\">");
 	           }
-	           else
-	           {
+	           else {
 	           	$("#album_art").empty();
 	           }
 	       }
 	       else{
 	           $("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
 	       }
+          request_in_progress = false;
 	   });
+   }
 }
 
 /* Startup: check server playback status. Fetch track if playing */
 $("document").ready(function() { getNowPlaying() });
 
+/* Playback control */
 /* Play button */
 $("#pb-play").click(function() {
 	var action = $("#pb-play > a").hasClass("playing") ? "t" : "p";
@@ -469,6 +486,30 @@ $("#pb-play").click(function() {
   		success: function () { getNowPlaying(); }
 	});
 });
+/* Next button */
+$("#pb-next").click(function() {
+    $.ajax({ 
+        type: "GET",
+        dataType: 'jsonp',
+  		url: server,
+  		data: "pc=n",
+  		success: function () { getNowPlaying(); }
+	});
+});
+
+/* Prev button */
+$("#pb-prev").click(function() {
+    $.ajax({ 
+        type: "GET",
+        dataType: 'jsonp',
+  		url: server,
+  		data: "pc=r",
+  		success: function () { getNowPlaying(); }
+	});
+});
+
+
+
 
 
 /* Sections */
@@ -509,7 +550,7 @@ $("#p-playqueue").click(function () {
             dataType: 'jsonp',
       		url: server,
       		data: "pr=" + this.id,
-      		success: clearWait()
+      		success: function () {clearWait(); getNowPlaying(); }
   		});
   		$("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
       });    
@@ -527,6 +568,7 @@ $("#p-playqueue").click(function () {
     {
     	$("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
     }
+    getNowPlaying();
   });	
 });
 
