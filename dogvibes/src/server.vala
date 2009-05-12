@@ -223,22 +223,44 @@ public class Amp : GLib.Object {
   }
 
   public string[] get_status () {
+    State state;
+    State pending;
+
+    string[] ret = new string[9];
+
     if (playqueue.length () == 0) {
-      stdout.printf ("WE GONNA DIE\n");
+      /* FIXME: there must be a way to initilize an array */
+      ret[0] = "";
+      ret[1] = "";
+      ret[2] = "";
+      ret[3] = "";
+      ret[4] = "";
+      ret[5] = "stopped";
+      ret[6] = "";
+      ret[7] = "";
+      ret[8] = "";
+      return ret;
     }
 
     Track track;
-    string[] ret = new string[9];
     track = (Track) playqueue.nth_data (playqueue_position);
+    pipeline.get_state (out state, out pending, 0);
+
     ret[0] = track.uri;
     ret[1] = track.name;
     ret[2] = track.artist;
     ret[3] = "03:40";
     ret[4] = track.album;
-    ret[5] = "playing";
+    if (state == State.PLAYING) {
+      ret[5] = "playing";
+    } else if (state == State.NULL) {
+      ret[5] = "stopped";
+    } else {
+      ret[5] = "paused";
+    }
     ret[6] = "/albumart/jularbo.jpg";
     ret[7] = track.duration;
-    ret[8] = "shouldbeahash";
+    ret[8] = get_hash_from_playqueue ();
     return ret;
   }
 
@@ -338,6 +360,13 @@ public class Amp : GLib.Object {
     pipeline.set_state (state);
   }
 
+  private string get_hash_from_playqueue () {
+    string tohash = new string();
+    foreach (Track item in playqueue) {
+      tohash += item.uri;
+    }
+    return Checksum.compute_for_string (ChecksumType.MD5, tohash);
+  }
 
   private void pipeline_eos (Gst.Bus bus, Gst.Message mes) {
     if (mes.type == Gst.MessageType.EOS) {
