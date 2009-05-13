@@ -13,5 +13,14 @@ public class Track : GLib.Object {
     this.uri = uri;
     this.duration = duration;
   }
+
+  public HashTable<string,string> to_hash_table () {
+    HashTable<string,string> hashtable = new HashTable<string,string>(str_hash, str_equal);
+    hashtable.insert ("title", this.name);
+    hashtable.insert ("artist", this.artist);
+    hashtable.insert ("album", this.duration);
+    hashtable.insert ("uri", this.uri);
+    return hashtable;
+  }
 }
 

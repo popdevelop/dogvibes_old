@@ -188,11 +188,11 @@ public class Amp : GLib.Object {
     }
   }
 
-  public string[] get_all_tracks_in_queue () {
+  public HashTable<string,string>[] get_all_tracks_in_queue () {
     int i = 0;
-    string[] ret = new string[playqueue.length ()];
+    HashTable<string,string>[] ret = new HashTable<string,string>[playqueue.length ()];
     foreach (Track item in playqueue) {
-      ret[i] = item.uri;
+      ret[i] = item.to_hash_table();
       i++;
     }
     return ret;
