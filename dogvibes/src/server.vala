@@ -216,46 +216,39 @@ public class Amp : GLib.Object {
     return playqueue_position;
   }
 
-  public string[] get_status () {
+  public HashTable<string,string> get_status () {
     State state;
+    Track track;
     State pending;
 
-    string[] ret = new string[9];
+    HashTable<string,string> hashtable = new HashTable<string,string>(str_hash, str_equal);
 
     if (playqueue.length () == 0) {
-      /* FIXME: there must be a way to initilize an array */
-      ret[0] = "";
-      ret[1] = "";
-      ret[2] = "";
-      ret[3] = "";
-      ret[4] = "";
-      ret[5] = "stopped";
-      ret[6] = "";
-      ret[7] = "";
-      ret[8] = "";
-      return ret;
+      return hashtable;
     }
 
-    Track track;
+    /* add loaded track information */
     track = (Track) playqueue.nth_data (playqueue_position);
-    pipeline.get_state (out state, out pending, 0);
+    hashtable.insert ("title", track.name);
+    hashtable.insert ("artist", track.artist);
+    hashtable.insert ("album", track.album);
+    hashtable.insert ("duration", track.duration);
+    hashtable.insert ("uri", track.uri);
 
-    ret[0] = track.uri;
-    ret[1] = track.name;
-    ret[2] = track.artist;
-    ret[3] = "03:40";
-    ret[4] = track.album;
+    /* add state status */
+    pipeline.get_state (out state, out pending, 0);
     if (state == State.PLAYING) {
-      ret[5] = "playing";
+      hashtable.insert ("state", "playing");
     } else if (state == State.NULL) {
-      ret[5] = "stopped";
+      hashtable.insert ("state", "stopped");
     } else {
-      ret[5] = "paused";
+      hashtable.insert ("state", "paused");
     }
-    ret[6] = "/albumart/jularbo.jpg";
-    ret[7] = track.duration;
-    ret[8] = get_hash_from_playqueue ();
-    return ret;
+
+    /* add playqueue status */
+    hashtable.insert ("playqueuehash", get_hash_from_playqueue ());
+
+    return hashtable;
   }
 
   public void next_track () {

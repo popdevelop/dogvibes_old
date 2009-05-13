@@ -18,7 +18,8 @@ public class Track : GLib.Object {
     HashTable<string,string> hashtable = new HashTable<string,string>(str_hash, str_equal);
     hashtable.insert ("title", this.name);
     hashtable.insert ("artist", this.artist);
-    hashtable.insert ("album", this.duration);
+    hashtable.insert ("album", this.album);
+    hashtable.insert ("duration", this.duration);
     hashtable.insert ("uri", this.uri);
     return hashtable;
   }
