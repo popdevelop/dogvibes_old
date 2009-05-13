@@ -50,7 +50,7 @@ public class Dogvibes : GLib.Object {
   }
 
 
-  public string[,] search (string query) {
+  public HashTable<string,string>[] search (string query) {
     GLib.List<Track> tracks = new GLib.List<Track> ();
 
     foreach (Source source in sources) {
@@ -60,16 +60,10 @@ public class Dogvibes : GLib.Object {
       }
     }
 
-    string[,] ret = new string[tracks.length (), 5];
-
+    HashTable<string,string>[] ret = new HashTable<string,string>[tracks.length ()];
     int i = 0;
-
     foreach (Track track in tracks) {
-      ret[i,0] = track.name;
-      ret[i,1] = track.artist;
-      ret[i,2] = "180000";
-      ret[i,3] = track.album;
-      ret[i,4] = track.uri;
+      ret[i] = track.to_hash_table ();
       i++;
     }
 
