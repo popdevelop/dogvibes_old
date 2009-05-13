@@ -4,7 +4,6 @@ using Sqlite;
 public class Collection : GLib.Object {
 
   private Database db;
-  private int ugly_mutex = 0;
   public static List<Track> tracks;
 
   construct {
@@ -36,8 +35,6 @@ public class Collection : GLib.Object {
     track.album = values[3];
     this.tracks.append (track);
 
-    this.ugly_mutex = 0;
-
     return 0;
   }
 
@@ -56,14 +53,13 @@ public class Collection : GLib.Object {
 
 
   public weak List<Track> search (string query) {
-    this.ugly_mutex = 1;
-
     tracks = new List<Track> ();
 
     string db_query = "select * from collection where artist LIKE '%" + query + "%'";
     this.db.exec (db_query, callback, null);
 
-    while (this.ugly_mutex == 1); // todo: beware! busy-wait...
+    /* FIXME: ugly sleep */
+    Thread.usleep (10000);
 
     return this.tracks;
   }
