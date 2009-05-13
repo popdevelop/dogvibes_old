@@ -3,100 +3,94 @@ class AmpController < ApplicationController
 
   def connectSpeaker
     get_amp(params[:id]).ConnectSpeaker(params[:nbr].to_i)
-    render(:text => "Connected speaker " + params[:nbr])
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def disconnectSpeaker
     get_amp(params[:id]).DisconnectSpeaker(params[:nbr].to_i)
-    render(:text => "Disconnected speaker " + params[:nbr])
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def getAllTracksInQueue
-    if params[:callback].nil?
-      render(:json => get_amp(params[:id]).GetAllTracksInQueue()[0].to_json)
-    else
-      render(:json => params[:callback] + '(' + get_amp(params[:id]).GetAllTracksInQueue()[0].to_json + ')')
-    end
+    tracks = get_amp(params[:id]).GetAllTracksInQueue()[0]
+    render :json => {
+      :error => 0,
+      :tracks => tracks
+    }.to_json, :callback => params[:callback]
   end
 
   def getStatus
-    ret = get_amp(params[:id]).GetStatus()[0]
-    status = {
-      :uri => ret[0],
-      :title => ret[1],
-      :artist => ret[2],
-      :time => ret[3],
-      :album => ret[4],
-      :state => ret[5],
-      :albumart => ret[6],
-      :duration => ret[7],
-      :playqueue => ret[8]
-    }
-    if params[:callback].nil?
-      render(:json => status.to_json)
-    else
-      render(:json => params[:callback] + '(' + status.to_json + ')')
-    end
+    status = get_amp(params[:id]).GetStatus()[0]
+    render :json => {
+      :error => 0,
+      :status => status
+    }.to_json, :callback => params[:callback]
   end
 
   def getPlayedSeconds
-    ret = get_amp(params[:id]).GetPlayedSeconds()
-    render(:text => ret)
+    mseconds = get_amp(params[:id]).GetPlayedSeconds()[0]
+    render :json => {
+      :error => 0,
+      :mseconds => mseconds
+    }.to_json, :callback => params[:callback]
   end
 
   def getQueuePosition
-    ret = get_amp(params[:id]).GetQueuePosition()
-    render(:text => ret)
+    queue_position = get_amp(params[:id]).GetQueuePosition()[0]
+    render :json => {
+      :error => 0,
+      :queue_position => queue_position
+    }.to_json, :callback => params[:callback]
   end
 
   def nextTrack
     get_amp(params[:id]).NextTrack()
-    render(:text => "Next track")
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def pause
     get_amp(params[:id]).Pause()
-    render(:text => "Paused")
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def play
     get_amp(params[:id]).Play()
-    render(:text => "Playing")
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def playTrack
     get_amp(params[:id]).PlayTrack(params[:nbr].to_i)
-    render(:text => "Play track " + params[:nbr])
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def previousTrack
     get_amp(params[:id]).PreviousTrack()
-    render(:text => "Previous track")
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def queue
     get_amp(params[:id]).Queue(params[:uri])
-    render(:text => "Queued track with uri=" + params[:uri])
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def removeFromQueue
     get_amp(params[:id]).RemoveFromQueue(params[:nbr].to_i)
-    render(:text => "Removed track " + params[:nbr]+ " from queue")
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def seek
     get_amp(params[:id]).Seek(params[:mseconds].to_i)
-    render(:text => "Seek to position " + params[:mseconds])
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def setVolume
     get_amp(params[:id]).SetVolume(params[:level].to_f)
-    render(:text => "Set volume to " + params[:level])
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   def stop
     get_amp(params[:id]).Stop()
-    render(:text => "Stopped")
+    render :json => { :error => 0 }.to_json, :callback => params[:callback]
   end
 
   private
