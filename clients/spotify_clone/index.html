@@ -6,7 +6,8 @@
 <link rel="stylesheet" type="text/css" media="all" href="css/reset.css" />
 <link rel="stylesheet" type="text/css" media="all" href="css/text.css" />
 <link rel="stylesheet" type="text/css" media="all" href="css/960.css" />
-<link rel="stylesheet" type="text/css" media="all" href="jqueryFileTree.css" />
+<link rel="stylesheet" type="text/css" media="all" href="css/jqueryFileTree.css" />
+<link rel="stylesheet" type="text/css" media="all" href="css/slider/jquery-ui.css" />
 <style type="text/css" media="all">
 html
 {
@@ -206,7 +207,7 @@ p
  *  Prev, Play, Next controls
  */
  
-#playback_control { margin: 5px 0 0 10px; padding: 0; }
+#playback_control { margin: 6px 0 0 10px; padding: 0; }
 #playback_control li { display: inline; }
 #playback_control li a { float: left; width: 31px; height: 0; padding: 31px 0 0 0; overflow: hidden; }
 #playback_control li a { background-image: url('img/prev_play_next.gif');  background-repeat: no-repeat; _background-image: url('img/prev_play_next.gif');}
@@ -222,7 +223,12 @@ p
 #playback_control li#pb-play a:active { background-position: -31px -31px; }
 #playback_control li#pb-next a:active { background-position: -62px -31px; }
 
-#playback_time { color: white; font-size: 10px; text-align:left; }
+#playback_time, #playback_total { height:29px; display:inline; float:left; padding-top: 14px; color: white; font-size: 9px;}
+#playback_time { text-align:left; }
+#playback_seek { width: 390px; height: 9px; float: left; display:inline; margin: 15px 10px 0px 10px;}
+#playback_seek a { background-color: white; }
+#playback_volume { width: 80px; height: 9px; float: left; display:inline; margin: -8px 10px 0px 12px; }
+
 /*
  * Songlist table
  */
@@ -329,6 +335,7 @@ p
 </style>
 
 <script type='text/javascript' src='jquery.js'></script> 
+<script type='text/javascript' src='jquery-ui.js'></script>
 <script type='text/javascript' src='jqueryFileTree.js'></script>
 
 <!-- <script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>  //-->
@@ -384,16 +391,22 @@ p
 </div>
 <!-- FOOTER //-->
 <div id="footer" class="container_12 thm_footer_bg">
-   <div class="grid_2">
+   <div class="grid_3 footer_sep">
       <ul id="playback_control">
          <li id="pb-prev"><a href="#" onclick="this.blur();">Prev</a></li>
          <li id="pb-play"><a href="#" onclick="this.blur();">Play</a></li>
          <li id="pb-next"><a href="#" onclick="this.blur();">Next</a></li>
       </ul>
+      <div id="playback_volume"></div>
    </div>
-   <div id="playback_time" class="grid_10">
+   <div id="playback_info" class="grid_6 footer_sep">
+      <div id="playback_time"></div>
+      <div id="playback_seek"></div>
+      <div id="playback_total"></div>
    </div>
-      <div class="clear">&nbsp;</div>
+   <div id="playback_options" class="grid_3">
+   </div>
+   <div class="clear">&nbsp;</div>
 </div>
 <!-- OTHER //-->
 <div id="shade"></div>
@@ -402,8 +415,8 @@ p
 <script language="javascript" type="text/javascript">
 
 /* Config */
-var server = "http://wallin.web.surftown.se/dw"
-//var server = false;
+var default_server = "http://wallin.web.surftown.se/dw"
+var server = false;
 var poll_interval = 5000 /* ms */
 
 /* Misc variables */
@@ -459,8 +472,9 @@ function setPlayStatus(data)
    if(current_song != data.uri){
       if(current_song){
          $("#row_" + current_song + " td:first").removeClass("playing_icon");      
-         $("#row_" + current_song + " td").removeClass("playing");      
+         $("#row_" + current_song + " td").removeClass("playing");    
       }
+      $("#playback_total").html(data.time);
       current_song = data.uri;
    }
    /* Update play status */
@@ -530,7 +544,7 @@ function getNowPlaying()
       url: server + command.status,
       type: "GET",
       dataType: 'jsonp',
-      error: function () {connectionBad("Server not responding! Trying to reconnect...")}, /* FIXME: why isn't this run? */
+      error: function () {connectionBad("Server not responding! Trying to reconnect..."); }, /* FIXME: why isn't this run? */
       success: function(data){
              beg = "<ul>";
              sepa = "<li class=\"artist\">";
@@ -597,14 +611,22 @@ function getPlayQueue(){
 
 /* Startup: check server playback status. Fetch track if playing */
 $("document").ready(function() { 
+   connectionBad("No server configured.");
+   $("#playback_seek").slider();
+   $("#playback_volume").slider();
    /* Do we have a server? otherwise prompt */ 
    if(!server){
-      server = prompt("Enter Dogvibes server URL:", "");
+      server = prompt("Enter Dogvibes server URL:", default_server);
    }
-   $("#message.text").addClass("loading");
-   connectionBad("Connecting to server...");
-   poll_handle = setInterval(getNowPlaying,poll_interval);
-   getNowPlaying();
+   if(server)
+   {
+      $("#message.text").addClass("loading");
+      connectionBad("Connecting to server '" + server + "'...");
+      poll_handle = setInterval(getNowPlaying,poll_interval);
+      getNowPlaying();
+      return;
+   }
+   connectionBad("No server configured. Press reload to set");
 });
 
 /* Playback control */
