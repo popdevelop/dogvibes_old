@@ -415,7 +415,7 @@ p
 <script language="javascript" type="text/javascript">
 
 /* Config */
-var default_server = "http://wallin.web.surftown.se/dw"
+var default_server = "http://dogvibes.com:2000"
 var server = false;
 var poll_interval = 5000 /* ms */
 
@@ -436,18 +436,18 @@ var request_in_progress = false;
 var command = 
 {
    /* playqueue */
-   add: "/?pa=",
-   get: "/?pc=g",
-   remove: "/?pr=",
+   add: "/amp/0/queue?uri=",
+   get: "/amp/0/getAllTracksInQueue",
+   remove: "/amp/0/removeTrack?nbr=",
    /* playback control */
-   next: "/?pc=n",
-   play: "/?pc=p",
-   playtrack: "/?pp=",
-   pause: "/?pc=t",
-   prev: "/?pc=r",
+   next: "/amp/0/nextTrack",
+   play: "/amp/0/play",
+   playtrack: "/amp/0/playTrack?nbr=",
+   pause: "/amp/0/pause",
+   prev: "/amp/0/previousTrack",
    /* other */
-   status: "/?pc=s",
-   search: "/?q="
+   status: "/amp/0/getStatus",
+   search: "/dogvibes/search?query="
 }
 
 /* Handy functions */
