@@ -121,40 +121,45 @@ namespace Spotify {
     public weak string did_you_mean ();
     public int total_tracks ();
     public int num_tracks ();
-    public Track track (int index);
+    public weak Track track (int index);
     public int num_artists ();
-    public Artist artist (int index);
+    public weak Artist artist (int index);
     public int num_albums ();
-    public Album album (int index);
+    public weak Album album (int index);
   }
 
-  [CCode (cname = "sp_track", cprefix = "sp_track_", ref_function = "",
-          unref_function = "sp_track_release")]
+  [CCode (cname = "sp_track", cprefix = "sp_track_", ref_function = "sp_track_add_ref",
+          ref_function_void = true, unref_function = "sp_track_release")]
   public class Track {
     public weak string name ();
     public int num_artists ();
-    public Artist artist (int index);
-    public Album album ();
+    public weak Artist? artist (int index);
+    public weak Album? album ();
     public int duration ();
     public int popularity ();
   }
 
-  [CCode (cname = "sp_album", cprefix = "sp_album_", ref_function = "",
-          unref_function = "sp_album_release")]
+  [CCode (cname = "sp_album", cprefix = "sp_album_", ref_function = "sp_album_add_ref",
+          ref_function_void = true, unref_function = "sp_album_release")]
   public class Album {
     public weak string name ();
     public int year ();
   }
 
-  [CCode (cname = "sp_artist", cprefix = "sp_artist_", ref_function = "",
-          unref_function = "sp_artist_release")]
+  [CCode (cname = "sp_artist", cprefix = "sp_artist_", ref_function = "sp_artist_add_ref",
+          ref_function_void = true, unref_function = "sp_artist_release")]
   public class Artist {
     public weak string name ();
   }
 
-  [CCode (cname = "sp_link", cprefix = "sp_link_", ref_function = "",
-          unref_function = "sp_link_release")]
+  [CCode (cname = "sp_link", cprefix = "sp_link_", ref_function = "sp_link_add_ref",
+          ref_function_void = true, unref_function = "sp_link_release")]
   public class Link {
-    public static weak string create_from_track (Track track, int offset);
+    public static Link? create_from_track (Track track, int offset);
+    public static Link? create_from_string (string uri);
+    public weak Track? as_track ();
+    public weak Album? as_album ();
+    public weak Artist? as_artist ();
+    public int as_string (string buf, int size);
   }
 }

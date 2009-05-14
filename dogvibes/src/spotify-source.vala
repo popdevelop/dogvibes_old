@@ -51,6 +51,13 @@ public static void MyLoggedIn (Session session, Spotify.Error error)
   //session_ready(session);
 }
 
+public static void PollMe (Session session)
+{
+  int timeout;
+  session.process_events(&timeout);
+  stdout.printf ("do you poll me?");
+}
+
 public class SpotifySource : GLib.Object, Source, SingleSource {
   public Bin bin;
   public string user;
@@ -84,9 +91,11 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
     callbacks.logged_out = MyLoggedOut;
     callbacks.metadata_updated = MyMetadataUpdated;
     callbacks.connection_error = MyConnectionError;
-    callbacks.notify_main_thread = MyNotifyMainThread;
+
     callbacks.log_message = MyLogMessage;
     */
+    callbacks.notify_main_thread = PollMe;
+
 
     config.api_version = SPOTIFY_API_VERSION;
     config.cache_location = "tmp";
@@ -115,7 +124,7 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
     int timeout = -1;
     while (!passed_login) {
       session.process_events(&timeout);
-      Thread.usleep(1000 * timeout);
+      Thread.usleep(100 * timeout);
     }
 
   }
@@ -147,11 +156,21 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
     Track track;
     for (i = 0; i < search.num_tracks () && i < 10; ++i) {
       track = new Track ();
-      track.name = search.track (i).name ().printf ();
-      //track.artist = search.track (i).artist (0).name ();
-      //track.album = search.track (i).album ().name ();
-      //track.uri = "dummy"; //Link.create_from_track (search.track (i), 0);
-      //track.duration = "0";
+      Spotify.Track strack = search.track (i);
+      Spotify.Album album = strack.album ();
+      Spotify.Artist artist = strack.artist (0);
+
+      track.name = strack.name ();
+      track.artist = artist.name ();
+      track.album = album.name ();
+      track.duration = strack.duration ().to_string ();
+
+      Spotify.Link link;
+      string uri = new string();
+      /* argh how do we fix this */
+      //link = Link.create_from_track (strack, 0);
+      //link.as_string (uri, (int) uri.length);
+      track.uri = "uri";
       SpotifySource.tracks.append (track);
     }
 
@@ -181,6 +200,44 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
 
   public void set_track (Track track) {
     spotify.set ("spotifyuri", track.uri);
+  }
+
+  static Track tr;
+
+  public weak Track? create_track_from_uri (string uri) {
+    tr = new Track();
+
+    Link link = Link.create_from_string (uri);
+    if (link == null) {
+      /* no spotify link */
+      return null;
+    }
+
+    Spotify.Track track = link.as_track();
+    if (track == null) {
+      /* maybe not a track link */
+      return null;
+    }
+
+    Spotify.Album album = track.album ();
+    if (album == null) {
+      /* maybe not a track link */
+      return null;
+    }
+
+    Spotify.Artist artist = track.artist (0);
+    if (artist == null) {
+      /* maybe not a track link */
+      return null;
+    }
+
+    tr.name = track.name ();
+    tr.uri = uri;
+    tr.artist = artist.name ();
+    tr.album = album.name ();
+    tr.duration = track.duration ().to_string ();
+
+    return tr;
   }
 
   public string supported_uris () {

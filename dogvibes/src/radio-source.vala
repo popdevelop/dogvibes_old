@@ -12,4 +12,9 @@ public class RadioSource : GLib.Object, Source {
     stdout.printf ("NOT IMPLEMENTED! \n");
     return tracks;
   }
+
+  public weak Track? create_track_from_uri (string uri) {
+    stdout.printf ("create track from uri not implemented\n");
+    return null;
+  }
 }

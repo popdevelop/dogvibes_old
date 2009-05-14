@@ -30,7 +30,7 @@ public class Dogvibes : GLib.Object {
     sources.append (new SpotifySource (user, pass));
 
     /* initiate one file source */
-    sources.append (new FileSource ("../testmedia"));
+    sources.append (new FileSource ("/home/gyllen/dogvibes/dogvibes/testmedia"));
 
     /* initiate one radio source */
     sources.append (new RadioSource ());
@@ -41,14 +41,7 @@ public class Dogvibes : GLib.Object {
     speakers.append (new ApexSpeaker ("apexsource", "192.168.0.1"));
   }
 
-  public static weak GLib.List<Source> get_sources () {
-    return sources;
-  }
-
-  public static weak GLib.List<Speaker> get_speakers () {
-    return speakers;
-  }
-
+  /*** public D-Bus API ***/
 
   public HashTable<string,string>[] search (string query) {
     GLib.List<Track> tracks = new GLib.List<Track> ();
@@ -68,6 +61,30 @@ public class Dogvibes : GLib.Object {
     }
 
     return ret;
+  }
+
+  /*** static methods ***/
+
+  public static weak GLib.List<Source> get_sources () {
+    return sources;
+  }
+
+  public static weak GLib.List<Speaker> get_speakers () {
+    return speakers;
+  }
+
+  public static weak Track? create_track_from_uri (string uri) {
+    weak Track track = null;
+    /* we should probably attach tracks here and return a list of matching tracks */
+    foreach (Source source in sources) {
+      stdout.printf ("Beffo\n");
+      track = source.create_track_from_uri (uri);
+      stdout.printf ("Affo\n");
+      if (track != null) {
+        break;
+      }
+    }
+    return track;
   }
 }
 
@@ -286,9 +303,10 @@ public class Amp : GLib.Object {
   }
 
   public void queue (string uri) {
-    Track track = new Track (uri);
-    track.artist = "Mim";
-    playqueue.append (track);
+    Track track = Dogvibes.create_track_from_uri (uri);
+    if (track != null) {
+      playqueue.append (track);
+    }
   }
 
   public void resume () {
@@ -361,12 +379,12 @@ public class Amp : GLib.Object {
     }
   }
 
-  private void play_only_if_null (Track track) {
+  private void play_only_if_null (Track? track) {
     State state;
     State pending;
     pipeline.get_state (out state, out pending, 0);
 
-    if (state != State.NULL) {
+    if (state != State.NULL || track == null) {
       pipeline.set_state (State.PLAYING);
       return;
     }
