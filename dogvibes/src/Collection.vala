@@ -1,5 +1,6 @@
 using GLib;
 using Sqlite;
+using TagLib;
 
 public class Collection : GLib.Object {
 
@@ -40,15 +41,23 @@ public class Collection : GLib.Object {
 
 
   public void add_track (string name, string artist, string album,
-                         string key, int duration) {
+                         string uri, int duration) {
+    //string db_query = "select * from collection where k = '" + uri + "'";
+    //Statement stmt;
+		//this.db.prepare (db_query, 10000, stmt);
+    //stmt.step ();
+    //stmt.column_value (3).to_text ();
+
+    /*
     string db_query =
     "insert into collection (name, artist, album, k, duration) " +
     "values ('%s', '%s', '%s', '%s', %d)".printf (name, artist, album,
-                                                  key, duration);
+                                                  uri, duration);
+    */
+    stdout.printf ("Collection: Added '%s: %s', %s (%d) [%s]\n",
+                   artist, name, album, duration, uri);
 
-    stdout.printf ("Collection: Added '%s - %s'\n", artist, name);
-
-    this.db.exec (db_query, null, null);
+    //this.db.exec (db_query, null, null);
   }
 
 
@@ -67,14 +76,14 @@ public class Collection : GLib.Object {
 
   private void parse_directory (string path) {
 
-    File file = File.new_for_path (path);
+    GLib.File file = GLib.File.new_for_path (path);
 
     if (!file.query_exists (null)) {
       stderr.printf ("File '%s' doesn't exist.\n", file.get_path ());
       return;
     }
 
-    if (file.query_file_type (0, null) != FileType.DIRECTORY) {
+    if (file.query_file_type (0, null) != GLib.FileType.DIRECTORY) {
       return;
     }
 
@@ -90,15 +99,24 @@ public class Collection : GLib.Object {
       while (info != null) {
         string full_path = file.get_path () + "/" + info.get_name ();
 
-        if (info.get_file_type () == FileType.DIRECTORY) {
+        if (info.get_file_type () == GLib.FileType.DIRECTORY) {
           parse_directory (full_path);
         } else {
-          if (full_path.substring (-4, -1) == ".mp3")
-            this.add_track (info.get_name ().split (".")[0],
-                            "Bob Dylan",
-                            "Greatest Hits",
+          if (full_path.substring (-4, -1) == ".mp3") {
+            TagLib.File f = new TagLib.File(full_path);
+            unowned Tag t = f.tag;
+            unowned string name = t.title;
+            unowned string artist = t.artist;
+            unowned string album = t.album;
+            unowned AudioProperties audioproperties = f.audioproperties;
+            int duration = audioproperties.length * 1000;
+
+            this.add_track (name,
+                            artist,
+                            album,
                             "file://" + full_path,
-                            190000);
+                            duration);
+          }
         }
 
         info = iter.next_file (null);

@@ -11,7 +11,7 @@ public class FileSource : GLib.Object, Source {
     stdout.printf("Creating file source\n");
 
     Collection c = new Collection();
-    //c.index(dir);
+    c.index("/home/brizz/music");
   }
 
   public weak GLib.List<Track> search (string query) {
