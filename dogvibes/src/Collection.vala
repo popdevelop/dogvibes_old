@@ -116,6 +116,8 @@ public class Collection : GLib.Object {
                             album,
                             "file://" + full_path,
                             duration);
+
+            // TODO: what happens to the unowned strings here?
           }
         }
 
