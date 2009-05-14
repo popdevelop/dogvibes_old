@@ -3,7 +3,6 @@
 //  dogvibes
 //
 //  Created by Johan Nyström on 2009-05-14.
-//  Copyright Axis Communications 2009. All rights reserved.
 //
 
 #import <UIKit/UIKit.h>
