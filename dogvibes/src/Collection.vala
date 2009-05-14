@@ -12,10 +12,10 @@ public class Collection : GLib.Object {
     string datafile = "dogvibes.db";
 
     if (!FileUtils.test (datafile, FileTest.IS_REGULAR)) {
-      //stdout.printf ("Collection: Creating empty database %s\n", datafile);
+      stdout.printf ("Collection: Creating empty database %s\n", datafile);
       rc = Database.open (datafile, out this.db);
       rc = this.db.exec ("create table collection (id INTEGER PRIMARY KEY," +
-                         "name TEXT, artist TEXT, album TEXT, k TEXT," +
+                         "name TEXT, artist TEXT, album TEXT, uri TEXT," +
                          "duration INTEGER)", null, null);
     } else
       rc = Database.open (datafile, out this.db);
@@ -30,10 +30,11 @@ public class Collection : GLib.Object {
   private int callback (int n_columns, string[] values,
                         string[] column_names)
   {
-    Track track = new Track (values[4]);
-    track.name = values[1];
-    track.artist = values[2];
-    track.album = values[3];
+    Track track = new Track (Uri.unescape_string(values[4], ""));
+    track.name = Uri.unescape_string(values[1], "");
+    track.artist = Uri.unescape_string(values[2], "");
+    track.album = Uri.unescape_string(values[3], "");
+    track.duration = values[5]; //.to_int ();
     this.tracks.append (track);
 
     return 0;
@@ -42,22 +43,27 @@ public class Collection : GLib.Object {
 
   public void add_track (string name, string artist, string album,
                          string uri, int duration) {
-    //string db_query = "select * from collection where k = '" + uri + "'";
-    //Statement stmt;
-		//this.db.prepare (db_query, 10000, stmt);
-    //stmt.step ();
-    //stmt.column_value (3).to_text ();
+    string name_e = Uri.escape_string(name, "", true);
+    string artist_e = Uri.escape_string(artist, "", true);
+    string album_e = Uri.escape_string(album, "", true);
+    string uri_e = Uri.escape_string(uri, "", true);
 
-    /*
-    string db_query =
-    "insert into collection (name, artist, album, k, duration) " +
-    "values ('%s', '%s', '%s', '%s', %d)".printf (name, artist, album,
-                                                  uri, duration);
-    */
-    stdout.printf ("Collection: Added '%s: %s', %s (%d) [%s]\n",
-                   artist, name, album, duration, uri);
+    string db_query = "select * from collection where uri = '" + uri_e + "'";
+    Statement stmt;
+		this.db.prepare (db_query, -1, out stmt);
+    if (stmt.step () == Sqlite.DONE) { /* No more results, i.e. no results */
+      stmt.reset ();
 
-    //this.db.exec (db_query, null, null);
+      db_query =
+      "insert into collection (name, artist, album, uri, duration) " +
+      "values ('%s', '%s', '%s', '%s', %d)".printf (name_e, artist_e, album_e,
+                                                    uri_e, duration);
+
+      stdout.printf ("Collection: Added '%s: %s', %s (%d) [%s]\n",
+                     artist, name, album, duration, uri);
+
+      this.db.exec (db_query, null, null);
+    }
   }
 
 
@@ -66,6 +72,13 @@ public class Collection : GLib.Object {
 
     string db_query = "select * from collection where artist LIKE '%" + query + "%'";
     this.db.exec (db_query, callback, null);
+
+    //    this.db.prepare_v2(STMT_TRACKNUMBER_FOR_TRACK, -1,
+    //                 out this.tracknumber_for_track_statement);
+    //get_artist_statement.reset();
+    //    while(get_artist_statement.step() == Sqlite.ROW) {
+    //  val += get_artist_statement.column_text(0);
+    //xs }
 
     /* FIXME: ugly sleep */
     Thread.usleep (10000);
@@ -79,7 +92,7 @@ public class Collection : GLib.Object {
     GLib.File file = GLib.File.new_for_path (path);
 
     if (!file.query_exists (null)) {
-      stderr.printf ("File '%s' doesn't exist.\n", file.get_path ());
+      stderr.printf ("Tried to index '%s' but it doesn't exist.\n", file.get_path ());
       return;
     }
 
@@ -133,21 +146,4 @@ public class Collection : GLib.Object {
   public void index (string path) {
     parse_directory (path);
   }
-
-  /*
-    public static int main (string[] args) {
-    Collection collection = new Collection ();
-
-    collection.add_track ("Johnny", "Memories in Mono", "Pikes & Perches", "file:///mim.ogg", 190);
-    collection.add_track ("Marathon", "Memories in Mono", "Pikes & Perches", "file:///Mara_.mp3", 190);
-    collection.add_track ("Wonderwall", "Oasis", "Standing...", "file:///oasis.mp3", 190);
-    List<string> tracks = collection.search ("");
-
-    foreach (string t in tracks) {
-    stdout.printf ("... %s\n", t);
-    }
-
-    return 0;
-    }
-  */
 }
