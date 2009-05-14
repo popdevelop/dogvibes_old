@@ -1,6 +1,6 @@
 #!/bin/bash
 
-host=dogvibes.com:2000
+host=$1
 
 function amp {
   echo "============================================="
@@ -16,7 +16,7 @@ function dogvibes {
   echo
 }
 
-dogvibes "search?query=oasis"
+dogvibes "search?query=memories"
 
 amp "queue?uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz"
 amp "queue?uri=spotify:track:3ZlFUr0RBrUYYsmlcFvD0e"
@@ -28,7 +28,7 @@ amp "queue?uri=spotify:track:7kXmJwrZGIhDaLT9sNo3ut"
 amp "queue?uri=spotify:track:7rk75X26LwTEE8slwrqMjy"
 amp "queue?uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n"
 
-amp "getAllTracksInQueue?callback=parseJSON"
+amp "getAllTracksInQueue"
 #amp "removeFromQueue?nbr=0"
 amp "getAllTracksInQueue"
 
