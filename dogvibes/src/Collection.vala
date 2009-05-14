@@ -26,21 +26,6 @@ public class Collection : GLib.Object {
     }
   }
 
-
-  private int callback (int n_columns, string[] values,
-                        string[] column_names)
-  {
-    Track track = new Track (Uri.unescape_string(values[4], ""));
-    track.name = Uri.unescape_string(values[1], "");
-    track.artist = Uri.unescape_string(values[2], "");
-    track.album = Uri.unescape_string(values[3], "");
-    track.duration = values[5]; //.to_int ();
-    this.tracks.append (track);
-
-    return 0;
-  }
-
-
   public void add_track (string name, string artist, string album,
                          string uri, int duration) {
     string name_e = Uri.escape_string(name, "", true);
@@ -71,17 +56,18 @@ public class Collection : GLib.Object {
     tracks = new List<Track> ();
 
     string db_query = "select * from collection where artist LIKE '%" + query + "%'";
-    this.db.exec (db_query, callback, null);
+    Statement stmt;
+		this.db.prepare (db_query, -1, out stmt);
 
-    //    this.db.prepare_v2(STMT_TRACKNUMBER_FOR_TRACK, -1,
-    //                 out this.tracknumber_for_track_statement);
-    //get_artist_statement.reset();
-    //    while(get_artist_statement.step() == Sqlite.ROW) {
-    //  val += get_artist_statement.column_text(0);
-    //xs }
-
-    /* FIXME: ugly sleep */
-    Thread.usleep (10000);
+    while (stmt.step () == Sqlite.ROW) {
+      Track track = new Track (Uri.unescape_string(stmt.column_text(4), ""));
+      track.name = Uri.unescape_string(stmt.column_text(1), "");
+      track.artist = Uri.unescape_string(stmt.column_text(2), "");
+      track.album = Uri.unescape_string(stmt.column_text(3), "");
+      track.duration = stmt.column_text(5); //.to_int ();
+      this.tracks.append (track);
+    }
+    stmt.reset ();
 
     return this.tracks;
   }
