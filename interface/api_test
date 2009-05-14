@@ -4,15 +4,17 @@ host=$1
 
 function amp {
   echo "============================================="
-  echo $1
-  curl http://$host/amp/0/$1
+  call=http://$host/amp/0/$1
+  echo $call
+  curl $call
   echo
 }
 
 function dogvibes {
   echo "============================================="
-  echo $1
-  curl http://$host/dogvibes/$1
+  call=http://$host/dogvibes/$1
+  echo $call
+  curl $call
   echo
 }
 
