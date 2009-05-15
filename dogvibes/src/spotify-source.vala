@@ -54,7 +54,7 @@ public static void MyLoggedIn (Session session, Spotify.Error error)
 public static void PollMe (Session session)
 {
   int timeout;
-  session.process_events(&timeout);
+  //session.process_events(&timeout);
   stdout.printf ("do you poll me?");
 }
 
