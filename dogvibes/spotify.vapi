@@ -160,6 +160,6 @@ namespace Spotify {
     public weak Track? as_track ();
     public weak Album? as_album ();
     public weak Artist? as_artist ();
-    public int as_string (string buf, int size);
+    public int as_string (char[] buf);
   }
 }

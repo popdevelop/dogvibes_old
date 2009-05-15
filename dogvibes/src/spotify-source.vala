@@ -166,11 +166,12 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
       track.duration = strack.duration ().to_string ();
 
       Spotify.Link link;
-      string uri = new string();
+      char[] uri = new char[100];
       /* argh how do we fix this */
-      //link = Link.create_from_track (strack, 0);
-      //link.as_string (uri, (int) uri.length);
-      track.uri = "uri";
+      link = Link.create_from_track (strack, 0);
+      link.as_string (uri);
+      stdout.printf ("%s\n", (string) uri);
+      track.uri = (string) uri;
       SpotifySource.tracks.append (track);
     }
 
