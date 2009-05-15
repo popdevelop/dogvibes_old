@@ -446,6 +446,7 @@ public void main (string[] args) {
       /* register amplifier */
       var amp = new Amp ();
       conn.register_object ("/com/dogvibes/amp/0", amp);
+      amp.connect_speaker (0);
       loop.run ();
     }
   } catch (GLib.Error e) {

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # send request to dogvibes daemon
-./connectspeaker 0
+#./connectspeaker 0
 
 dbus-send --print-reply --system --dest=com.Dogvibes /com/dogvibes/amp/0 com.Dogvibes.Amp.Queue string:'spotify:track:75UqWU4Y0YdCB9MrnKZZnC'
 dbus-send --print-reply --system --dest=com.Dogvibes /com/dogvibes/amp/0 com.Dogvibes.Amp.Queue string:'spotify:track:3odhGRfxHMVIwtNtc4BOZk'
