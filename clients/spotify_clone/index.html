@@ -546,6 +546,7 @@ function getNowPlaying()
       dataType: 'jsonp',
       error: function () {connectionBad("Server not responding! Trying to reconnect..."); }, /* FIXME: why isn't this run? */
       success: function(data){
+             data = data.status;
              beg = "<ul>";
              sepa = "<li class=\"artist\">";
              sept = "<li class=\"title\">";
