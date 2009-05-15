@@ -26,6 +26,27 @@ public class Collection : GLib.Object {
     }
   }
 
+  public Track? create_track_from_uri (string uri) {
+    string uri_e = Uri.escape_string(uri, "", true);
+    string db_query = "select * from collection where uri = '" + uri_e + "'";
+    Statement stmt;
+		this.db.prepare (db_query, -1, out stmt);
+    if (stmt.step () == Sqlite.DONE) { /* No more results, i.e. no results */
+      return null;
+    } else {
+      Track track = new Track (Uri.unescape_string(stmt.column_text(4), ""));
+      track.name = Uri.unescape_string(stmt.column_text(1), "");
+      track.artist = Uri.unescape_string(stmt.column_text(2), "");
+      track.album = Uri.unescape_string(stmt.column_text(3), "");
+      track.duration = stmt.column_text(5); //.to_int ();
+
+      stmt.reset ();
+
+      return track;
+    }
+
+  }
+
   public void add_track (string name, string artist, string album,
                          string uri, int duration) {
     string name_e = Uri.escape_string(name, "", true);
@@ -55,7 +76,9 @@ public class Collection : GLib.Object {
   public weak List<Track> search (string query) {
     tracks = new List<Track> ();
 
-    string db_query = "select * from collection where name or artist or album LIKE '%" + query + "%'";
+    stdout.printf ("search for %s\n", query);
+
+    string db_query = "select * from collection where name LIKE '%" + query + "%' or artist LIKE '%" + query + "%' or album LIKE '%" + query + "%'";
     Statement stmt;
 		this.db.prepare (db_query, -1, out stmt);
 

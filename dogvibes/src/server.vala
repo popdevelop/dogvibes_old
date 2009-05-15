@@ -30,7 +30,7 @@ public class Dogvibes : GLib.Object {
     sources.append (new SpotifySource (user, pass));
 
     /* initiate one file source */
-    sources.append (new FileSource ("/home/gyllen/dogvibes/dogvibes/testmedia"));
+    sources.append (new FileSource ("/home/brizz/music"));
 
     /* initiate one radio source */
     sources.append (new RadioSource ());
@@ -73,8 +73,8 @@ public class Dogvibes : GLib.Object {
     return speakers;
   }
 
-  public static weak Track? create_track_from_uri (string uri) {
-    weak Track track = null;
+  public static Track? create_track_from_uri (string uri) {
+    Track track = null;
     /* we should probably attach tracks here and return a list of matching tracks */
     foreach (Source source in sources) {
       stdout.printf ("Beffo\n");

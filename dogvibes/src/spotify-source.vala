@@ -202,10 +202,8 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
     spotify.set ("spotifyuri", track.uri);
   }
 
-  static Track tr;
-
-  public weak Track? create_track_from_uri (string uri) {
-    tr = new Track();
+  public Track? create_track_from_uri (string uri) {
+    Track tr = new Track();
 
     Link link = Link.create_from_string (uri);
     if (link == null) {
