@@ -55,7 +55,7 @@ public class Collection : GLib.Object {
   public weak List<Track> search (string query) {
     tracks = new List<Track> ();
 
-    string db_query = "select * from collection where artist LIKE '%" + query + "%'";
+    string db_query = "select * from collection where name or artist or album LIKE '%" + query + "%'";
     Statement stmt;
 		this.db.prepare (db_query, -1, out stmt);
 
