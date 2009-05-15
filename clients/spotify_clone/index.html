@@ -438,7 +438,7 @@ var command =
 {
    /* playqueue */
    add: "/amp/0/queue?uri=",
-   get: "/amp/0/getAllTracksInQueue?",
+   get: "/amp/0/getAllTracksInQueue",
    remove: "/amp/0/removeTrack?nbr=",
    /* playback control */
    next: "/amp/0/nextTrack",
@@ -599,7 +599,7 @@ function getNowPlaying()
 
 function getPlayQueue(){
    $("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
-     $.getJSON(server + command.get + "&callback=?", function(data) {
+     $.getJSON(server + command.get + "?callback=?", function(data) {
        $("#s-results").empty();
        $.each(data.tracks, function(i, song) {
          td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
@@ -722,6 +722,11 @@ if (e.which == 13)
   doSearch();
 });
 
+function doSearchFromLink(value) {
+  $("#s-input").val(value);
+  doSearch();
+}
+
 function doSearch() {
    current_page = "search";
   $("#playlist").html(track_list_table);	
@@ -732,7 +737,7 @@ function doSearch() {
     $("#s-results").empty();
     $.each(data.tracks, function(i, song) {
       td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-      $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + song.artist + td + song.time + td + "&nbsp;" +td + song.album);
+      $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + song.time + td + "&nbsp;" +td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
     });
     $(".addButton").click(function () {
       $.ajax({  
@@ -743,8 +748,8 @@ function doSearch() {
     		success: clearWait()
   		});
     }); 
-    $(".playButton").click(function () { 
-        $.ajax({ 
+    $(".playButton").click(function () {
+        $.ajax({
             beforeSend: setWait(),
             type: "GET",
             dataType: 'jsonp',
@@ -752,6 +757,18 @@ function doSearch() {
             success: function () {clearWait(); getNowPlaying(); }
       });
       });     
+    $(".searchArtistButton").click(function () {
+      doSearchFromLink(this.id);
+/*
+      $.ajax({
+         beforeSend: setWait(),
+         type: "GET",
+         dataType: 'jsonp',
+    		url: server + command.add + this.id,
+    		success: clearWait()
+  		});
+*/
+    });
     if(data.count == 0)
     {
     	$("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
