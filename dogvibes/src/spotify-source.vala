@@ -154,7 +154,7 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
 
     int i;
     Track track;
-    for (i = 0; i < search.num_tracks () && i < 10; ++i) {
+    for (i = 0; i < search.num_tracks () && i < 100; ++i) {
       track = new Track ();
       Spotify.Track strack = search.track (i);
       Spotify.Album album = strack.album ();
@@ -187,7 +187,7 @@ public class SpotifySource : GLib.Object, Source, SingleSource {
 
     tracks = new GLib.List<Track> ();
 
-    Search search = Search.create(session, query, 0, 10,
+    Search search = Search.create(session, query, 0, 100,
                                   MySearchComplete, null);
 
     int timeout = -1;
