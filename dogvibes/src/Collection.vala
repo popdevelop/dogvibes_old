@@ -78,7 +78,7 @@ public class Collection : GLib.Object {
 
     stdout.printf ("search for %s\n", query);
 
-    string db_query = "select * from collection where name LIKE '%" + query + "%' or artist LIKE '%" + query + "%' or album LIKE '%" + query + "%'";
+    string db_query = "select * from collection where name LIKE '%" + query + "%' or artist LIKE '%" + query + "%' or album LIKE '%" + query + "%' or uri LIKE '%" + query + "%'";
     Statement stmt;
 		this.db.prepare (db_query, -1, out stmt);
 
