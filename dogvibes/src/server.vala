@@ -284,6 +284,7 @@ public class Amp : GLib.Object {
 
   public void play_track (int tracknbr) {
     change_track (tracknbr);
+    play ();
   }
 
   public void previous_track () {
