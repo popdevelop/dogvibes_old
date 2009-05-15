@@ -577,7 +577,7 @@ function getNowPlaying()
 
 function getPlayQueue(){
    $("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
-     $.getJSON(server + command.get + "&callback=?", function(data) {
+     $.getJSON(server + command.get + "?callback=?", function(data) {
        $("#s-results").empty();
        $.each(data.tracks, function(i, song) {
          td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
