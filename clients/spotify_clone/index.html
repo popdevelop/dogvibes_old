@@ -695,7 +695,13 @@ $("#p-playqueue").click(function () {
 });
 
 /* Searching */
-$("#s-submit").click(function () {
+$("#s-submit").click(do_search);
+$("#s-input").keypress(function (e) {
+if (e.which == 13)
+  do_search();
+});
+
+function do_search() {
    current_page = "search";
   $("#playlist").html(track_list_table);	
   $("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
@@ -730,7 +736,7 @@ $("#s-submit").click(function () {
     	$("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
     }
   });
-});
+}
 
 /* Clear search keyword field if nav links are clicked*/
 $(".navlink").bind("click", function () {
