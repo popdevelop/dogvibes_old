@@ -17,20 +17,10 @@ public class Dogvibes : GLib.Object {
 
     /* initiate all sources */
     /* initiate one spotify source (this should all be done from conffiles according to last state */
-    string user;
-    string pass;
-    try {
-      var gc = GConf.Client.get_default ();
-      user = gc.get_string ("/apps/dogvibes/spotify/username");
-      pass = gc.get_string ("/apps/dogvibes/spotify/password");
-      stdout.printf ("Creating spotify source with %s %s\n", user, pass);
-    } catch (GLib.Error e) {
-      stderr.printf ("Oops: %s\n", e.message);
-    }
-    sources.append (new SpotifySource (user, pass));
+    sources.append (new SpotifySource ("gyllen", "bobidob10"));
 
     /* initiate one file source */
-    sources.append (new FileSource ("/home/brizz/music"));
+    sources.append (new FileSource ("/home/johan/Desktop/mp3"));
 
     /* initiate one radio source */
     sources.append (new RadioSource ());
@@ -38,7 +28,7 @@ public class Dogvibes : GLib.Object {
     /* initiate all speakers */
     speakers.append (new DeviceSpeaker ("devicesource"));
     speakers.append (new FakeSpeaker ("fakesource"));
-    speakers.append (new ApexSpeaker ("apexsource", "192.168.0.1"));
+    speakers.append (new ApexSpeaker ("apexsource", "192.168.1.3"));
   }
 
   /*** public D-Bus API ***/
@@ -322,7 +312,11 @@ public class Amp : GLib.Object {
     pipeline.set_state (State.NULL);
   }
 
-  public void set_volume (int vol) {
+  public void set_volume (double vol) {
+    if (vol > 1 || vol < 0) {
+      stdout.printf ("Volume must be between 0.0 and 1.0\n");
+      return;
+    }
     volume.set ("volume", (double) vol);
   }
 
