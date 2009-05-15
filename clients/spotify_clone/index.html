@@ -565,7 +565,7 @@ function getNowPlaying()
                  $("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
                  $("#album_art").empty();
              }
-             if(data.playqueue){
+             if(data.playqueuehash){
                current_playqueue = data.playqueue;
              }
              request_in_progress = false;
