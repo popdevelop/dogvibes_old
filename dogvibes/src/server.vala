@@ -225,7 +225,7 @@ public class Amp : GLib.Object {
     int64 duration;
     Format for = Format.TIME;
     pipeline.query_position (ref for, out duration);
-    duration = duration / SECOND;
+    duration = duration / MSECOND;
     return (int) duration;
   }
 
