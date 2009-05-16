@@ -1,7 +1,8 @@
 class Track:
-    def __init__(self):
-        self.name = "Name";
+    def __init__(self, uri):
+        self.name = "Name"
         self.artist = "Artist"
+        self.uri = uri
     def __str__(self):
         return self.artist + ' - ' + self.name
     def to_dict(self):
@@ -9,7 +10,7 @@ class Track:
 
 ### "main" ###
 
-t = Track()
+t = Track("file:///marathon.mp3")
 t.name = "Marathon"
 t.artist = "Head Unit"
 
