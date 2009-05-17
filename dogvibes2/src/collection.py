@@ -1,18 +1,9 @@
 import sys
 import os
 import tagpy
+import sqlite3
 
-class Track:
-    def __init__(self):
-        self.name = "Name"
-        self.artist = "Artist"
-        self.artist = "Album"
-        self.uri = "URI"
-        self.duration = 0
-    def __str__(self):
-        return self.artist + ' - ' + self.name
-    def to_dict(self):
-        return dict(name = self.name, artist = self.artist)
+from track import Track
 
 class Collection:
     def index(self, path):
@@ -21,8 +12,7 @@ class Collection:
                 if filename.endswith('.mp3'):
                     full_path = os.path.join(top, filename);
                     f = tagpy.FileRef(full_path)
-                    t = Track()
-                    t.uri = "file://" + full_path
+                    t = Track("file://" + full_path)
                     t.name = f.tag().title
                     t.artist = f.tag().artist
                     a = f.audioProperties()

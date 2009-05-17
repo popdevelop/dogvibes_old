@@ -1,7 +1,15 @@
 class Track:
     def __init__(self, uri):
-        # Currently a track is only an uri
+        self.name = "Name"
+        self.artist = "Artist"
+        self.album = "Album"
         self.uri = uri
-
+        self.duration = 0
+    def __str__(self):
+        return self.artist + ' - ' + self.name
     def to_dict(self):
-        return {"uri": self.uri}
+        return dict(name = self.name,
+                    artist = self.artist,
+                    album = self.album,
+                    uri = self.uri,
+                    duration = self.duration)
