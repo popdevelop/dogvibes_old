@@ -45,6 +45,13 @@ G_BEGIN_DECLS
 typedef struct _GstSpotSrc GstSpotSrc;
 typedef struct _GstSpotSrcClass GstSpotSrcClass;
 
+#define GST_SPOT_SRC_USER(src) ((src)->user)
+#define GST_SPOT_SRC_PASS(src) ((src)->pass)
+#define GST_SPOT_SRC_URI(src) ((src)->uri)
+#define GST_SPOT_SRC_SPOTIFY_URI(src) ((src)->spotify_uri)
+#define GST_SPOT_SRC_BUFFER_INTERNAL_BYTES(src) ((src)->buffer_internal_bytes)
+
+
 /**
  * GstSpotSrc:
  *
@@ -56,7 +63,10 @@ struct _GstSpotSrc {
   /*< private >*/
 
   gchar *filename;			/* filename */
-  gchar *uri;				/* caching the URI */
+  gchar *user;
+  gchar *pass;
+  gchar *spotify_uri;
+  gchar *uri;
   guint64 read_position;		/* position of fd */
   int fd;
 };
