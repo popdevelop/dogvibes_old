@@ -14,6 +14,58 @@ from devicespeaker import DeviceSpeaker
 # import track
 from track import Track
 
+import BaseHTTPServer
+from urlparse import urlparse
+import cgi
+import json
+
+# method redirects
+class APIDistributor:
+    def amp_queue(self, id, params):
+        return "test" #amp.queue(params.get('uri')[0])
+
+# web server
+class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    def do_GET(self):
+        api = APIDistributor()
+
+        u = urlparse(self.path)
+        c = u.path.split('/')
+        method = c[-1]
+        object = c[1]
+        id = c[2]
+        
+        print dogvibes
+
+        if hasattr(api, object + "_" + method):
+            params = cgi.parse_qs(u.query)
+
+            if 'id' in params:  id = params.get('id')
+            else:               id = 0
+
+            data = getattr(api, object + "_" + method).__call__(id, params)
+            data = dict(error = 0, results = data)
+            data = json.write(data)
+
+            self.send_response(200)
+
+            if 'callback' in params:
+                data = params['callback'][0] + '(' + data + ')'
+                self.send_header("Content-type", "text/javascript")
+            else:
+                self.send_header("Content-type", "application/json")
+
+            self.end_headers()
+            self.wfile.write(data)
+
+        else:
+            self.send_error(404, 'Unsupported call')
+
+class API:
+    def __init__(self):
+        httpserver = BaseHTTPServer.HTTPServer(("", 2000), APIHandler)
+        httpserver.serve_forever()
+
 class Dogvibes(dbus.service.Object):
     def __init__(self, bus, object_name):
         dbus.service.Object.__init__(self, bus, object_name)
@@ -150,7 +202,7 @@ class Amplifier(dbus.service.Object):
 
     @dbus.service.method("com.Dogvibes.Amp",
                          in_signature='s', out_signature='')
-    def Queue(self, uri):
+    def queue(self, uri):
         print "Queued track:%s" % uri
         self.playqueue.append(Track(uri))
 
@@ -257,6 +309,7 @@ if __name__ == '__main__':
     name = dbus.service.BusName("com.Dogvibes", session_bus)
 
     # Create the dogvibes object
+    global dogvibes
     dogvibes = Dogvibes(session_bus, '/com/dogvibes/dogvibes')
 
     # Create a single Amplifier
@@ -265,7 +318,9 @@ if __name__ == '__main__':
     # FIXME this is added because we are lazy
     amp0.ConnectSpeaker(0)
 
-    mainloop = gobject.MainLoop()
+    api = API()
+
+    #mainloop = gobject.MainLoop()
     print "Running Dogvibes."
     print "   ->Vibe the dog!"
     print "                 .--.    "
@@ -276,4 +331,4 @@ if __name__ == '__main__':
     print "         /)  /__\  /     "
     print "        / \ \_  / /|     "
     print "        \_)\__) \_)_)    "
-    mainloop.run()
+    #mainloop.run()
