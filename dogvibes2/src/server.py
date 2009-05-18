@@ -19,38 +19,54 @@ import json
 
 # method redirects
 class APIDistributor:
-    def amp_queue(self, id, params):
-        return "queue" #amp.queue(params.get('uri')[0])
+    def dogvibes_search(self, id, params):
+        global dogvibes
+        return dogvibes.search(params.get('query'))
     def amp_disconnectSpeaker(self, id, params):
-        return "disconnectSpeaker" #, nbr
+        global dogvibes
+        return dogvibes.amps[id].disconnectSpeaker(params.get('nbr'))
     def amp_getAllTracksInQueue(self, id, params):
-        return "getAllTracksInQueue"
+        global dogvibes
+        return dogvibes.amps[id].getAllTracksInQueue()
     def amp_getPlayedMilliSeconds(self, id, params):
-        return "getPlayedMilliSeconds"
+        global dogvibes
+        return dogvibes.amps[id].getPlayedMilliSeconds()
     def amp_getStatus(self, id, params):
-        return "getStatus"
+        global dogvibes
+        return dogvibes.amps[id].getStatus()
     def amp_getQueuePosition(self, id, params):
-        return "getQueuePosition"
+        global dogvibes
+        return dogvibes.amps[id].getQueuePosition()
     def amp_nextTrack(self, id, params):
-        return "nextTrack"
+        global dogvibes
+        return dogvibes.amps[id].nextTrack()
     def amp_playTrack(self, id, params):
-        return "playTrack" # tracknbr
+        global dogvibes
+        return dogvibes.amps[id].playTrack(params.get('nbr'))
     def amp_previousTrack(self, id, params):
-        return "previousTrack"
+        global dogvibes
+        return dogvibes.amps[id].previousTrack()
     def amp_play(self, id, params):
-        return "play"
+        global dogvibes
+        return dogvibes.amps[id].play()
     def amp_pause(self, id, params):
-        return "pause"
+        global dogvibes
+        return dogvibes.amps[id].pause()
     def amp_queue(self, id, params):
-        return "queue" #, uri
+        global dogvibes
+        dogvibes.amps[id].queue(params.get('uri'))
     def amp_removeFromQueue(self, id, params):
-        return "removeFromQueue" #, nbr
+        global dogvibes
+        dogvibes.amps[id].removeFromQueue(params.get('nbr'))
     def amp_seek(self, id, params):
-        return "seek" # mseconds
+        global dogvibes
+        dogvibes.amps[id].seek(params.get('mseconds'))
     def amp_setVolume(self, id, params):
-        return "setVolume" # vol
+        global dogvibes
+        dogvibes.amps[id].setVolume(params.get('vol'))
     def amp_stop(self, id, params):
-        return "stop"
+        global dogvibes
+        return dogvibes.amps[id].stop()
 
 # web server
 class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -72,7 +88,8 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             else:               id = 0
 
             data = getattr(api, object + "_" + method).__call__(id, params)
-            data = dict(error = 0, results = data)
+            if data == None:  data = dict(error = 0)
+            else:             data = dict(error = 0, results = data)
             data = json.write(data)
 
             self.send_response(200)
@@ -104,10 +121,10 @@ class Dogvibes():
 
         # add all amps
         amp0 = Amp(self)
-        amp0.ConnectSpeaker(0)
+        amp0.connectSpeaker(0)
         self.amps = [amp0]
 
-    def Search(self, query):
+    def search(self, query):
         ret = [{}]
         for source in self.sources:
             ret += source.search(query)
@@ -140,7 +157,7 @@ class Amp():
 
     # API
 
-    def ConnectSpeaker(self, nbr):
+    def connectSpeaker(self, nbr):
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
 
@@ -153,7 +170,7 @@ class Amp():
         else:
             print "Speaker %d already connected" % nbr
 
-    def DisconnectSpeaker(self, nbr):
+    def disconnectSpeaker(self, nbr):
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
 
@@ -169,45 +186,46 @@ class Amp():
         else:
             print "Speaker not connected"
 
-    def GetAllTracksInQueue(self):
+    def getAllTracksInQueue(self):
         ret = []
         for track in self.playqueue:
             ret.append(track.to_dict())
         return ret
 
-    def GetPlayedMilliSeconds(self):
+    def getPlayedMilliSeconds(self):
         (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
         return pos / gst.MSECOND
 
-    def GetStatus(self):
+    def getStatus(self):
         if (len(self.playqueue) == 0):
             return {}
         return {"uri": self.playqueue[self.playqueue_position - 1].uri, "playqueuehash": self.GetHashFromPlayQueue()}
 
-    def GetQueuePosition(self):
+    def getQueuePosition(self):
         return self.playqueue_position
 
-    def NextTrack(self):
+    def nextTrack(self):
         self.ChangeTrack(self.playqueue_position + 1)
 
-    def PlayTrack(self, tracknbr):
+    def playTrack(self, tracknbr):
         self.ChangeTrack(tracknbr)
         self.Play()
 
-    def PreviousTrack(self):
+    def previousTrack(self):
         self.ChangeTrack(self.playqueue_position - 1)
 
-    def Play(self):
+    def play(self):
         self.PlayOnlyIfNull(self.playqueue[self.playqueue_position])
 
-    def Pause(self):
+    def pause(self):
         self.pipeline.set_state(gst.STATE_PAUSED)
 
-    def Queue(self, uri):
+    def queue(self, uri):
         print "Queued track:%s" % uri
         self.playqueue.append(Track(uri))
+        return "trams"
 
-    def RemoveFromQueue(self, nbr):
+    def removeFromQueue(self, nbr):
         if (nbr > len(self.playqueue)):
             print "Too big of a number for removing"
             return
@@ -217,23 +235,23 @@ class Amp():
         if (nbr <= self.playqueue_position):
             self.playqueue_position = self.playqueue_position - 1
 
-    def Seek(self, mseconds):
+    def seek(self, mseconds):
         print "Implement me"
         # FIXME
         #    pipeline.seek_simple (Format.TIME, SeekFlags.NONE, ((int64) msecond) * MSECOND);
         # self.pipeline.seek_simple (Track(uri))
 
-    def SetVolume(self, vol):
+    def setVolume(self, vol):
         if (vol > 2 or vol < 0):
             print "Volume must be between 0.0 and 2.0"
         self.volume.set_property("volume", vol)
 
-    def Stop(self):
+    def stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
 
     # Internal functions
 
-    def ChangeTrack(self, tracknbr):
+    def changeTrack(self, tracknbr):
         if (tracknbr > len(self.playqueue) - 1):
             return
 
@@ -248,6 +266,8 @@ class Amp():
         self.pipeline.set_state(gst.STATE_NULL)
         self.PlayOnlyIfNull(self.playqueue[self.playqueue_position])
         self.pipeline.set_state(state)
+
+
 
     def GetHashFromPlayQueue(self):
         ret = ""
