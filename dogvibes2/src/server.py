@@ -24,10 +24,10 @@ class APIDistributor:
         return dogvibes.search(params.get('query')[0])
     def amp_connectSpeaker(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].connectSpeaker(params.get('nbr')[0])
+        return dogvibes.amps[id].connectSpeaker(int(params.get('nbr')[0]))
     def amp_disconnectSpeaker(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].disconnectSpeaker(params.get('nbr')[0])
+        return dogvibes.amps[id].disconnectSpeaker(int(params.get('nbr')[0]))
     def amp_getAllTracksInQueue(self, id, params):
         global dogvibes
         return dogvibes.amps[id].getAllTracksInQueue()
@@ -45,7 +45,7 @@ class APIDistributor:
         return dogvibes.amps[id].nextTrack()
     def amp_playTrack(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].playTrack(params.get('nbr')[0])
+        return dogvibes.amps[id].playTrack(int(params.get('nbr')[0]))
     def amp_previousTrack(self, id, params):
         global dogvibes
         return dogvibes.amps[id].previousTrack()
@@ -60,13 +60,13 @@ class APIDistributor:
         return dogvibes.amps[id].queue(params.get('uri')[0])
     def amp_removeFromQueue(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].removeFromQueue(params.get('nbr')[0])
+        return dogvibes.amps[id].removeFromQueue(int(params.get('nbr')[0]))
     def amp_seek(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].seek(params.get('mseconds')[0])
+        return dogvibes.amps[id].seek(int(params.get('mseconds')[0]))
     def amp_setVolume(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].setVolume(params.get('level')[0])
+        return dogvibes.amps[id].setVolume(float(params.get('level')[0]))
     def amp_stop(self, id, params):
         global dogvibes
         return dogvibes.amps[id].stop()
@@ -204,9 +204,18 @@ class Amp():
         return pos / gst.MSECOND
 
     def getStatus(self):
-        if (len(self.playqueue) == 0):
-            return {}
-        return {"uri": self.playqueue[self.playqueue_position - 1].uri, "playqueuehash": self.GetHashFromPlayQueue()}
+        uri = 'xxx'
+        playqueuehash = 'xxx'
+        if (len(self.playqueue) > 0):
+            uri = self.playqueue[self.playqueue_position - 1].uri
+            playqueuehash = self.GetHashFromPlayQueue()
+        return {'uri': uri,
+                'playqueuehash': playqueuehash,
+                'title': 'dummy',
+                'artist': 'dummy',
+                'album': 'dummy',
+                'duration': '0',
+                'state': 'stopped'}
 
     def getQueuePosition(self):
         return self.playqueue_position
