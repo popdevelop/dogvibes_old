@@ -566,7 +566,7 @@ function getNowPlaying()
             }
              request_in_progress = false;
              connectionOK();            
-             data = data.status;
+             data = data.result;
              beg = "<ul>";
              sepa = "<li class=\"artist\">";
              sept = "<li class=\"title\">";
@@ -601,7 +601,7 @@ function getPlayQueue(){
    $("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
      $.getJSON(server + command.get + "?callback=?", function(data) {
        $("#s-results").empty();
-       $.each(data.tracks, function(i, song) {
+       $.each(data.result, function(i, song) {
          td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
          $("#s-results").append("<tr id=\"row_"+ i + "\">" + td + "<a href=\"#\" id=\"" + i + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + i + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + song.album);
        });
@@ -735,7 +735,7 @@ function doSearch() {
   $("#tab-title").text("Search");
   $.getJSON(server + command.search + $("#s-input").val() + "&callback=?", function(data) {
     $("#s-results").empty();
-    $.each(data.tracks, function(i, song) {
+    $.each(data.result, function(i, song) {
       td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
       $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + song.time + td + "&nbsp;" +td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
     });
