@@ -33,7 +33,7 @@ class SpotifySource:
         for i in a:
             k = map(lambda x: str(x), i.keys())
             v = map(lambda x: str(x), i.values())
-            d = dict({k[0]: v[0], k[1]: v[1], k[2]: v[2], k[3]: v[3], k[3]: v[3]})
+            d = dict({k[0]: v[0], k[1]: v[1], k[2]: v[2], k[3]: v[3], k[3]: v[3], k[4]: v[4]})
             r.append(d)
         return r
 
