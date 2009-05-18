@@ -1,10 +1,8 @@
 #!/usr/bin/env python
+import os
 import hashlib
 import gobject
 import gst
-import dbus
-import dbus.service
-import dbus.mainloop.glib
 # import spources
 from spotifysource import SpotifySource
 
@@ -64,7 +62,7 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         method = c[-1]
         object = c[1]
         id = c[2]
-        
+
         print dogvibes
 
         if hasattr(api, object + "_" + method):
@@ -96,24 +94,27 @@ class API:
         httpserver = BaseHTTPServer.HTTPServer(("", 2000), APIHandler)
         httpserver.serve_forever()
 
-class Dogvibes(dbus.service.Object):
-    def __init__(self, bus, object_name):
-        dbus.service.Object.__init__(self, bus, object_name)
+class Dogvibes():
+    def __init__(self):
+        # add all sources
+        self.sources = [SpotifySource("spotify", "gyllen", "bobidob20")]
 
-        # Add all sources
-        self.sources = [SpotifySource("spotify", "gyllen", "bobidob10")]
-
-        # Add all spekers
+        # add all speakers
         self.speakers = [DeviceSpeaker("devicesink")]
 
-class Amplifier(dbus.service.Object):
-    def __init__(self, bus, object_name):
-        dbus.service.Object.__init__(self, bus, object_name)
+        # add all amps
+        amp0 = Amp(self)
+        amp0.ConnectSpeaker(0)
+        self.amps = [amp0]
 
+    def Search(self, query):
+        ret = [{}]
+        for source in self.sources:
+            ret += source.search(query)
+        return ret
 
-
-class Amplifier(dbus.service.Object):
-    def __init__(self, dogvibes, bus, object_name):
+class Amp():
+    def __init__(self, dogvibes):
         self.dogvibes = dogvibes
         self.pipeline = gst.Pipeline ("amppipeline")
 
@@ -137,13 +138,8 @@ class Amplifier(dbus.service.Object):
         # spotify is special FIXME: not how its supposed to be
         self.spotify = self.dogvibes.sources[0].get_src ()
 
+    # API
 
-        dbus.service.Object.__init__(self, bus, object_name)
-
-    # DBus API
-
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='i', out_signature='')
     def ConnectSpeaker(self, nbr):
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
@@ -157,8 +153,6 @@ class Amplifier(dbus.service.Object):
         else:
             print "Speaker %d already connected" % nbr
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='i', out_signature='')
     def DisconnectSpeaker(self, nbr):
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
@@ -175,69 +169,44 @@ class Amplifier(dbus.service.Object):
         else:
             print "Speaker not connected"
 
-
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='aa{ss}')
     def GetAllTracksInQueue(self):
         ret = []
         for track in self.playqueue:
             ret.append(track.to_dict())
         return ret
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='i')
     def GetPlayedMilliSeconds(self):
         (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
         return pos / gst.MSECOND
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='a{ss}')
     def GetStatus(self):
         if (len(self.playqueue) == 0):
             return {}
         return {"uri": self.playqueue[self.playqueue_position - 1].uri, "playqueuehash": self.GetHashFromPlayQueue()}
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='i')
     def GetQueuePosition(self):
         return self.playqueue_position
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='')
     def NextTrack(self):
         self.ChangeTrack(self.playqueue_position + 1)
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='i', out_signature='')
     def PlayTrack(self, tracknbr):
         self.ChangeTrack(tracknbr)
         self.Play()
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='')
     def PreviousTrack(self):
         self.ChangeTrack(self.playqueue_position - 1)
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='')
     def Play(self):
         self.PlayOnlyIfNull(self.playqueue[self.playqueue_position])
 
-
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='')
     def Pause(self):
         self.pipeline.set_state(gst.STATE_PAUSED)
 
-
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='s', out_signature='')
-    def queue(self, uri):
+    def Queue(self, uri):
         print "Queued track:%s" % uri
         self.playqueue.append(Track(uri))
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='i', out_signature='')
     def RemoveFromQueue(self, nbr):
         if (nbr > len(self.playqueue)):
             print "Too big of a number for removing"
@@ -248,27 +217,19 @@ class Amplifier(dbus.service.Object):
         if (nbr <= self.playqueue_position):
             self.playqueue_position = self.playqueue_position - 1
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='i', out_signature='')
     def Seek(self, mseconds):
         print "Implement me"
         # FIXME
         #    pipeline.seek_simple (Format.TIME, SeekFlags.NONE, ((int64) msecond) * MSECOND);
         # self.pipeline.seek_simple (Track(uri))
 
-
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='d', out_signature='')
     def SetVolume(self, vol):
         if (vol > 2 or vol < 0):
             print "Volume must be between 0.0 and 2.0"
         self.volume.set_property("volume", vol)
 
-    @dbus.service.method("com.Dogvibes.Amp",
-                         in_signature='', out_signature='')
     def Stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
-
 
     # Internal functions
 
@@ -333,24 +294,13 @@ class Amplifier(dbus.service.Object):
         pad.link (self.volume.get_pad("sink"))
 
 if __name__ == '__main__':
-    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    os.system("../spotifysch&")
+    os.system("sleep 1")
 
-    session_bus = dbus.SystemBus()
-    name = dbus.service.BusName("com.Dogvibes", session_bus)
-
-    # Create the dogvibes object
+    # create the dogvibes object
     global dogvibes
-    dogvibes = Dogvibes(session_bus, '/com/dogvibes/dogvibes')
+    dogvibes = Dogvibes()
 
-    # Create a single Amplifier
-    amp0 = Amplifier(dogvibes, session_bus, '/com/dogvibes/amp/0')
-
-    # FIXME this is added because we are lazy
-    amp0.ConnectSpeaker(0)
-
-    api = API()
-
-    #mainloop = gobject.MainLoop()
     print "Running Dogvibes."
     print "   ->Vibe the dog!"
     print "                 .--.    "
@@ -361,4 +311,5 @@ if __name__ == '__main__':
     print "         /)  /__\  /     "
     print "        / \ \_  / /|     "
     print "        \_)\__) \_)_)    "
-    #mainloop.run()
+
+    api = API()
