@@ -19,7 +19,7 @@ class API:
 class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         api = API()
-        
+
         u = urlparse(self.path)
         c = u.path.split('/')
         method = c[-1]
@@ -28,7 +28,7 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if hasattr(api, object + "_" + method):
             params = cgi.parse_qs(u.query)
-            
+
             if 'id' in params:  id = params.get('id')
             else:               id = 0
 
