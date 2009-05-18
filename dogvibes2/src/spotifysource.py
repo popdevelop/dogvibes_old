@@ -28,7 +28,7 @@ class SpotifySource:
         return self.bin
 
     def search (self, query):
-        return self.proxy.Search(query, dbus_interface='com.Dogvibes')
+        return self.proxy.Search(query, dbus_interface='com.Dogvibes.SpotifySearch')
 
     def set_track (self, track):
         self.spotify.set_property ("spotifyuri", track.uri)
