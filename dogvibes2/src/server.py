@@ -89,6 +89,8 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             if 'id' in params:  id = params.get('id')
             else:               id = 0
+            
+            id = 0 # TODO: remove when more amps are supported
 
             data = getattr(api, object + "_" + method).__call__(id, params)
             if data == None:  data = dict(error = 0)
@@ -172,6 +174,7 @@ class Amp():
             self.tee.link(self.sink)
         else:
             print "Speaker %d already connected" % nbr
+        # FIXME: we never get here...
 
     def disconnectSpeaker(self, nbr):
         if nbr > len(self.dogvibes.speakers) - 1:
@@ -188,6 +191,7 @@ class Amp():
             self.pipeline.set_state(state)
         else:
             print "Speaker not connected"
+        # FIXME: we never get here...
 
     def getAllTracksInQueue(self):
         ret = []
@@ -247,7 +251,7 @@ class Amp():
     def setVolume(self, vol):
         if (vol > 2 or vol < 0):
             print "Volume must be between 0.0 and 2.0"
-        self.volume.set_property("volume", vol)
+        self.volume.set_property("volume", vol) # FIXME: this doesn't seem to return
 
     def stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
