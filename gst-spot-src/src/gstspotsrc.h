@@ -27,6 +27,8 @@
 #include <sys/types.h>
 
 #include <gst/gst.h>
+#include <spotify/api.h>
+#include <gst/base/gstadapter.h>
 #include <gst/base/gstbasesrc.h>
 
 G_BEGIN_DECLS
@@ -49,6 +51,11 @@ typedef struct _GstSpotSrcClass GstSpotSrcClass;
 #define GST_SPOT_SRC_PASS(src) ((src)->pass)
 #define GST_SPOT_SRC_URI(src) ((src)->uri)
 #define GST_SPOT_SRC_SPOTIFY_URI(src) ((src)->spotify_uri)
+#define GST_SPOT_SRC_BUFFER_TIME(src) ((src)->buffer_time)
+#define GST_SPOT_SRC_ADAPTER(src) ((src)->adapter)
+#define GST_SPOT_SRC_ADAPTER_MUTEX(src) ((src)->adapter_mutex)
+#define GST_SPOT_SRC_FORMAT(src) ((src)->format)
+//remove this?
 #define GST_SPOT_SRC_BUFFER_INTERNAL_BYTES(src) ((src)->buffer_internal_bytes)
 
 
@@ -62,13 +69,15 @@ struct _GstSpotSrc {
 
   /*< private >*/
 
-  gchar *filename;			/* filename */
   gchar *user;
   gchar *pass;
   gchar *spotify_uri;
   gchar *uri;
-  guint64 read_position;		/* position of fd */
-  int fd;
+  guint64 read_position;
+  guint64 buffer_time;
+  GstAdapter *adapter;
+  GMutex *adapter_mutex;
+  sp_audioformat *format;
 };
 
 struct _GstSpotSrcClass {
