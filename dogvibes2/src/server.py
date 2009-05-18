@@ -22,6 +22,9 @@ class APIDistributor:
     def dogvibes_search(self, id, params):
         global dogvibes
         return dogvibes.search(params.get('query')[0])
+    def amp_connectSpeaker(self, id, params):
+        global dogvibes
+        return dogvibes.amps[id].connectSpeaker(params.get('nbr')[0])
     def amp_disconnectSpeaker(self, id, params):
         global dogvibes
         return dogvibes.amps[id].disconnectSpeaker(params.get('nbr')[0])
@@ -63,7 +66,7 @@ class APIDistributor:
         return dogvibes.amps[id].seek(params.get('mseconds')[0])
     def amp_setVolume(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].setVolume(params.get('vol')[0])
+        return dogvibes.amps[id].setVolume(params.get('level')[0])
     def amp_stop(self, id, params):
         global dogvibes
         return dogvibes.amps[id].stop()
@@ -89,7 +92,7 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             data = getattr(api, object + "_" + method).__call__(id, params)
             if data == None:  data = dict(error = 0)
-            else:             data = dict(error = 0, results = data)
+            else:             data = dict(error = 0, result = data)
             data = json.write(data)
 
             self.send_response(200)
@@ -209,7 +212,7 @@ class Amp():
 
     def playTrack(self, tracknbr):
         self.ChangeTrack(tracknbr)
-        self.Play()
+        self.play()
 
     def previousTrack(self):
         self.ChangeTrack(self.playqueue_position - 1)
@@ -251,7 +254,7 @@ class Amp():
 
     # Internal functions
 
-    def changeTrack(self, tracknbr):
+    def ChangeTrack(self, tracknbr):
         if (tracknbr > len(self.playqueue) - 1):
             return
 
