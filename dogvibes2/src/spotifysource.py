@@ -1,3 +1,4 @@
+import dbus
 import gst
 from track import Track
 
@@ -7,6 +8,10 @@ class SpotifySource:
         self.passw = passw
         self.user = user
         self.created = False
+
+        bus = dbus.SystemBus()
+        self.proxy = bus.get_object('com.Dogvibes',
+                                    '/com/dogvibes/dogvibes')
 
     def get_src(self):
         if self.created == False:
@@ -22,6 +27,8 @@ class SpotifySource:
             self.created = True
         return self.bin
 
+    def search (self, query):
+        return self.proxy.Search(query, dbus_interface='com.Dogvibes')
 
     def set_track (self, track):
         self.spotify.set_property ("spotifyuri", track.uri)
