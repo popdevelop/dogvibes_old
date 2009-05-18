@@ -22,7 +22,37 @@ import json
 # method redirects
 class APIDistributor:
     def amp_queue(self, id, params):
-        return "test" #amp.queue(params.get('uri')[0])
+        return "queue" #amp.queue(params.get('uri')[0])
+    def amp_disconnectSpeaker(self, id, params):
+        return "disconnectSpeaker" #, nbr
+    def amp_getAllTracksInQueue(self, id, params):
+        return "getAllTracksInQueue"
+    def amp_getPlayedMilliSeconds(self, id, params):
+        return "getPlayedMilliSeconds"
+    def amp_getStatus(self, id, params):
+        return "getStatus"
+    def amp_getQueuePosition(self, id, params):
+        return "getQueuePosition"
+    def amp_nextTrack(self, id, params):
+        return "nextTrack"
+    def amp_playTrack(self, id, params):
+        return "playTrack" # tracknbr
+    def amp_previousTrack(self, id, params):
+        return "previousTrack"
+    def amp_play(self, id, params):
+        return "play"
+    def amp_pause(self, id, params):
+        return "pause"
+    def amp_queue(self, id, params):
+        return "queue" #, uri
+    def amp_removeFromQueue(self, id, params):
+        return "removeFromQueue" #, nbr
+    def amp_seek(self, id, params):
+        return "seek" # mseconds
+    def amp_setVolume(self, id, params):
+        return "setVolume" # vol
+    def amp_stop(self, id, params):
+        return "stop"
 
 # web server
 class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
