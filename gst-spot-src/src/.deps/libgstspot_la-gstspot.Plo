@@ -158,6 +158,8 @@ libgstspot_la-gstspot.lo .libs/libgstspot_la-gstspot.o: gstspot.c \
   /usr/local/include/gstreamer-0.10/gst/gstparse.h \
   /usr/local/include/gstreamer-0.10/gst/gstxml.h \
   /usr/local/include/gstreamer-0.10/gst/gstcompat.h gstspotsrc.h \
+  /usr/local/include/spotify/api.h \
+  /usr/local/include/gstreamer-0.10/gst/base/gstadapter.h \
   /usr/local/include/gstreamer-0.10/gst/base/gstbasesrc.h
 
 ../config.h:
@@ -569,5 +571,9 @@ libgstspot_la-gstspot.lo .libs/libgstspot_la-gstspot.o: gstspot.c \
 /usr/local/include/gstreamer-0.10/gst/gstcompat.h:
 
 gstspotsrc.h:
+
+/usr/local/include/spotify/api.h:
+
+/usr/local/include/gstreamer-0.10/gst/base/gstadapter.h:
 
 /usr/local/include/gstreamer-0.10/gst/base/gstbasesrc.h:
