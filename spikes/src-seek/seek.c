@@ -1,4 +1,4 @@
-// compile with something like: gcc -o seek -Wall -g $(pkg-config --libs --cfl
+// compile with something like: gcc -o seek -Wall -g $(pkg-config --libs --cflags gstreamer-0.10) seek.c
 
 // some testcode to test seek in mp3 file and in spotify element
 
@@ -37,7 +37,7 @@ int main (int argc, char **argv) {
       password = g_strdup (argv[3]);
       g_print ("--spotify user=%s password=%s\n", user, password);
 
-      source = gst_element_factory_make ("spotify", "spotify-source");
+      source = gst_element_factory_make ("spot", "spotify-source");
 
     } else if (argc == 3 && strcmp (argv[1], MP3_CMD) == 0) {
       mp3_file = g_strdup (argv[2]);
@@ -61,7 +61,6 @@ int main (int argc, char **argv) {
         g_print ("-- spotifysrc link\n");
         g_object_set (G_OBJECT (source), "pass", password, NULL);
         g_object_set (G_OBJECT (source), "user", user, NULL);
-        g_object_set (G_OBJECT (source), "buffer-time", 100000000, NULL);
         g_object_set (G_OBJECT (sink), "sync", FALSE, NULL);
 
         gst_bin_add_many (GST_BIN (pipeline), source, sink, NULL);
@@ -77,7 +76,7 @@ int main (int argc, char **argv) {
     gst_element_set_state (pipeline, GST_STATE_PLAYING);
 
     // random seek every 3 seconds
-    g_timeout_add (3 * 1000, cb_timeout, pipeline);
+    g_timeout_add (6 * 1000, cb_timeout, pipeline);
 
     g_print ("running...\n");
     g_main_loop_run (loop);
@@ -96,33 +95,30 @@ int main (int argc, char **argv) {
 
 gboolean cb_timeout (gpointer data) {
     GstElement *pipeline = (GstElement *) data;
-    GstFormat fmt = GST_FORMAT_TIME;
+    GstFormat fmt = GST_FORMAT_BYTES;
     gboolean test;
     gint64 len;
-    guint64 len_seconds;
 
-    test = gst_element_seek (
-        pipeline,
-        1.0,
-        GST_FORMAT_TIME,
-        GST_SEEK_FLAG_FLUSH,
-        GST_SEEK_TYPE_SET,
-        pos * GST_SECOND,
-        GST_SEEK_TYPE_NONE,
-        -1
-        );
-    printf ("seek: %d\n", test);
+    puts ("timeout called");
 
     test = gst_element_query_duration (
         pipeline, &fmt, &len
     );
+    guint64 bytes = g_random_int_range (0,len);
+    g_print ("duration = %lld, seek to %lld\n",len, bytes);
 
-    len_seconds = len / GST_SECOND;
-    printf ("total time: %lld (%llds)\n", len, len_seconds);
-    pos = g_random_int_range (0, len_seconds);
-    printf ("random: %d\n", pos);
+    test = gst_element_seek (
+        pipeline,
+        1.0,
+        GST_FORMAT_BYTES,
+        GST_SEEK_FLAG_FLUSH,
+        GST_SEEK_TYPE_SET,
+        bytes,
+        GST_SEEK_TYPE_NONE,
+        -1
+        );
+    printf ("seek to %lld bytes res=%d\n", bytes,test);
 
-    puts ("timeout called");
 
     return TRUE;
 }
