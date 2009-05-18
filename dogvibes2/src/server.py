@@ -21,10 +21,10 @@ import json
 class APIDistributor:
     def dogvibes_search(self, id, params):
         global dogvibes
-        return dogvibes.search(params.get('query'))
+        return dogvibes.search(params.get('query')[0])
     def amp_disconnectSpeaker(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].disconnectSpeaker(params.get('nbr'))
+        return dogvibes.amps[id].disconnectSpeaker(params.get('nbr')[0])
     def amp_getAllTracksInQueue(self, id, params):
         global dogvibes
         return dogvibes.amps[id].getAllTracksInQueue()
@@ -42,7 +42,7 @@ class APIDistributor:
         return dogvibes.amps[id].nextTrack()
     def amp_playTrack(self, id, params):
         global dogvibes
-        return dogvibes.amps[id].playTrack(params.get('nbr'))
+        return dogvibes.amps[id].playTrack(params.get('nbr')[0])
     def amp_previousTrack(self, id, params):
         global dogvibes
         return dogvibes.amps[id].previousTrack()
@@ -54,16 +54,16 @@ class APIDistributor:
         return dogvibes.amps[id].pause()
     def amp_queue(self, id, params):
         global dogvibes
-        dogvibes.amps[id].queue(params.get('uri'))
+        return dogvibes.amps[id].queue(params.get('uri')[0])
     def amp_removeFromQueue(self, id, params):
         global dogvibes
-        dogvibes.amps[id].removeFromQueue(params.get('nbr'))
+        return dogvibes.amps[id].removeFromQueue(params.get('nbr')[0])
     def amp_seek(self, id, params):
         global dogvibes
-        dogvibes.amps[id].seek(params.get('mseconds'))
+        return dogvibes.amps[id].seek(params.get('mseconds')[0])
     def amp_setVolume(self, id, params):
         global dogvibes
-        dogvibes.amps[id].setVolume(params.get('vol'))
+        return dogvibes.amps[id].setVolume(params.get('vol')[0])
     def amp_stop(self, id, params):
         global dogvibes
         return dogvibes.amps[id].stop()
@@ -125,7 +125,7 @@ class Dogvibes():
         self.amps = [amp0]
 
     def search(self, query):
-        ret = [{}]
+        ret = []
         for source in self.sources:
             ret += source.search(query)
         return ret

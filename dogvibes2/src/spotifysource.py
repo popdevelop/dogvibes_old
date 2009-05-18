@@ -28,7 +28,14 @@ class SpotifySource:
         return self.bin
 
     def search (self, query):
-        return self.proxy.Search(query, dbus_interface='com.Dogvibes.SpotifySearch')
+        a = self.proxy.Search(query, dbus_interface='com.Dogvibes.SpotifySearch', utf8_strings = True)
+        r = []
+        for i in a:
+            k = map(lambda x: str(x), i.keys())
+            v = map(lambda x: str(x), i.values())
+            d = dict({k[0]: v[0], k[1]: v[1], k[2]: v[2], k[3]: v[3], k[3]: v[3]})
+            r.append(d)
+        return r
 
     def set_track (self, track):
         self.spotify.set_property ("spotifyuri", track.uri)
