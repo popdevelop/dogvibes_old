@@ -6,6 +6,22 @@ import sqlite3
 from track import Track
 
 class Collection:
+    def __init__(self, path):
+        if os.path.exists(path):
+            self.conn = sqlite3.connect(path)
+            c = self.conn.cursor()
+        else:
+            self.conn = sqlite3.connect(path)
+            c = self.conn.cursor()
+            c.execute('''create table collection (id INTEGER PRIMARY KEY, name TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
+
+    def add_track(self, track):
+        c = self.conn.cursor()
+        c.execute("select * from collection where uri = ?", track.uri) # FIXME: track.uri is handled as an array of chars... why?
+        if c.fetchone() == None:
+            c.execute("insert into collection (name, artist, album, uri, duration) values (?, ?, ?, ?, ?)",
+                      (track.name, track.artist, track.album, track.uri, track.duration))
+
     def index(self, path):
         for top, dirnames, filenames in os.walk(path):
             for filename in filenames:
@@ -17,7 +33,8 @@ class Collection:
                     t.artist = f.tag().artist
                     a = f.audioProperties()
                     t.duration = a.length * 1000
-                    print t
+                    self.add_track(t)
 
-c = Collection()
-c.index('/home/brizz/music')
+
+#c = Collection('dogvibes.db')
+#c.index('/home/brizz/music')
