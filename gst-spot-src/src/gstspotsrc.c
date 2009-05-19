@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "gstspotobj.h"
 #include "gstspotsrc.h"
 #include "config.h"
 
@@ -96,12 +97,15 @@ static GstFlowReturn gst_spot_src_create (GstBaseSrc * src, guint64 offset, guin
 static gboolean gst_spot_src_query (GstBaseSrc * src, GstQuery * query);
 
 /* uri interface */
-static gboolean gst_spot_src_set_location (GstSpotSrc * src, const gchar * spotify_uri);
+static gboolean gst_spot_src_set_spotifyuri (GstSpotSrc * src, const gchar * spotify_uri);
 static void gst_spot_src_uri_handler_init (gpointer g_iface, gpointer iface_data);
 static gboolean gst_spot_src_uri_set_uri (GstURIHandler * handler, const gchar * uri);
 static const gchar *gst_spot_src_uri_get_uri (GstURIHandler * handler);
 static gchar **gst_spot_src_uri_get_protocols (void);
 static GstURIType gst_spot_src_uri_get_type (void);
+
+static gboolean spot_obj_create_session (SpotObj *self);
+static gboolean spot_obj_login (SpotObj *self);
 
 /* libspotify */
 static sp_session_callbacks g_callbacks = {
@@ -142,6 +146,7 @@ static const uint8_t g_appkey[] = {
 
 static const size_t g_appkey_size = sizeof (g_appkey);
 
+SpotObj *spot_instance;
 
 /* signal the thread_func using the cond so it can process_events
  * when needed */
@@ -158,9 +163,6 @@ static GMutex *spotifylib_mutex;
 static gboolean keep_spotify_thread = TRUE;
 
 static GstSpotSrc *spot;
-static sp_track *current_track;
-static sp_session *spotify_session;
-static gboolean logged_in;
 
 /*****************************************************************************/
 /*** LIBSPOTIFY FUNCTIONS ****************************************************/
@@ -205,7 +207,7 @@ spotify_cb_logged_in (sp_session *spotify_session, sp_error error)
 
   //FIXME debug
   GST_DEBUG ("Logged in to Spotify as user %s", my_name);
-  logged_in = TRUE;
+  SPOT_OBJ_LOGGED_IN (spot_instance) = TRUE;
 }
 
 static void
@@ -284,7 +286,7 @@ spotify_thread_func (void *ptr)
    g_cond_wait (process_events_cond, process_events_mutex);
    do {
      g_mutex_lock (spotifylib_mutex);
-     sp_session_process_events (spotify_session, &timeout);
+     sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
      g_mutex_unlock (spotifylib_mutex);
      g_get_current_time (&t);
      g_time_val_add (&t, timeout*1000);
@@ -299,9 +301,6 @@ spotify_thread_func (void *ptr)
 /*****************************************************************************/
 /*** SPOTOBJ FUNCTIONS *******************************************************/
 
-#include "gstspotobj.h"
-SpotObj *spot_instance;
-
 enum {
         SPOT_OBJ_ARG_USER = 1,
         SPOT_OBJ_ARG_PASS,
@@ -310,45 +309,11 @@ enum {
 
 static GObjectClass *spot_obj_parent_class = NULL;
 
-void spot_obj_do_action_public_virtual (SpotObj *self, guint8 i)
-{
-        g_print ("%s - enter\n", __FUNCTION__);
-        if (self->dispose_has_run) {
-                return;
-        }
-        SPOT_OBJ_GET_CLASS (self)->do_action_public_virtual (self, i);
-        g_print ("%s - exit\n", __FUNCTION__);
-}
-
-
-static void
-real_do_action_public_virtual (SpotObj *self, guint8 i)
-{
-        g_print ("%s - enter\n", __FUNCTION__);
-        g_print ("%s - exit\n", __FUNCTION__);
-        /* a default implementation for this class method */
-}
-
-
-void spot_obj_do_action_public (SpotObj *self, guint8 i)
-{
-        g_print ("%s - enter\n", __FUNCTION__);
-        if (self->dispose_has_run) {
-                return;
-        }
-
-//        self->useless = i;
-
-        g_print ("%s - exit\n", __FUNCTION__);
-}
-static void spot_obj_create_session (SpotObj *self)
+static gboolean spot_obj_create_session (SpotObj *self)
 {
         sp_session_config config;
         sp_error error;
         g_print ("%s - enter\n", __FUNCTION__);
-        if (self->dispose_has_run) {
-                return;
-        }
 
         config.api_version = SPOTIFY_API_VERSION;
         //FIXME check if these paths are appropiate
@@ -359,7 +324,7 @@ static void spot_obj_create_session (SpotObj *self)
         config.user_agent = "spotify-gstreamer-src";
         config.callbacks = &g_callbacks;
 
-        error = sp_session_init (&config, &spotify_session);
+        error = sp_session_init (&config, &SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
 
         if (SP_ERROR_OK != error) {
           GST_ERROR ("failed to create spotify_session: %s\n", sp_error_message (error));
@@ -367,16 +332,36 @@ static void spot_obj_create_session (SpotObj *self)
         }
 
         g_print ("%s - exit\n", __FUNCTION__);
+        return TRUE;
 }
-static void spot_obj_login (SpotObj *self, guint8 i)
+static gboolean spot_obj_login (SpotObj *self)
 {
-        g_print ("%s - enter\n", __FUNCTION__);
-        if (self->dispose_has_run) {
-                return;
-        }
+  sp_error error;
+  g_print ("%s - enter\n", __FUNCTION__);
+  if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
+    g_print ("already logged in..\n");
+    return TRUE;
+  }
 
+  /* Login using the credentials given on the command line */
+  g_mutex_lock (spotifylib_mutex);
+  error = sp_session_login (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_USER (spot_instance) , SPOT_OBJ_PASS (spot_instance));
+  g_mutex_unlock (spotifylib_mutex);
 
-        g_print ("%s - exit\n", __FUNCTION__);
+  if (SP_ERROR_OK != error) {
+    GST_ERROR ("failed to login: %s\n", sp_error_message (error));
+    return FALSE;
+  }
+
+  //FIXME this is probably not the best way to wait to be logged in
+  g_cond_broadcast (process_events_cond);
+  while (!SPOT_OBJ_LOGGED_IN (spot_instance)) {
+    usleep (10000);
+  }
+  g_print ("success - logged in!\n");
+
+  g_print ("%s - exit\n", __FUNCTION__);
+ return TRUE;
 }
 
 
@@ -386,10 +371,11 @@ spot_obj_instance_init (GTypeInstance   *instance,
 {
         g_print ("%s - enter\n", __FUNCTION__);
         SpotObj *self = (SpotObj *)instance;
-        self->dispose_has_run = FALSE;
         self->user = NULL;
         self->pass = NULL;
         self->spotify_uri = NULL;
+
+
         g_print ("%s - exit\n", __FUNCTION__);
 }
 
@@ -415,6 +401,7 @@ spot_obj_set_property (GObject      *object,
         case SPOT_OBJ_ARG_SPOTIFY_URI:
           g_free (SPOT_OBJ_SPOTIFY_URI (self));
           SPOT_OBJ_SPOTIFY_URI (self) = g_strdup (g_value_get_string (value));
+          printf ("set spotifyuri=%s\n", g_value_get_string(value));
           break;
         default:
            G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -474,15 +461,7 @@ spot_obj_constructor (GType type,
 static void
 spot_obj_dispose (GObject *obj)
 {
-        SpotObj *self = (SpotObj *)obj;
         g_print ("%s - enter\n", __FUNCTION__);
-
-        if (self->dispose_has_run) {
-                /* If dispose did already run, return. */
-                return;
-        }
-        /* Make sure dispose does not run twice. */
-        self->dispose_has_run = TRUE;
 
         /*
          * In dispose, you are supposed to free all types referenced from this
@@ -529,8 +508,6 @@ spot_obj_class_init (gpointer g_class,
         gobject_class->dispose = spot_obj_dispose;
         gobject_class->finalize = spot_obj_finalize;
         gobject_class->constructor = spot_obj_constructor;
-
-        klass->do_action_public_virtual = real_do_action_public_virtual;
 
         spot_obj_parent_class = g_type_class_peek_parent (klass);
 
@@ -654,6 +631,9 @@ gst_spot_src_class_init (GstSpotSrcClass * klass)
 
    spot_instance = g_object_new (SPOT_OBJ_TYPE, NULL);
 
+   if (!spot_obj_create_session (spot_instance))
+     g_print ("session error\n");
+
 }
 
 static void
@@ -728,10 +708,11 @@ gst_spot_src_set_property (GObject * object, guint prop_id,
       g_object_set (spot_instance, "pass", g_value_get_string (value), NULL);
       break;
     case ARG_URI:
-      gst_spot_src_set_location (src, g_value_get_string (value));
+      gst_spot_src_set_spotifyuri (src, g_value_get_string (value));
       break;
     case ARG_SPOTIFY_URI:
       g_object_set (spot_instance, "spotifyuri", g_value_get_string (value), NULL);
+      printf ("set spotifyuri=%s\n", g_value_get_string(value));
       break;
     case ARG_BUFFER_TIME:
       GST_SPOT_SRC_BUFFER_TIME (src) = (g_value_get_uint64 (value));
@@ -779,7 +760,7 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
 {
     GstFlowReturn ret = GST_FLOW_OK;
     GstBuffer *buf;
-
+    guint avail;
     if (G_UNLIKELY (src->read_position != offset)) {
       sp_error error;
       /* implement spotify seek here */
@@ -789,7 +770,7 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
       g_print ("offset=%lld / channels(%d)*samplesize(%d) = frames %lld\n", offset, channels, sizeof(int16_t), frames);
       gint64 seek_msec = frames / (sample_rate/1000);
       g_print ("perform seek to %lld bytes and %lld msec\n", offset, seek_msec);
-      error = sp_session_player_seek (spotify_session, seek_msec);
+      error = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), seek_msec);
       if (error != SP_ERROR_OK) {
         g_print ("seek error!!\n");
         goto create_seek_failed;
@@ -798,27 +779,28 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
     }
 
     /* see if we have bytes to write */
-    g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));             /* lock adapter */
-    GST_DEBUG_OBJECT (spot,"%s - length=%u offset=%llu end=%llu read_position=%llu availible=%d\n", __FUNCTION__,
-              length, offset, offset+length, src->read_position, gst_adapter_available (GST_SPOT_SRC_ADAPTER (spot)));
-    if (gst_adapter_available (GST_SPOT_SRC_ADAPTER (spot)) >= length) {
-      buf = gst_buffer_try_new_and_alloc (length);
+    GST_DEBUG_OBJECT (spot,"%s - length=%u offset=%llu end=%llu read_position=%llu\n", __FUNCTION__,
+              length, offset, offset+length, src->read_position);
+    do {
+      g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));             /* lock adapter */
+      avail = gst_adapter_available (GST_SPOT_SRC_ADAPTER (spot));
+      g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));           /* unlock adapter */
+      //FIXME: ?h
+      g_usleep (40);
+      //g_print ("%s - avail = %d length = %u\n", __FUNCTION__, avail, length);
+    } while (avail <= length);
 
-      GST_BUFFER_SIZE (buf) = length;
-      GST_BUFFER_OFFSET (buf) = offset;
-      GST_BUFFER_OFFSET_END (buf) = offset + length;
-      memcpy (GST_BUFFER_DATA (buf), gst_adapter_peek (GST_SPOT_SRC_ADAPTER (spot), length), length);
-      gst_adapter_flush (GST_SPOT_SRC_ADAPTER (spot), length);
-      src->read_position += length;
-      *buffer = buf;
+    buf = gst_buffer_try_new_and_alloc (length);
 
-      //g_print ("%s - GST_FLOW_OK return\n", __FUNCTION__);
-    } else {
-      g_print ("%s - avaible in adapter = %d\n", __FUNCTION__, gst_adapter_available (GST_SPOT_SRC_ADAPTER (spot)) );
-      g_print ("%s - GST_FLOW_ERROR return\n", __FUNCTION__);
-      ret = GST_FLOW_ERROR;
-    }
-    g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));           /* unlock adapter */
+    GST_BUFFER_SIZE (buf) = length;
+    GST_BUFFER_OFFSET (buf) = offset;
+    GST_BUFFER_OFFSET_END (buf) = offset + length;
+    memcpy (GST_BUFFER_DATA (buf), gst_adapter_peek (GST_SPOT_SRC_ADAPTER (spot), length), length);
+    gst_adapter_flush (GST_SPOT_SRC_ADAPTER (spot), length);
+    src->read_position += length;
+    *buffer = buf;
+
+    //g_print ("%s - GST_FLOW_OK return\n", __FUNCTION__);
     return ret;
 
   create_seek_failed:
@@ -876,7 +858,7 @@ gst_spot_src_get_size (GstBaseSrc * basesrc, guint64 * size)
 
   src = GST_SPOT_SRC (basesrc);
   /* duration in ms */
-  duration = sp_track_duration(current_track);
+  duration = sp_track_duration(SPOT_OBJ_CURRENT_TRACK (spot_instance));
 
   if (!duration)
     goto no_duration;
@@ -899,27 +881,8 @@ gst_spot_src_start (GstBaseSrc * basesrc)
 {
   GST_DEBUG ("%s - enter", __FUNCTION__);
 
-  if (spot && logged_in) {
-    g_print ("already logged in..\n");
-    return FALSE;
-  }
-
- 
-  /* Login using the credentials given on the command line */
-  error = sp_session_login (spotify_session, SPOT_OBJ_USER (spot_instance) , SPOT_OBJ_PASS (spot_instance));
-
-  if (SP_ERROR_OK != error) {
-    GST_ERROR ("failed to login: %s\n", sp_error_message (error));
-    return FALSE;
-  }
-
-  //FIXME this is probably not the best way to wait to be logged in
-  g_cond_broadcast (process_events_cond);
-  while (!logged_in) {
-    usleep (10000);
-  }
-  g_print ("logged in!\n");
-
+  if (!spot_obj_login (spot_instance))
+    g_print ("login error\n");
 
 
   GST_DEBUG_OBJECT (basesrc, "uri = %s\n", SPOT_OBJ_SPOTIFY_URI (spot_instance));
@@ -934,15 +897,15 @@ gst_spot_src_start (GstBaseSrc * basesrc)
   }
 
   g_mutex_lock (spotifylib_mutex);
-  current_track = sp_link_as_track (link);
+  SPOT_OBJ_CURRENT_TRACK (spot_instance) = sp_link_as_track (link);
   g_mutex_unlock (spotifylib_mutex);
-  if (!current_track) {
+  if (!SPOT_OBJ_CURRENT_TRACK (spot_instance)) {
     GST_DEBUG_OBJECT (spot, "Only track ID:s are currently supported");
     return FALSE;
   }
 
   g_mutex_lock (spotifylib_mutex);
-  sp_track_add_ref (current_track);
+  sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
   g_mutex_lock (spotifylib_mutex);
   sp_link_release (link);
@@ -951,7 +914,7 @@ gst_spot_src_start (GstBaseSrc * basesrc)
   //FIXME not the best way to wait for a track to be loaded
   g_cond_broadcast (process_events_cond);
   g_mutex_lock (spotifylib_mutex);
-  while (sp_track_is_loaded (current_track) == 0) {
+  while (sp_track_is_loaded (SPOT_OBJ_CURRENT_TRACK (spot_instance)) == 0) {
     g_mutex_unlock (spotifylib_mutex);
     usleep (10000);
     g_mutex_lock (spotifylib_mutex);
@@ -960,18 +923,18 @@ gst_spot_src_start (GstBaseSrc * basesrc)
   GST_DEBUG_OBJECT (basesrc, "track loaded!\n");
 
   g_mutex_lock (spotifylib_mutex);
-  GST_DEBUG_OBJECT (spot, "Now playing \"%s\"...\n", sp_track_name (current_track));
+  GST_DEBUG_OBJECT (spot, "Now playing \"%s\"...\n", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
   g_mutex_unlock (spotifylib_mutex);
 
   g_mutex_lock (spotifylib_mutex);
-  sp_session_player_load (spotify_session, current_track);
+  sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
   g_mutex_lock (spotifylib_mutex);
-  sp_session_player_play (spotify_session, 1);
+  sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), 1);
   g_mutex_unlock (spotifylib_mutex);
 
   /* FIXME! remove */
-  g_usleep(GST_SPOT_SRC_BUFFER_TIME(spot));
+//  g_usleep(GST_SPOT_SRC_BUFFER_TIME(spot));
   return TRUE;
 
 }
@@ -981,19 +944,19 @@ gst_spot_src_stop (GstBaseSrc * basesrc)
 {
   GST_DEBUG_OBJECT (basesrc, "STOP\n");
   g_mutex_lock (spotifylib_mutex);
-  sp_session_player_unload (spotify_session);
+  sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
 
   //FIXME someone is holding references
   g_mutex_lock (spotifylib_mutex);
-  sp_track_release (current_track);
+  sp_track_release (SPOT_OBJ_CURRENT_TRACK (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
 
   return TRUE;
 }
 
 static gboolean
-gst_spot_src_set_location (GstSpotSrc * src, const gchar * spotify_uri)
+gst_spot_src_set_spotifyuri (GstSpotSrc * src, const gchar * spotify_uri)
 {
   GstState state;
 
@@ -1020,6 +983,7 @@ gst_spot_src_set_location (GstSpotSrc * src, const gchar * spotify_uri)
   g_object_notify (G_OBJECT (src), "spotifyuri"); /* why? */
   gst_uri_handler_new_uri (GST_URI_HANDLER (src), src->uri);
 
+  g_print ("s_uri = %s\n", s_uri);
   return TRUE;
 
   /* ERROR */
@@ -1071,13 +1035,7 @@ gst_spot_src_uri_set_uri (GstURIHandler * handler, const gchar * uri)
     goto beach;
   }
 
-  if ((hostname) && (strcmp (hostname, "localhost"))) {
-    /* Only 'localhost' is permitted */
-    GST_WARNING_OBJECT (src, "Invalid hostname '%s' for filesrc", hostname);
-    goto beach;
-  }
-
-  ret = gst_spot_src_set_location (src, location);
+  ret = gst_spot_src_set_spotifyuri (src, location);
 
 beach:
   if (location)

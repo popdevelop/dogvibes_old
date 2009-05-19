@@ -13,6 +13,9 @@
 #define SPOT_OBJ_USER(o) ((o)->user)
 #define SPOT_OBJ_PASS(o) ((o)->pass)
 #define SPOT_OBJ_SPOTIFY_URI(o) ((o)->spotify_uri)
+#define SPOT_OBJ_CURRENT_TRACK(o) ((o)->current_track)
+#define SPOT_OBJ_LOGGED_IN(o) ((o)->logged_in)
+#define SPOT_OBJ_SPOTIFY_SESSION(o) ((o)->spotify_session)
 
 typedef struct _SpotObj SpotObj;
 typedef struct _SpotObjClass SpotObjClass;
@@ -20,18 +23,18 @@ typedef struct _SpotObjClass SpotObjClass;
 struct _SpotObj {
 	GObject parent;
 	/* instance members */
-        gboolean dispose_has_run;
-        
         gchar *user;
         gchar *pass;
         gchar *spotify_uri;
+        sp_track *current_track;
+        sp_session *spotify_session;
+        gboolean logged_in;
 };
 
 struct _SpotObjClass {
 	GObjectClass parent;
 
 	/* class members */
-        void (*do_action_public_virtual) (SpotObj *self, guint8 i);
 };
 
 GType spot_obj_get_type (void);
@@ -39,8 +42,6 @@ GType spot_obj_get_type (void);
 /* API. */
 
 void spot_obj_do_action_public (SpotObj *self, guint8 i);
-void spot_obj_create_session (SpotObj *self);
-void spot_obj_login (SpotObj *self);
 
 #endif /* SPOT_OBJ_H */
 
