@@ -112,6 +112,14 @@ class Dogvibes():
         amp0.connectSpeaker(0)
         self.amps = [amp0]
 
+    def CreateTrackFromUri(self, uri):
+        track = None
+        for source in self.sources:
+            track = source.CreateTrackFromUri(uri);
+            if track != None:
+                break
+        return track
+
     def search(self, query):
         ret = []
         for source in self.sources:
@@ -185,10 +193,14 @@ class Amp():
         return pos / gst.MSECOND
 
     def getStatus(self):
-        status = {'title': 'dummy',
-                  'artist': 'dummy',
-                  'album': 'dummy',
-                  'duration': '0'}
+        if (len(self.playqueue) > 0):
+            track = self.playqueue[self.playqueue_position]
+            status = {'title': track.name,
+                      'artist': track.artist,
+                      'album': track.album,
+                      'duration': track.duration}
+        else:
+            status = {}
 
         if len(self.playqueue) > 0:
             status['uri'] = self.playqueue[self.playqueue_position - 1].uri
@@ -227,9 +239,11 @@ class Amp():
         self.pipeline.set_state(gst.STATE_PAUSED)
 
     def queue(self, uri):
-        print "Queued track:%s" % uri
-        self.playqueue.append(Track(uri))
-        return "trams"
+        track = self.dogvibes.CreateTrackFromUri(uri)
+        if (track == None):
+            return "could not queue, track not valid"
+        self.playqueue.append(track)
+        return "queued track"
 
     def removeFromQueue(self, nbr):
         if (nbr > len(self.playqueue)):
