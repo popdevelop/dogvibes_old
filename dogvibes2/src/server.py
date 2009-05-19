@@ -17,6 +17,7 @@ import BaseHTTPServer
 from urlparse import urlparse
 import cgi
 import json
+import sys
 
 # method redirects
 class APIDistributor:
@@ -79,8 +80,12 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             data = getattr(api, obj + "_" + method).__call__(id, params)
             if data == None:  data = dict(error = 0)
             else:             data = dict(error = 0, result = data)
-            data = json.write(data)
-
+            #can somebody spank me for this, plz!
+            if sys.version_info[0] >= 2 and sys.version_info[1] >= 6:
+                data = json.dumps(data)
+            else:
+                data = json.write(data)
+                
             self.send_response(200)
 
             if 'callback' in params:
