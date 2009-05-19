@@ -257,7 +257,7 @@ class Amp():
 
     def seek(self, mseconds):
         print "Seek simple"
-        pipeline.seek_simple (Format.BYTES, SeekFlags.NONE, mseconds * MSECOND);
+        self.pipeline.seek_simple (gst.FORMAT_BYTES, gst.SEEK_FLAG_NONE, mseconds);
 
     def setVolume(self, vol):
         if (vol > 2 or vol < 0):
