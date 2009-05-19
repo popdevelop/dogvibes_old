@@ -256,10 +256,8 @@ class Amp():
             self.playqueue_position = self.playqueue_position - 1
 
     def seek(self, mseconds):
-        print "Implement me"
-        # FIXME
-        #    pipeline.seek_simple (Format.TIME, SeekFlags.NONE, ((int64) msecond) * MSECOND);
-        # self.pipeline.seek_simple (Track(uri))
+        print "Seek simple"
+        pipeline.seek_simple (Format.BYTES, SeekFlags.NONE, mseconds * MSECOND);
 
     def setVolume(self, vol):
         if (vol > 2 or vol < 0):
