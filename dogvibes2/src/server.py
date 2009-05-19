@@ -20,55 +20,38 @@ import json
 # method redirects
 class APIDistributor:
     def dogvibes_search(self, id, params):
-        global dogvibes
         return dogvibes.search(params.get('query')[0])
     def amp_connectSpeaker(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].connectSpeaker(int(params.get('nbr')[0]))
     def amp_disconnectSpeaker(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].disconnectSpeaker(int(params.get('nbr')[0]))
     def amp_getAllTracksInQueue(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].getAllTracksInQueue()
     def amp_getPlayedMilliSeconds(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].getPlayedMilliSeconds()
     def amp_getStatus(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].getStatus()
     def amp_getQueuePosition(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].getQueuePosition()
     def amp_nextTrack(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].nextTrack()
     def amp_playTrack(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].playTrack(int(params.get('nbr')[0]))
     def amp_previousTrack(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].previousTrack()
     def amp_play(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].play()
     def amp_pause(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].pause()
     def amp_queue(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].queue(params.get('uri')[0])
     def amp_removeFromQueue(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].removeFromQueue(int(params.get('nbr')[0]))
     def amp_seek(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].seek(int(params.get('mseconds')[0]))
     def amp_setVolume(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].setVolume(float(params.get('level')[0]))
     def amp_stop(self, id, params):
-        global dogvibes
         return dogvibes.amps[id].stop()
 
 # web server
@@ -79,20 +62,20 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         u = urlparse(self.path)
         c = u.path.split('/')
         method = c[-1]
-        object = c[1]
+        obj = c[1]
         id = c[2]
 
         print dogvibes
 
-        if hasattr(api, object + "_" + method):
+        if hasattr(api, obj + "_" + method):
             params = cgi.parse_qs(u.query)
 
             if 'id' in params:  id = params.get('id')
             else:               id = 0
-            
+
             id = 0 # TODO: remove when more amps are supported
 
-            data = getattr(api, object + "_" + method).__call__(id, params)
+            data = getattr(api, obj + "_" + method).__call__(id, params)
             if data == None:  data = dict(error = 0)
             else:             data = dict(error = 0, result = data)
             data = json.write(data)
@@ -174,7 +157,6 @@ class Amp():
             self.tee.link(self.sink)
         else:
             print "Speaker %d already connected" % nbr
-        # FIXME: we never get here...
 
     def disconnectSpeaker(self, nbr):
         if nbr > len(self.dogvibes.speakers) - 1:
@@ -191,7 +173,6 @@ class Amp():
             self.pipeline.set_state(state)
         else:
             print "Speaker not connected"
-        # FIXME: we never get here...
 
     def getAllTracksInQueue(self):
         ret = []
@@ -204,18 +185,27 @@ class Amp():
         return pos / gst.MSECOND
 
     def getStatus(self):
-        uri = 'xxx'
-        playqueuehash = 'xxx'
-        if (len(self.playqueue) > 0):
-            uri = self.playqueue[self.playqueue_position - 1].uri
-            playqueuehash = self.GetHashFromPlayQueue()
-        return {'uri': uri,
-                'playqueuehash': playqueuehash,
-                'title': 'dummy',
-                'artist': 'dummy',
-                'album': 'dummy',
-                'duration': '0',
-                'state': 'stopped'}
+        status = {'title': 'dummy',
+                  'artist': 'dummy',
+                  'album': 'dummy',
+                  'duration': '0'}
+
+        if len(self.playqueue) > 0:
+            status['uri'] = self.playqueue[self.playqueue_position - 1].uri
+            status['playqueuehash'] = self.GetHashFromPlayQueue()
+        else:
+            status['uri'] = "dummy"
+            status['playqueuehash'] = "dummy"
+
+        (pending, state, timeout) = self.pipeline.get_state()
+        if state == gst.STATE_PLAYING:
+            status['state'] = 'playing'
+        elif state == gst.STATE_NULL:
+            status['state'] = 'playing'
+        else:
+            status['state'] = 'paused'
+
+        return status
 
     def getQueuePosition(self):
         return self.playqueue_position
@@ -260,7 +250,7 @@ class Amp():
     def setVolume(self, vol):
         if (vol > 2 or vol < 0):
             print "Volume must be between 0.0 and 2.0"
-        self.volume.set_property("volume", vol) # FIXME: this doesn't seem to return
+        self.volume.set_property("volume", vol)
 
     def stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
