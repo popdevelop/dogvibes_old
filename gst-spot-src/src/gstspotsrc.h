@@ -69,9 +69,6 @@ struct _GstSpotSrc {
 
   /*< private >*/
 
-  gchar *user;
-  gchar *pass;
-  gchar *spotify_uri;
   gchar *uri;
   guint64 read_position;
   guint64 buffer_time;
