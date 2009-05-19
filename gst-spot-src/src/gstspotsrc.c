@@ -39,8 +39,6 @@
 #include "gstspotsrc.h"
 #include "config.h"
 
-#define DEFAULT_USER "anonymous"
-#define DEFAULT_PASS ""
 #define DEFAULT_URI "spotify://spotify:track:3odhGRfxHMVIwtNtc4BOZk"
 #define DEFAULT_SPOTIFY_URI "spotify:track:3odhGRfxHMVIwtNtc4BOZk"
 #define BUFFER_TIME_MAX 50000000
@@ -344,9 +342,11 @@ static gboolean spot_obj_login (SpotObj *self)
   }
 
   /* Login using the credentials given on the command line */
+  printf ("before\n");
   g_mutex_lock (spotifylib_mutex);
   error = sp_session_login (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_USER (spot_instance) , SPOT_OBJ_PASS (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
+  printf ("after\n");
 
   if (SP_ERROR_OK != error) {
     GST_ERROR ("failed to login: %s\n", sp_error_message (error));
@@ -625,9 +625,13 @@ gst_spot_src_class_init (GstSpotSrcClass * klass)
           G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, ARG_BUFFER_TIME,
-      g_param_spec_uint64 ("buffertime", "buffer time in us", "buffer time in us",
+      g_param_spec_uint64 ("buffer-time", "buffer time in us", "buffer time in us",
                       0,BUFFER_TIME_MAX,BUFFER_TIME_DEFAULT,
                       G_PARAM_READWRITE));
+
+   process_events_cond = g_cond_new ();
+   process_events_mutex = g_mutex_new ();
+   spotifylib_mutex = g_mutex_new ();
 
    spot_instance = g_object_new (SPOT_OBJ_TYPE, NULL);
 
@@ -645,20 +649,14 @@ gst_spot_src_init (GstSpotSrc * src, GstSpotSrcClass * g_class)
   //move
   spot = GST_SPOT_SRC (src);
 
-  //GST_SPOT_SRC_USER (spot) = g_strdup (DEFAULT_USER);
-  //GST_SPOT_SRC_PASS (spot) = g_strdup (DEFAULT_PASS);
-  //GST_SPOT_SRC_SPOTIFY_URI (spot) = g_strdup (DEFAULT_SPOTIFY_URI);
   GST_SPOT_SRC_URI (spot) = g_strdup (DEFAULT_URI);
 
   GST_SPOT_SRC_BUFFER_TIME (spot) = BUFFER_TIME_DEFAULT;
 
-  GST_SPOT_SRC_FORMAT (spot) = NULL;
-
-  process_events_cond = g_cond_new ();
-  process_events_mutex = g_mutex_new ();
-  spotifylib_mutex = g_mutex_new ();
   GST_SPOT_SRC_ADAPTER_MUTEX(spot) = g_mutex_new ();
   GST_SPOT_SRC_ADAPTER(spot) = gst_adapter_new();
+
+  GST_SPOT_SRC_FORMAT (spot) = NULL;
 
   if ((process_events_thread = g_thread_create ((GThreadFunc)spotify_thread_func, (void *)NULL, TRUE, &err)) == NULL) {
      GST_DEBUG_OBJECT (spot,"g_thread_create failed: %s!!\n", err->message );
@@ -674,7 +672,12 @@ gst_spot_src_finalize (GObject * object)
   src = GST_SPOT_SRC (object);
 
   GST_DEBUG_OBJECT (spot,"finalized\n");
-  //free spot obj
+  
+  keep_spotify_thread = FALSE;
+  g_thread_join (process_events_thread);
+
+  g_object_unref (spot_instance);
+
   g_free (GST_SPOT_SRC_URI (src));
 
   g_free (GST_SPOT_SRC_FORMAT (spot));
@@ -825,23 +828,91 @@ gst_spot_src_create (GstBaseSrc * basesrc, guint64 offset, guint length, GstBuff
 static gboolean
 gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
 {
-  gboolean ret = FALSE;
+  gboolean ret = TRUE;
   GstSpotSrc *src = GST_SPOT_SRC (basesrc);
+  gint samplerate = GST_SPOT_SRC_FORMAT (spot)->sample_rate;
 
   switch (GST_QUERY_TYPE (query)) {
     case GST_QUERY_URI:
       gst_query_set_uri (query, src->uri);
+    break;
+
+    case GST_QUERY_DURATION:{
+      GstFormat format;
+      gint duration;
+      gint64 value;
+      gst_query_parse_duration (query, &format, &value);
+      g_mutex_lock (spotifylib_mutex);
+      /* duration in ms */
+      duration = sp_track_duration(SPOT_OBJ_CURRENT_TRACK (spot_instance));
+      g_mutex_unlock (spotifylib_mutex);
+
+      switch (format) {
+        case GST_FORMAT_BYTES:
+          gst_query_set_duration (query, format, (duration/1000) * samplerate * 4);
+        break;
+        case GST_FORMAT_TIME:
+          /* set it to nanoseconds */
+          gst_query_set_duration (query, format, duration*1000);
+        break;
+        default:
+          ret = FALSE;
+        break;
+      }
+      break;
+    }
+    case GST_QUERY_CONVERT:
+    {
+      GstFormat src_fmt, dest_fmt;
+      gint64 src_val, dest_val;
+
+      gst_query_parse_convert (query, &src_fmt, &src_val, &dest_fmt, &dest_val);
+      if (src_fmt == dest_fmt) {
+        dest_val = src_val;
+        goto done;
+      }
+
+      switch (src_fmt) {
+        case GST_FORMAT_DEFAULT:
+          switch (dest_fmt) {
+            case GST_FORMAT_TIME:
+              /* samples to time */
+              dest_val = gst_util_uint64_scale_int (src_val, GST_SECOND, samplerate);
+              break;
+            default:
+            ret = FALSE;
+          }
+          break;
+        case GST_FORMAT_TIME:
+          switch (dest_fmt) {
+            case GST_FORMAT_DEFAULT:
+              /* time to samples */
+              dest_val = gst_util_uint64_scale_int (src_val, samplerate, GST_SECOND);
+              break;
+            default:
+            ret = FALSE;
+          }
+          break;
+        default:
+          ret = FALSE;
+      }
+    done:
+      gst_query_set_convert (query, src_fmt, src_val, dest_fmt, dest_val);
       ret = TRUE;
       break;
+    }
     default:
-      ret = FALSE;
-      break;
+    break;
   }
 
-  if (!ret)
+  if (ret) {
     ret = GST_BASE_SRC_CLASS (parent_class)->query (basesrc, query);
+  } else {
+    GST_DEBUG_OBJECT (src, "query failed");
+  }
 
   return ret;
+
 }
 
 static gboolean
@@ -857,8 +928,12 @@ gst_spot_src_get_size (GstBaseSrc * basesrc, guint64 * size)
   int duration;
 
   src = GST_SPOT_SRC (basesrc);
+
+  g_mutex_lock (spotifylib_mutex);
   /* duration in ms */
   duration = sp_track_duration(SPOT_OBJ_CURRENT_TRACK (spot_instance));
+  g_mutex_unlock (spotifylib_mutex);
+
 
   if (!duration)
     goto no_duration;
