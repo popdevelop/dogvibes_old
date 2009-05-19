@@ -5,6 +5,7 @@ import gobject
 import gst
 # import spources
 from spotifysource import SpotifySource
+from lastfmsource import LastFMSource
 
 # import speakers
 from devicespeaker import DeviceSpeaker
@@ -102,7 +103,8 @@ class API:
 class Dogvibes():
     def __init__(self):
         # add all sources
-        self.sources = [SpotifySource("spotify", "gyllen", "bobidob20")]
+        self.sources = [SpotifySource("spotify", "gyllen", "bobidob20"),
+                        LastFMSource("lastfm", "dogvibes", "futureinstereo")]
 
         # add all speakers
         self.speakers = [DeviceSpeaker("devicesink")]
@@ -150,6 +152,7 @@ class Amp():
 
         # spotify is special FIXME: not how its supposed to be
         self.spotify = self.dogvibes.sources[0].get_src ()
+        self.lastfm = self.dogvibes.sources[1].get_src ()
 
     # API
 
@@ -315,6 +318,16 @@ class Amp():
             self.pipeline.add(self.src)
             self.src.link(self.volume)
             self.spotify_in_use = True
+        elif track.uri == "lastfm":
+            print "It was a lastfm uri"
+            self.src = self.lastfm
+            self.dogvibes.sources[1].set_track(track)
+            self.decodebin = gst.element_factory_make ("decodebin2", "decodebin2")
+            self.decodebin.connect('new-decoded-pad', self.PadAdded)
+            self.pipeline.add(self.src)
+            self.pipeline.add(self.decodebin)
+            self.src.link(self.decodebin)
+            self.spotify_in_use = False
         else:
             print "Decodebin is taking care of this uri"
             self.src = gst.element_make_from_uri(gst.URI_SRC, track.uri, "source")
