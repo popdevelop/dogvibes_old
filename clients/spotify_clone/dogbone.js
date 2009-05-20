@@ -1,7 +1,7 @@
 
 /* Config */
-var default_server = "http://dogvibes.com:2000"
-	var server = false;
+var default_server = "http://dogvibes.com:2000";
+var server = "http://192.168.0.45:2000";
 var poll_interval = 5000 /* ms */
 var connection_timeout = 10000; /* ms */
 /* Misc variables */
@@ -21,37 +21,88 @@ var dobj = new Date();
 /* These are all the commands available to the server */
 var command = 
 {
-		/* playqueue */
-		add: "/amp/0/queue?uri=",
-		get: "/amp/0/getAllTracksInQueue",
-		remove: "/amp/0/removeTrack?nbr=",
-		/* playback control */
-		next: "/amp/0/nextTrack",
-		play: "/amp/0/play",
-		playtrack: "/amp/0/playTrack?nbr=",
-		pause: "/amp/0/pause",
-		prev: "/amp/0/previousTrack",
-		/* other */
-		status: "/amp/0/getStatus",
-		search: "/dogvibes/search?query="
+   /* playqueue */
+   add: "/amp/0/queue?uri=",
+   get: "/amp/0/getAllTracksInQueue",
+   remove: "/amp/0/removeTrack?nbr=",
+   /* playback control */
+   next: "/amp/0/nextTrack",
+   play: "/amp/0/play",
+   playtrack: "/amp/0/playTrack?nbr=",
+   pause: "/amp/0/pause",
+   prev: "/amp/0/previousTrack",
+   /* other */
+   status: "/amp/0/getStatus",
+   search: "/dogvibes/search?query="
 }
 
-/* Handy functions */
+/*
+ * Misc. Handy functions 
+ */
+ 
 function  setWait(){
-	if(wait_req == 0)
-	{
+	if(wait_req == 0){
 		$("#wait_req").html(loading_small);
 	}
 	wait_req++;	
 };
 function clearWait(){
 	wait_req--
-	if(wait_req == 0)
-	{
+	if(wait_req == 0){
 		$("#wait_req").empty();
 	}
 };
 
+/* Pad time with zeros */
+function checkTime(i){
+	if (i<10 && i>=0){
+		i="0" + i;
+	}
+	return i;
+}
+
+/* Increase playback time counter */
+function increaseCount(){
+	current_time = current_time + 1;
+	$("#playback_time").html(timestamp_to_string(current_time));
+}
+
+/* Convert seconds to format M:SS */
+function timestamp_to_string(ts)
+{
+	if(!ts) { ts=0; }
+   if(ts==0) { return ""; }
+	m = Math.round(ts/60 - 0.5)
+	s = ts - m*60;	
+	s=checkTime(s);
+	return m + ":" + s;
+}
+
+/* 
+ * Status request loop and its handler 
+ */
+function requestStatus()
+{
+	if(!request_in_progress){
+		connectionRequest();
+		$.ajax({
+			url: server + command.status,
+			type: "GET",
+			dataType: 'jsonp',
+			success: function(data){
+			if(data.error != 0){
+				connectionBad("Server error! (" + data.error + ")");
+			}
+			connectionOK(); /* This will restore timeout aswell */    
+			handleStatusResponse(data.result);
+		}
+		/* error handling is not working when using jsonp, but anyway.... */
+		/*error:function (xhr, ajaxOptions, thrownError){
+            connectionBad("Server not responding! (" + thrownError + ": " + xhr.statusText + ") Trying to reconnect...");
+         }  */       
+		});
+	}
+}
 function handleStatusResponse(data)
 {
 	/* Check if song has switched */
@@ -68,7 +119,7 @@ function handleStatusResponse(data)
 		$("#pb-play > a").addClass("playing");
 		$("#row_" + current_song + " td:first").addClass("playing_icon");      
 		$("#row_" + current_song + " td").addClass("playing"); 
-		current_time = data.duration/1000;
+		current_time = data.playbacktime/1000;
 		increaseCount();
 		clearInterval(time_count);
 		time_count = setInterval(increaseCount, 1000);
@@ -78,10 +129,13 @@ function handleStatusResponse(data)
 		clearInterval(time_count);
 	}
 	/* Update playqueue if applicable */
-	if(current_playqueue && data.playqueuehash != current_playqueue && current_page == "playqueue")
-	{
+	if(data.playqueuehash){
+		current_playqueue = data.playqueuehash;
+	}	   
+	if(current_playqueue && data.playqueuehash != current_playqueue && current_page == "playqueue"){
 		getPlayQueue();
 	}
+   /* FIXME: what to do with these*/
 	beg = "<ul>";
 	sepa = "<li class=\"artist\">";
 	sept = "<li class=\"title\">";
@@ -95,54 +149,38 @@ function handleStatusResponse(data)
 			$("#album_art").empty();
 		}
 	}
-	else{
+	else {
 		$("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
 		$("#album_art").empty();
 	}
-	if(data.playqueuehash){
-		current_playqueue = data.playqueuehash;
-	}	
 }
 
-function checkTime(i)
-{
-	if (i<10 && i>=0)
-	{
-		i="0" + i;
-	}
-	return i;
-}
-
-function increaseCount()
-{
-	current_time = current_time + 1;
-	$("#playback_time").html(timestamp_to_string(current_time));
-}
-
-function timestamp_to_string(ts)
-{
-	if(!ts) { ts=0; }
-	m = Math.round(ts/60 - 0.5)
-	s = ts - m*60;	
-	m=checkTime(m);
-	s=checkTime(s);
-	return m + ":" + s;
-}
-
-/* Connection states*/
+/* 
+ * Connection states
+ */
 var connection_timer;
-function connectionOK()
+function connectionInit()
 {
-	request_in_progress = false;	
-	$("#shade").hide();
-	$("#message").hide();
-	clearTimeout(connection_timer);
+   $("#message .btn").hide();
+   $("#message .text").addClass("loading");
+   clearTimeout(connection_timer);      
+   connectionBad("Connecting to server '" + server + "'...");
+   poll_handle = setInterval(requestStatus,poll_interval);
+   requestStatus();   
 }
 
 function connectionRequest()
 {
 	request_in_progress = true;
 	connection_timer = setTimeout(connectionTimeout, connection_timeout);
+}
+
+function connectionOK()
+{
+	request_in_progress = false;	
+	$("#shade").hide();
+	$("#message").hide();
+	clearTimeout(connection_timer);
 }
 
 function connectionBad(msg)
@@ -157,89 +195,124 @@ function connectionBad(msg)
 /* This is the "end" state of the connection */
 function connectionTimeout()
 {
+   clearInterval(poll_handle); 
+   $("#message .btn").show();
 	$("#shade").show();
 	$("#message").show(); 
 	$("#message .text").removeClass("loading");
 	$("#message .text").html("Connection timed out! Check server and reload page to try again.");
 }
 
-function requestStatus()
-{
-	if(!request_in_progress)
-	{
-		connectionRequest();
-		$.ajax({
-			url: server + command.status,
-			type: "GET",
-			dataType: 'jsonp',
-			success: function(data){
-			if(data.error != 0){
-				connectionBad("Server error! (" + data.error + ")");
-			}
-			connectionOK(); /* This will restore timeout aswell */    
-			handleStatusResponse(data.result);             
-
-		}
-		/* error handling is not working when using jsonp, but anyway.... */
-		/*error:function (xhr, ajaxOptions, thrownError){
-            connectionBad("Server not responding! (" + thrownError + ": " + xhr.statusText + ") Trying to reconnect...");
-         }  */       
-		});
-	}
-}
-
+/* Get the playqueue */
 function getPlayQueue(){
 	$("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
-	$.getJSON(server + command.get + "?callback=?", function(data) {
+	$.ajax({
+      url: server + command.get,
+      type: "GET",
+      dataType: "jsonp",
+      success: function(data) {
+      item_count = 0;
 		$("#s-results").empty();
 		$.each(data.result, function(i, song) {
-			td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-			$("#s-results").append("<tr id=\"row_"+ i + "\">" + td + "<a href=\"#\" id=\"" + i + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + i + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + song.album);
-		});
-		$(".remButton").click(function () { 
-			$.ajax({ 
-				beforeSend: setWait(),
-				type: "GET",
-				dataType: 'jsonp',
-				url: server + command.remove + this.id,
-				success: function () {clearWait(); requestStatus(); }
-			});
-			$("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
-		});    
-		$(".playButton").click(function () { 
-			$.ajax({ 
-				beforeSend: setWait(),
-				type: "GET",
-				dataType: 'jsonp',
-				url: server + command.playtrack + this.id,
-				success: function () {clearWait(); requestStatus(); }
-			});
-		});      
-		if(data.count == 0)
-		{
-			$("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
-		}
-		requestStatus();
+            td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+            $("#s-results").append("<tr id=\"row_"+ i + "\">" + td + "<a href=\"#\" id=\"" + i + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + i + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + song.album);
+            item_count++;
+         });
+         $(".remButton").click(function () { 
+            $.ajax({ 
+               beforeSend: setWait(),
+               type: "GET",
+               dataType: 'jsonp',
+               url: server + command.remove + this.id,
+               success: function () {clearWait(); requestStatus(); }
+            });
+            $("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
+         });    
+         $(".playButton").click(function () { 
+            $.ajax({ 
+               beforeSend: setWait(),
+               type: "GET",
+               dataType: 'jsonp',
+               url: server + command.playtrack + this.id,
+               success: function () {clearWait(); requestStatus(); }
+            });
+         });      
+         if(item_count == 0)
+         {
+            $("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
+         }
+         requestStatus();
+      }
 	});   
 }
 
-/* Startup: check server playback status. Fetch track if playing */
+/* Searching */
+function doSearchFromLink(value) {
+	$("#s-input").val(value);
+	doSearch();
+}
+
+function doSearch() {
+	current_page = "search";
+	$("#playlist").html(track_list_table);	
+	$("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
+	$("#s-keyword").text($("#s-input").val());
+	$("#tab-title").text("Search");
+	$.ajax({
+      url: server + command.search + $("#s-input").val(),
+      type: "GET",
+      dataType: "jsonp",
+      success: function(data) {
+         $("#s-results").empty();
+            $.each(data.result, function(i, song) {
+               td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+               $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
+            });
+            $(".addButton").click(function () {
+               $.ajax({  
+                  beforeSend: setWait(),
+                  type: "GET",
+                  dataType: 'jsonp',
+                  url: server + command.add + this.id,
+                  success: clearWait()
+               });
+            }); 
+            $(".playButton").click(function () {
+               $.ajax({
+                  beforeSend: setWait(),
+                  type: "GET",
+                  dataType: 'jsonp',
+                  url: server + command.playtrack + this.id,
+                  success: function () {clearWait(); requestStatus(); }
+               });
+            });     
+            $(".searchArtistButton").click(function () {
+               doSearchFromLink(this.id);
+            });
+            if(data.count == 0){
+               $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
+            }
+         }
+	});
+}
+
+
+/*
+ * Register events
+ */
+
+/* Startup */
 $("document").ready(function() { 
+   $("#message .btn").hide();
 	connectionBad("No server configured.");
 	$("#playback_seek").slider();
 	$("#playback_volume").slider();
 	/* Do we have a server? otherwise prompt */ 
-	$.ajaxSetup({ error: function() { connectionBad("Connection lost! Trying to reconnect..."); } });
 	if(!server){
 		server = prompt("Enter Dogvibes server URL:", default_server);
 	}
-	if(server)
-	{
-		$("#message .text").addClass("loading");
-		clearTimeout(connection_timer);      
-		connectionBad("Connecting to server '" + server + "'...");
-		poll_handle = setInterval(requestStatus,poll_interval);
-		requestStatus();
+	if(server){
+      connectionInit();
 		return;
 	}
 	connectionBad("No server configured. Press reload to set");
@@ -276,6 +349,9 @@ $("#pb-prev").click(function() {
 	});
 });
 
+$("#message .btn").click(function() {
+connectionInit();
+});
 
 /* Sections */
 $("#p-home").click(function () {
@@ -313,51 +389,6 @@ $("#s-input").keypress(function (e) {
 	if (e.which == 13)
 		doSearch();
 });
-
-function doSearchFromLink(value) {
-	$("#s-input").val(value);
-	doSearch();
-}
-
-function doSearch() {
-	current_page = "search";
-	$("#playlist").html(track_list_table);	
-	$("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
-	$("#s-keyword").text($("#s-input").val());
-	$("#tab-title").text("Search");
-	$.getJSON(server + command.search + $("#s-input").val() + "&callback=?", function(data) {
-		$("#s-results").empty();
-		$.each(data.result, function(i, song) {
-			td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-			$("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + song.time + td + "&nbsp;" +td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
-		});
-		$(".addButton").click(function () {
-			$.ajax({  
-				beforeSend: setWait(),
-				type: "GET",
-				dataType: 'jsonp',
-				url: server + command.add + this.id,
-				success: clearWait()
-			});
-		}); 
-		$(".playButton").click(function () {
-			$.ajax({
-				beforeSend: setWait(),
-				type: "GET",
-				dataType: 'jsonp',
-				url: server + command.playtrack + this.id,
-				success: function () {clearWait(); requestStatus(); }
-			});
-		});     
-		$(".searchArtistButton").click(function () {
-			doSearchFromLink(this.id);
-		});
-		if(data.count == 0)
-		{
-			$("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
-		}
-	});
-}
 
 /* Clear search keyword field if nav links are clicked*/
 $(".navlink").bind("click", function () {
