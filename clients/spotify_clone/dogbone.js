@@ -1,7 +1,7 @@
 
 /* Config */
 var default_server = "http://dogvibes.com:2000";
-var server = "http://192.168.0.45:2000";
+var server = false;
 var poll_interval = 5000 /* ms */
 var connection_timeout = 10000; /* ms */
 /* Misc variables */
@@ -107,10 +107,8 @@ function handleStatusResponse(data)
 {
 	/* Check if song has switched */
 	if(current_song != data.index){
-		if(current_song){
-			$("#row_" + current_song + " td:first").removeClass("playing_icon");      
-			$("#row_" + current_song + " td").removeClass("playing");    
-		}
+		$("#row_" + current_song + " td:first").removeClass("playing_icon");      
+		$("#row_" + current_song + " td").removeClass("playing");    
 		$("#playback_total").html(timestamp_to_string(data.duration/1000));
 		current_song = data.index;
 	}
