@@ -207,6 +207,7 @@ class Amp():
                       'artist': track.artist,
                       'album': track.album,
                       'duration': track.duration}
+            status['index'] = self.playqueue_position
         else:
             status = {}
 
@@ -221,10 +222,10 @@ class Amp():
         if state == gst.STATE_PLAYING:
             status['state'] = 'playing'
         elif state == gst.STATE_NULL:
-            status['state'] = 'playing'
+            status['state'] = 'stopped'
         else:
             status['state'] = 'paused'
-
+            
         return status
 
     def getQueuePosition(self):
