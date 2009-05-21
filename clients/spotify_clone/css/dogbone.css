@@ -267,7 +267,7 @@ margin:0 -3px;
 #playback_control li#pb-play a { background-position: -31px 0; }
 #playback_control li#pb-next a { background-position: -62px 0; }
 
-* PRESSED STATES */
+/* PRESSED STATES */
 #playback_control li#pb-prev a:active { background-position: 0 -31px; }
 #playback_control li#pb-play a:active { background-position: -31px -31px; }
 #playback_control li#pb-next a:active { background-position: -62px -31px; }
@@ -321,6 +321,11 @@ margin:0 -3px;
 
 #playlist tr td.playing_icon { background-image: url('../img/play_indicator.gif'); background-repeat: no-repeat; }
 #playlist tr td.playing { background-color: #707070; }
+
+#s-artists, #s-albums, #s-tracks { font-size: 11px; color:#aaa; padding: 10px; }
+#s-artists span, #s-albums span, #s-tracks span { color: white; font-size: 12px;}
+#s-artists span.count, #s-albums span.count, #s-tracks span.count { color: #93b49f; }
+#s-artists span.warn, #s-albums span.warn { color: #b49393; }
 
 #now_playing { 
     position: fixed; 

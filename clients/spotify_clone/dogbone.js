@@ -261,12 +261,18 @@ function doSearch() {
       type: "GET",
       dataType: "jsonp",
       success: function(data) {
+         var artists = {};
+         var albums  = {};
       	 item_count = 0;
          $("#s-results").empty();
             $.each(data.result, function(i, song) {
                td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
                $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
                item_count++;
+               if(!artists[song.artist]) { artists[song.artist]=0; }
+               artists[song.artist]++;
+               if(!albums[song.artist]) { albums[song.album]=0; }
+               albums[song.album]++;               
             });
             $(".addButton").click(function () {
                $.ajax({  
@@ -293,7 +299,20 @@ function doSearch() {
                $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
                
             }
-			$("#s-tracks").html("Tracks (" + item_count + ")");
+			$("#s-tracks").html("<span>Tracks</span> <span class=\"count\">(" + item_count + ")</span>");
+			$("#s-artists").html("<span>Artists: </span>");
+			jQuery.each(artists, function(i, artist){
+				$("#s-artists").append(i + " <span class=\"count\">(" + artist + ")</span> &#9679; ");
+			});
+			$("#s-albums").html("<span>Albums: </span>");
+			count = 0;
+			jQuery.each(albums, function(i, album){
+				$("#s-albums").append(i + " &#9679; ");
+				if(count++ == 10){
+					$("#s-albums").append("<span class=\"warn\"> more than 10 albums... </span>");
+					return false;
+				}
+			});			
          }
 	});
 }
