@@ -752,10 +752,10 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
       gint channels = GST_SPOT_SRC_FORMAT (spot)->channels;
       gint64 frames = offset / (channels * sizeof (int16_t));
       g_print ("offset (%lld) / channels (%d) * samplesize (%d) = frames (%lld)\n", offset, channels, sizeof (int16_t), frames);
-      gint64 seek_msec = frames / ((float)sample_rate/1000);
-      g_print ("seek_msec = (%lld) = frames (%lld) /  sample_rate (%d/1000)\n", seek_msec, frames, sample_rate);
-      g_print ("perform seek to %lld bytes and %lld msec\n", offset, seek_msec);
-      error = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), seek_msec);
+      gint64 seek_usec = frames / ((float)sample_rate/1000);
+      g_print ("seek_usec = (%lld) = frames (%lld) /  sample_rate (%d/1000)\n", seek_usec, frames, sample_rate);
+      g_print ("perform seek to %lld bytes and %lld usec\n", offset, seek_usec);
+      error = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), seek_usec);
       if (error != SP_ERROR_OK) {
         g_print ("seek error!!\n");
         goto create_seek_failed;
