@@ -264,9 +264,9 @@ class Amp():
         if (nbr <= self.playqueue_position):
             self.playqueue_position = self.playqueue_position - 1
 
-    def seek(self, mseconds):
-        mseconds = int(mseconds)
-        self.pipeline.seek_simple (gst.FORMAT_BYTES, gst.SEEK_FLAG_NONE, mseconds);
+    def seek(self, useconds):
+        print "Seek simple to " + str(useconds) + " useconds"
+        self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, useconds);
 
     def setVolume(self, level):
         level = float(level)
