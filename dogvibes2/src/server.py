@@ -139,6 +139,11 @@ class Amp():
         # link volume with tee
         self.volume.link(self.tee)
 
+        # listen for EOS
+        self.bus = self.pipeline.get_bus()
+        self.bus.add_signal_watch()
+        self.bus.connect('message', self.PipelineMessage)
+
         # create the playqueue
         self.playqueue = []
         self.playqueue_position = 0
@@ -148,7 +153,6 @@ class Amp():
         # spotify is special FIXME: not how its supposed to be
         self.spotify = self.dogvibes.sources[0].get_src ()
         self.lastfm = self.dogvibes.sources[1].get_src ()
-
 
     # API
 
@@ -194,6 +198,9 @@ class Amp():
         return pos / gst.MSECOND
 
     def getStatus(self):
+        # this is very ugly we need to run on GLib mainloop somehow
+        self.bus.poll(gst.MESSAGE_EOS, 1)
+
         if (len(self.playqueue) > 0):
             track = self.playqueue[self.playqueue_position]
             status = {'title': track.name,
@@ -299,6 +306,11 @@ class Amp():
         print hashlib.md5(ret).hexdigest()
 
         return hashlib.md5(ret).hexdigest()
+
+    def PipelineMessage(self, bus, message):
+        t = message.type
+        if t == gst.MESSAGE_EOS:
+            self.nextTrack()
 
     def PlayOnlyIfNull(self, track):
         (pending, state, timeout) = self.pipeline.get_state ()
