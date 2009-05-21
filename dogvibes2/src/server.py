@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import inspect
 import hashlib
 import gobject
 import gst
@@ -38,22 +39,27 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         data = None
         error = 0
 
-        if hasattr(klass, method):
-            params = cgi.parse_qs(u.query)
-            # use only the first value for each key (feel free to clean up):
-            params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
+        params = cgi.parse_qs(u.query)
+        # use only the first value for each key (feel free to clean up):
+        params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
 
-            if 'callback' in params:
-                callback = params.pop('callback')
-
-            try:
-                data = getattr(klass, method).__call__(**params)
-            except TypeError:
-                error = 2 # Unsupported parameter
-            except NameError:
-                error = 3 # Missing parameter
-        else:
+        if 'callback' in params:
+            callback = params.pop('callback')
+        try:
+            # strip params from paramters not in the method definition
+            args = inspect.getargspec(getattr(klass, method))
+            call_params = dict()
+            for k, v in params.iteritems():
+                if k in args[0]:
+                    call_params[k]=v
+            # call the method
+            data = getattr(klass, method).__call__(**call_params)
+        except AttributeError:
             error = 1 # No such method
+        except TypeError:
+            error = 2 # Unsupported parameter
+        except NameError, KeyError:
+            error = 3 # Missing parameter
 
         if (error == 0):
             self.send_response(200) # OK
