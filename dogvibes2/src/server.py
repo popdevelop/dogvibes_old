@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import platform # for checking python version
 import hashlib
 import gobject
 import gst
@@ -19,86 +20,60 @@ import cgi
 import json
 import sys
 
-# method redirects
-class APIDistributor:
-    def dogvibes_search(self, id, params):
-        return dogvibes.search(params.get('query')[0])
-    def amp_connectSpeaker(self, id, params):
-        return dogvibes.amps[id].connectSpeaker(int(params.get('nbr')[0]))
-    def amp_disconnectSpeaker(self, id, params):
-        return dogvibes.amps[id].disconnectSpeaker(int(params.get('nbr')[0]))
-    def amp_getAllTracksInQueue(self, id, params):
-        return dogvibes.amps[id].getAllTracksInQueue()
-    def amp_getPlayedMilliSeconds(self, id, params):
-        return dogvibes.amps[id].getPlayedMilliSeconds()
-    def amp_getStatus(self, id, params):
-        return dogvibes.amps[id].getStatus()
-    def amp_getQueuePosition(self, id, params):
-        return dogvibes.amps[id].getQueuePosition()
-    def amp_nextTrack(self, id, params):
-        return dogvibes.amps[id].nextTrack()
-    def amp_playTrack(self, id, params):
-        return dogvibes.amps[id].playTrack(int(params.get('nbr')[0]))
-    def amp_previousTrack(self, id, params):
-        return dogvibes.amps[id].previousTrack()
-    def amp_play(self, id, params):
-        return dogvibes.amps[id].play()
-    def amp_pause(self, id, params):
-        return dogvibes.amps[id].pause()
-    def amp_queue(self, id, params):
-        return dogvibes.amps[id].queue(params.get('uri')[0])
-    def amp_removeFromQueue(self, id, params):
-        return dogvibes.amps[id].removeFromQueue(int(params.get('nbr')[0]))
-    def amp_seek(self, id, params):
-        return dogvibes.amps[id].seek(int(params.get('mseconds')[0]))
-    def amp_setVolume(self, id, params):
-        return dogvibes.amps[id].setVolume(float(params.get('level')[0]))
-    def amp_stop(self, id, params):
-        return dogvibes.amps[id].stop()
-
 # web server
 class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
-        api = APIDistributor()
-
         u = urlparse(self.path)
         c = u.path.split('/')
         method = c[-1]
         obj = c[1]
         id = c[2]
+        id = 0 # TODO: remove when more amps are supported
 
-        print dogvibes
+        if obj == 'dogvibes':
+            klass = dogvibes
+        else:
+            klass = dogvibes.amps[id]
 
-        if hasattr(api, obj + "_" + method):
+        callback = None
+
+        if hasattr(klass, method):
             params = cgi.parse_qs(u.query)
-
-            if 'id' in params:  id = params.get('id')
-            else:               id = 0
-
-            id = 0 # TODO: remove when more amps are supported
-
-            data = getattr(api, obj + "_" + method).__call__(id, params)
-            if data == None:  data = dict(error = 0)
-            else:             data = dict(error = 0, result = data)
-            #can somebody spank me for this, plz!
-            if sys.version_info[0] >= 2 and sys.version_info[1] >= 6:
-                data = json.dumps(data)
-            else:
-                data = json.write(data)
-                
-            self.send_response(200)
+            # use only the first value for each key (feel free to clean up):
+            params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
 
             if 'callback' in params:
-                data = params['callback'][0] + '(' + data + ')'
-                self.send_header("Content-type", "text/javascript")
-            else:
-                self.send_header("Content-type", "application/json")
+                callback = params.pop('callback')
 
-            self.end_headers()
-            self.wfile.write(data)
+            try:
+                data = getattr(klass, method).__call__(**params)
+            except TypeError:
+                data = dict(error = 2) # Unsupported parameter
+            except NameError:
+                data = dict(error = 3) # Missing parameter
 
+            if data == None:  data = dict(error = 0)
+            else:             data = dict(error = 0, result = data)
+
+            self.send_response(200)
         else:
-            self.send_error(404, 'Unsupported call')
+            self.send_response(400) # Bad request
+            data = dict(error = 1)
+
+        if sys.version_info[0] >= 2 and sys.version_info[1] >= 6:
+            data = json.dumps(data)
+        else:
+            data = json.write(data)
+
+        if callback != None:
+            data = callback + '(' + data + ')'
+            self.send_header("Content-type", "text/javascript")
+        else:
+            self.send_header("Content-type", "application/json")
+
+        self.end_headers()
+        self.wfile.write(data)
+
 
 class API:
     def __init__(self):
@@ -126,6 +101,8 @@ class Dogvibes():
             if track != None:
                 break
         return track
+
+    # API
 
     def search(self, query):
         ret = []
@@ -159,9 +136,11 @@ class Amp():
         self.spotify = self.dogvibes.sources[0].get_src ()
         self.lastfm = self.dogvibes.sources[1].get_src ()
 
+
     # API
 
     def connectSpeaker(self, nbr):
+        nbr = int(nbr)
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
 
@@ -175,6 +154,7 @@ class Amp():
             print "Speaker %d already connected" % nbr
 
     def disconnectSpeaker(self, nbr):
+        nbr = int(nbr)
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
 
@@ -234,8 +214,8 @@ class Amp():
     def nextTrack(self):
         self.ChangeTrack(self.playqueue_position + 1)
 
-    def playTrack(self, tracknbr):
-        self.ChangeTrack(tracknbr)
+    def playTrack(self, nbr):
+        self.ChangeTrack(nbr)
         self.play()
 
     def previousTrack(self):
@@ -250,11 +230,11 @@ class Amp():
     def queue(self, uri):
         track = self.dogvibes.CreateTrackFromUri(uri)
         if (track == None):
-            return "could not queue, track not valid"
+            return -1 #"could not queue, track not valid"
         self.playqueue.append(track)
-        return "queued track"
 
     def removeFromQueue(self, nbr):
+        nbr = int(nbr)
         if (nbr > len(self.playqueue)):
             print "Too big of a number for removing"
             return
@@ -265,13 +245,14 @@ class Amp():
             self.playqueue_position = self.playqueue_position - 1
 
     def seek(self, mseconds):
-        print "Seek simple"
+        mseconds = int(mseconds)
         self.pipeline.seek_simple (gst.FORMAT_BYTES, gst.SEEK_FLAG_NONE, mseconds);
 
-    def setVolume(self, vol):
-        if (vol > 2 or vol < 0):
-            print "Volume must be between 0.0 and 2.0"
-        self.volume.set_property("volume", vol)
+    def setVolume(self, level):
+        level = float(level)
+        if (level > 1.0 or level < 0.0):
+            print "Volume must be between 0.0 and 1.0"
+        self.volume.set_property("volume", level)
 
     def stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
@@ -279,6 +260,8 @@ class Amp():
     # Internal functions
 
     def ChangeTrack(self, tracknbr):
+        tracknbr = int(tracknbr)
+
         if (tracknbr > len(self.playqueue) - 1):
             return
 
@@ -351,7 +334,7 @@ class Amp():
         pad.link (self.volume.get_pad("sink"))
 
 if __name__ == '__main__':
-    os.system("../spotifysch&")
+    os.system("./spotifysch&")
     os.system("sleep 1")
 
     # create the dogvibes object
