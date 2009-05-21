@@ -45,15 +45,13 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if 'callback' in params:
             callback = params.pop('callback')
+
         try:
             # strip params from paramters not in the method definition
             args = inspect.getargspec(getattr(klass, method))
-            call_params = dict()
-            for k, v in params.iteritems():
-                if k in args[0]:
-                    call_params[k]=v
+            params = dict(filter(lambda k: k[0] in args[0], params.items()))
             # call the method
-            data = getattr(klass, method).__call__(**call_params)
+            data = getattr(klass, method).__call__(**params)
         except AttributeError:
             error = 1 # No such method
         except TypeError:
