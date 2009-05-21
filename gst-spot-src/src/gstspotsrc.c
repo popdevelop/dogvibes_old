@@ -240,9 +240,9 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   guint availible;
 
   /*FIXME: can this change? when? */
-  if (G_UNLIKELY(GST_SPOT_SRC_FORMAT (spot) == NULL)) {
-    GST_SPOT_SRC_FORMAT (spot) = g_malloc0 (sizeof(sp_audioformat));
-    memcpy (GST_SPOT_SRC_FORMAT (spot), format, sizeof(sp_audioformat));
+  if (G_UNLIKELY (GST_SPOT_SRC_FORMAT (spot) == NULL)) {
+    GST_SPOT_SRC_FORMAT (spot) = g_malloc0 (sizeof (sp_audioformat));
+    memcpy (GST_SPOT_SRC_FORMAT (spot), format, sizeof (sp_audioformat));
   }
 
   GST_DEBUG_OBJECT (spot,"%s - start %p with %d frames with size=%d\n",__FUNCTION__, frames, num_frames, bufsize);
@@ -257,7 +257,7 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));            /* lock adapter */
   availible = gst_adapter_available (GST_SPOT_SRC_ADAPTER (spot));
   GST_DEBUG_OBJECT (spot,"%s - availiable before push = %d\n", __FUNCTION__, availible);
-  if (availible >= (GST_SPOT_SRC_BUFFER_TIME(spot)/1000000) * sample_rate * 4) {
+  if (availible >= (GST_SPOT_SRC_BUFFER_TIME (spot)/1000000) * sample_rate * 4) {
     GST_DEBUG_OBJECT (spot,"%s - return 0, adapter is full = %d\n", __FUNCTION__, availible);
     g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));        /* unlock adapter */
     return 0;
@@ -311,7 +311,6 @@ static gboolean spot_obj_create_session (SpotObj *self)
 {
         sp_session_config config;
         sp_error error;
-        g_print ("%s - enter\n", __FUNCTION__);
 
         config.api_version = SPOTIFY_API_VERSION;
         //FIXME check if these paths are appropiate
@@ -329,13 +328,11 @@ static gboolean spot_obj_create_session (SpotObj *self)
           return FALSE;
         }
 
-        g_print ("%s - exit\n", __FUNCTION__);
         return TRUE;
 }
 static gboolean spot_obj_login (SpotObj *self)
 {
   sp_error error;
-  g_print ("%s - enter\n", __FUNCTION__);
   if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
     g_print ("already logged in..\n");
     return TRUE;
@@ -360,7 +357,6 @@ static gboolean spot_obj_login (SpotObj *self)
   }
   g_print ("success - logged in!\n");
 
-  g_print ("%s - exit\n", __FUNCTION__);
  return TRUE;
 }
 
@@ -369,14 +365,12 @@ static void
 spot_obj_instance_init (GTypeInstance   *instance,
                          gpointer         g_class)
 {
-        g_print ("%s - enter\n", __FUNCTION__);
         SpotObj *self = (SpotObj *)instance;
         self->user = NULL;
         self->pass = NULL;
         self->spotify_uri = NULL;
 
 
-        g_print ("%s - exit\n", __FUNCTION__);
 }
 
 
@@ -387,7 +381,6 @@ spot_obj_set_property (GObject      *object,
                         GParamSpec   *pspec)
 {
         SpotObj *self = (SpotObj *) object;
-        g_print ("%s - enter\n", __FUNCTION__);
 
         switch (property_id) {
         case SPOT_OBJ_ARG_USER:
@@ -401,13 +394,12 @@ spot_obj_set_property (GObject      *object,
         case SPOT_OBJ_ARG_SPOTIFY_URI:
           g_free (SPOT_OBJ_SPOTIFY_URI (self));
           SPOT_OBJ_SPOTIFY_URI (self) = g_strdup (g_value_get_string (value));
-          printf ("set spotifyuri=%s\n", g_value_get_string(value));
+          printf ("set spotifyuri=%s\n", g_value_get_string (value));
           break;
         default:
-           G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
+           G_OBJECT_WARN_INVALID_PROPERTY_ID (object,property_id,pspec);
            break;
         }
-        g_print ("%s - exit\n", __FUNCTION__);
 }
 
 static void
@@ -417,7 +409,6 @@ spot_obj_get_property (GObject      *object,
                         GParamSpec   *pspec)
 {
         SpotObj *self = (SpotObj *) object;
-        g_print ("%s - enter\n", __FUNCTION__);
 
         switch (property_id) {
         case SPOT_OBJ_ARG_USER:
@@ -430,10 +421,9 @@ spot_obj_get_property (GObject      *object,
           g_value_set_string (value, SPOT_OBJ_SPOTIFY_URI (self));
           break;
         default:
-          G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object,property_id,pspec);
           break;
         }
-        g_print ("%s - exit\n", __FUNCTION__);
 }
 
 static GObject *
@@ -442,7 +432,6 @@ spot_obj_constructor (GType type,
                        GObjectConstructParam *construct_properties)
 {
         GObject *obj;
-        g_print ("%s - enter\n", __FUNCTION__);
 
         {
                 /* Invoke parent constructor. */
@@ -454,14 +443,12 @@ spot_obj_constructor (GType type,
         }
 
 
-        g_print ("%s - exit\n", __FUNCTION__);
         return obj;
 }
 
 static void
 spot_obj_dispose (GObject *obj)
 {
-        g_print ("%s - enter\n", __FUNCTION__);
 
         /*
          * In dispose, you are supposed to free all types referenced from this
@@ -472,14 +459,12 @@ spot_obj_dispose (GObject *obj)
 
         /* Chain up to the parent class */
         G_OBJECT_CLASS (spot_obj_parent_class)->dispose (obj);
-        g_print ("%s - exit\n", __FUNCTION__);
 }
 
 static void
 spot_obj_finalize (GObject *obj)
 {
         SpotObj *self = (SpotObj *)obj;
-        g_print ("%s - enter\n", __FUNCTION__);
 
         /*
          * Here, complete object destruction.
@@ -491,7 +476,6 @@ spot_obj_finalize (GObject *obj)
 
         /* Chain up to the parent class */
         G_OBJECT_CLASS (spot_obj_parent_class)->finalize (obj);
-        g_print ("%s - exit\n", __FUNCTION__);
 }
 
 
@@ -499,7 +483,6 @@ static void
 spot_obj_class_init (gpointer g_class,
                       gpointer g_class_data)
 {
-        g_print ("%s - enter\n", __FUNCTION__);
         GObjectClass *gobject_class = G_OBJECT_CLASS (g_class);
         SpotObjClass *klass = SPOT_OBJ_CLASS (g_class);
 
@@ -525,12 +508,10 @@ spot_obj_class_init (gpointer g_class,
                 G_PARAM_READWRITE));
 
 
-        g_print ("%s - exit\n", __FUNCTION__);
 }
 
 GType spot_obj_get_type (void)
 {
-        g_print ("%s - enter\n", __FUNCTION__);
         static GType type = 0;
         if (type == 0) {
                 static const GTypeInfo info = {
@@ -548,7 +529,6 @@ GType spot_obj_get_type (void)
                                                "SpotObjType",
                                                &info, 0);
         }
-        g_print ("%s - exit\n", __FUNCTION__);
         return type;
 }
 
@@ -653,8 +633,8 @@ gst_spot_src_init (GstSpotSrc * src, GstSpotSrcClass * g_class)
 
   GST_SPOT_SRC_BUFFER_TIME (spot) = BUFFER_TIME_DEFAULT;
 
-  GST_SPOT_SRC_ADAPTER_MUTEX(spot) = g_mutex_new ();
-  GST_SPOT_SRC_ADAPTER(spot) = gst_adapter_new();
+  GST_SPOT_SRC_ADAPTER_MUTEX (spot) = g_mutex_new ();
+  GST_SPOT_SRC_ADAPTER (spot) = gst_adapter_new ();
 
   GST_SPOT_SRC_FORMAT (spot) = NULL;
 
@@ -686,13 +666,14 @@ gst_spot_src_finalize (GObject * object)
   g_mutex_free (process_events_mutex);
   g_mutex_free (spotifylib_mutex);
 
-  g_mutex_free (GST_SPOT_SRC_ADAPTER_MUTEX(spot));
+  g_mutex_free (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
   g_object_unref (GST_SPOT_SRC_ADAPTER (spot));
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 
 }
-
+void                gst_base_src_set_format             (GstBaseSrc *src,
+                                                         GstFormat format);
 static void
 gst_spot_src_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
@@ -715,7 +696,7 @@ gst_spot_src_set_property (GObject * object, guint prop_id,
       break;
     case ARG_SPOTIFY_URI:
       g_object_set (spot_instance, "spotifyuri", g_value_get_string (value), NULL);
-      printf ("set spotifyuri=%s\n", g_value_get_string(value));
+      printf ("set spotifyuri=%s\n", g_value_get_string (value));
       break;
     case ARG_BUFFER_TIME:
       GST_SPOT_SRC_BUFFER_TIME (src) = (g_value_get_uint64 (value));
@@ -769,9 +750,10 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
       /* implement spotify seek here */
       gint sample_rate = GST_SPOT_SRC_FORMAT (spot)->sample_rate;
       gint channels = GST_SPOT_SRC_FORMAT (spot)->channels;
-      gint64 frames = offset / (channels * sizeof(int16_t));
-      g_print ("offset=%lld / channels(%d)*samplesize(%d) = frames %lld\n", offset, channels, sizeof(int16_t), frames);
-      gint64 seek_msec = frames / (sample_rate/1000);
+      gint64 frames = offset / (channels * sizeof (int16_t));
+      g_print ("offset (%lld) / channels (%d) * samplesize (%d) = frames (%lld)\n", offset, channels, sizeof (int16_t), frames);
+      gint64 seek_msec = frames / ((float)sample_rate/1000);
+      g_print ("seek_msec = (%lld) = frames (%lld) /  sample_rate (%d/1000)\n", seek_msec, frames, sample_rate);
       g_print ("perform seek to %lld bytes and %lld msec\n", offset, seek_msec);
       error = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), seek_msec);
       if (error != SP_ERROR_OK) {
@@ -844,20 +826,22 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
       gst_query_parse_duration (query, &format, &value);
       g_mutex_lock (spotifylib_mutex);
       /* duration in ms */
-      duration = sp_track_duration(SPOT_OBJ_CURRENT_TRACK (spot_instance));
+      duration = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
       g_mutex_unlock (spotifylib_mutex);
 
       switch (format) {
         case GST_FORMAT_BYTES:
           gst_query_set_duration (query, format, (duration/1000) * samplerate * 4);
-        break;
+          break;
+
         case GST_FORMAT_TIME:
           /* set it to nanoseconds */
           gst_query_set_duration (query, format, duration*1000);
-        break;
+          break;
+
         default:
           ret = FALSE;
-        break;
+          break;
       }
       break;
     }
@@ -867,52 +851,68 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
       gint64 src_val, dest_val;
 
       gst_query_parse_convert (query, &src_fmt, &src_val, &dest_fmt, &dest_val);
+      g_print ("convert src_fmt %d dst_fmt %d\n", src_fmt, dest_fmt);
+      g_print ("        src_val %lld dst_val %lld\n", src_val, dest_val);
+
       if (src_fmt == dest_fmt) {
         dest_val = src_val;
         goto done;
       }
 
       switch (src_fmt) {
-        case GST_FORMAT_DEFAULT:
+        case GST_FORMAT_BYTES:
           switch (dest_fmt) {
+            g_print ("dst_fmt == %d == FORMAT_DEFAULT\n", dest_fmt);
             case GST_FORMAT_TIME:
               /* samples to time */
-              dest_val = gst_util_uint64_scale_int (src_val, GST_SECOND, samplerate);
+              dest_val = src_val / (samplerate * 4 / 1000000);
+              g_print ("dest_val = %lld\n", dest_val);
               break;
+
             default:
-            ret = FALSE;
+              ret = FALSE;
+              break;
           }
           break;
+
         case GST_FORMAT_TIME:
+          g_print ("dst_fmt == %d == FORMAT_TIME\n", dest_fmt);
           switch (dest_fmt) {
-            case GST_FORMAT_DEFAULT:
+            case GST_FORMAT_BYTES:
               /* time to samples */
-              dest_val = gst_util_uint64_scale_int (src_val, samplerate, GST_SECOND);
+              dest_val = src_val/1000000 * samplerate * 4;
+              g_print ("dest_val = %lld\n", dest_val);
               break;
+
             default:
-            ret = FALSE;
+              g_print ("default = %lld\n", dest_val);
+              ret = FALSE;
+              break;
           }
           break;
+
         default:
           ret = FALSE;
+          break;
       }
     done:
       gst_query_set_convert (query, src_fmt, src_val, dest_fmt, dest_val);
-      ret = TRUE;
       break;
     }
     default:
-    break;
-  }
+      ret = FALSE;
+      break;
+  } 
 
-  if (ret) {
+  if (!ret) {
     ret = GST_BASE_SRC_CLASS (parent_class)->query (basesrc, query);
-  } else {
+  } 
+
+  if (!ret) {
     GST_DEBUG_OBJECT (src, "query failed");
   }
 
   return ret;
-
 }
 
 static gboolean
@@ -931,7 +931,7 @@ gst_spot_src_get_size (GstBaseSrc * basesrc, guint64 * size)
 
   g_mutex_lock (spotifylib_mutex);
   /* duration in ms */
-  duration = sp_track_duration(SPOT_OBJ_CURRENT_TRACK (spot_instance));
+  duration = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
 
 
@@ -1035,7 +1035,7 @@ gst_spot_src_set_spotifyuri (GstSpotSrc * src, const gchar * spotify_uri)
 {
   GstState state;
 
-  gchar *s_uri = SPOT_OBJ_SPOTIFY_URI(spot_instance);
+  gchar *s_uri = SPOT_OBJ_SPOTIFY_URI (spot_instance);
   /* the element must be stopped in order to do this */
   state = GST_STATE (src);
   if (state != GST_STATE_READY && state != GST_STATE_NULL) {
