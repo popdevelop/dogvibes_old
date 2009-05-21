@@ -35,6 +35,8 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             klass = dogvibes.amps[id]
 
         callback = None
+        data = None
+        error = 0
 
         if hasattr(klass, method):
             params = cgi.parse_qs(u.query)
@@ -47,23 +49,31 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             try:
                 data = getattr(klass, method).__call__(**params)
             except TypeError:
-                data = dict(error = 2) # Unsupported parameter
+                error = 2 # Unsupported parameter
             except NameError:
-                data = dict(error = 3) # Missing parameter
+                error = 3 # Missing parameter
+        else:
+            error = 1 # No such method
 
-            if data == None:  data = dict(error = 0)
-            else:             data = dict(error = 0, result = data)
-
-            self.send_response(200)
+        if (error == 0):
+            self.send_response(200) # OK
         else:
             self.send_response(400) # Bad request
             data = dict(error = 1)
 
+        # Add results from method call only if there is any
+        if data == None or error != 0:
+            data = dict(error = error)
+        else:
+            data = dict(error = error, result = data)
+
+        # Different JSON syntax in different versions of python
         if sys.version_info[0] >= 2 and sys.version_info[1] >= 6:
             data = json.dumps(data)
         else:
             data = json.write(data)
 
+        # Wrap result in a Javascript function if a callback was submitted
         if callback != None:
             data = callback + '(' + data + ')'
             self.send_header("Content-type", "text/javascript")
