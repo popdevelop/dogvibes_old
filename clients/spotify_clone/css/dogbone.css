@@ -322,6 +322,17 @@ margin:0 -3px;
 #playlist tr td.playing_icon { background-image: url('../img/play_indicator.gif'); background-repeat: no-repeat; }
 #playlist tr td.playing { background-color: #707070; }
 
+#s-results td a.addButton, #s-results td a.remButton { 
+   height: 0px; 
+   width: 12px;
+   padding: 12px 0 0 0; 
+   float: left;
+   overflow: hidden;
+   background-repeat: no-repeat;
+}
+#s-results td a.addButton { background-image: url('../img/icon_playlist_add.gif'); }
+#s-results td a.remButton { background-image: url('../img/icon_playlist_remove.gif'); }
+
 #s-artists, #s-albums, #s-tracks { font-size: 11px; color:#aaa; padding: 10px; }
 #s-artists span, #s-albums span, #s-tracks span { color: white; font-size: 12px;}
 #s-artists span.count, #s-albums span.count, #s-tracks span.count { color: #93b49f; }
