@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os
-import platform # for checking python version
 import hashlib
 import gobject
 import gst
