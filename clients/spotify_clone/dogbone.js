@@ -7,6 +7,7 @@ var connection_timeout = 10000; /* ms */
 /* Misc variables */
 var wait_req = 0;
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"rating\"><a href=\"#\">Rating</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
+var search_summary = "<div id=\"s-artists\" class=\"grid_5\"></div><div id=\"s-albums\" class=\"grid_4\"></div><div class=\"clear\">&nbsp;</div><div id=\"s-tracks\" class=\"grid_9\"></div>";
 var loading_small = "<img src=\"img/loading_small.gif\">";
 var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
 var poll_handle = false;
@@ -133,13 +134,11 @@ function handleStatusResponse(data)
 	if(current_playqueue && data.playqueuehash != current_playqueue && current_page == "playqueue"){
 		getPlayQueue();
 	}
-   /* FIXME: what to do with these*/
-	beg = "<ul>";
-	sepa = "<li class=\"artist\">";
-	sept = "<li class=\"title\">";
-	end = "</ul>";	
+
+
 	if(data.artist){
-		$("#now_playing").html(beg + sepa + data.title + sept + data.artist + end);
+		$("#now_playing .artist").text(data.artist);
+		$("#now_playing .title").text(data.title);
 		if(data.albumart){
 			$("#album_art").html("<img src=\"" + server + data.albumart + "\">");
 		}
@@ -148,7 +147,8 @@ function handleStatusResponse(data)
 		}
 	}
 	else {
-		$("#now_playing").html(beg + sepa + "Nothing playing right now" + end);
+		$("#now_playing .title").html("Nothing playing right now");
+		$("#now_playing .artist").empty();
 		$("#album_art").empty();
 	}
 }
@@ -252,7 +252,7 @@ function doSearchFromLink(value) {
 
 function doSearch() {
 	current_page = "search";
-	$("#playlist").html(track_list_table);	
+	$("#playlist").html(search_summary + track_list_table);
 	$("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
 	$("#s-keyword").text($("#s-input").val());
 	$("#tab-title").text("Search");
@@ -261,10 +261,12 @@ function doSearch() {
       type: "GET",
       dataType: "jsonp",
       success: function(data) {
+      	 item_count = 0;
          $("#s-results").empty();
             $.each(data.result, function(i, song) {
                td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
                $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
+               item_count++;
             });
             $(".addButton").click(function () {
                $.ajax({  
@@ -287,9 +289,11 @@ function doSearch() {
             $(".searchArtistButton").click(function () {
                doSearchFromLink(this.id);
             });
-            if(data.count == 0){
+            if(item_count == 0){
                $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
+               
             }
+			$("#s-tracks").html("Tracks (" + item_count + ")");
          }
 	});
 }

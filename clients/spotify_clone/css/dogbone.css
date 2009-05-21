@@ -331,8 +331,8 @@ margin:0 -3px;
 #now_playing li, ul { list-style-type: none; }
 #now_playing ul { margin: 5px 0 5px 0px; }
 #now_playing li { text-align: center; margin-left: 0px; }
-#now_playing li.artist { font-weight: bold; }
-#now_playing li.title { font-size: 10px; }
+#now_playing li.title { font-weight: bold; }
+#now_playing li.artist { font-size: 10px; }
 #file_tree
 {
 	padding: 15px;
