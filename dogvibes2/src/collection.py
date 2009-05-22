@@ -14,13 +14,16 @@ class Collection:
             self.conn = sqlite3.connect(path)
             c = self.conn.cursor()
             c.execute('''create table collection (id INTEGER PRIMARY KEY, name TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
+        self.conn.commit()
 
     def add_track(self, track):
         c = self.conn.cursor()
-        c.execute("select * from collection where uri = ?", track.uri) # FIXME: track.uri is handled as an array of chars... why?
+        c.execute('''select * from collection where uri = ?''', [track.uri])
         if c.fetchone() == None:
-            c.execute("insert into collection (name, artist, album, uri, duration) values (?, ?, ?, ?, ?)",
+            print track.uri
+            c.execute('''insert into collection (name, artist, album, uri, duration) values (?, ?, ?, ?, ?)''',
                       (track.name, track.artist, track.album, track.uri, track.duration))
+            self.conn.commit()
 
     def index(self, path):
         for top, dirnames, filenames in os.walk(path):
@@ -32,7 +35,7 @@ class Collection:
                     t.name = f.tag().title
                     t.artist = f.tag().artist
                     a = f.audioProperties()
-                    t.duration = a.length * 1000
+                    t.duration = a.length * 1000 # to msec
                     self.add_track(t)
 
 
