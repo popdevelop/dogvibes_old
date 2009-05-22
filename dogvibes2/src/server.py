@@ -31,9 +31,7 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         method = 'API_' + c[-1]
 
          # TODO: this should be determined on API function return:
-        raw = False
-        if method == 'API_getAlbumArt':
-            raw = True
+        raw = method == 'API_getAlbumArt'
 
         obj = c[1]
         id = c[2]
@@ -136,16 +134,32 @@ class Dogvibes():
     #import cStringIO
     #from PIL import Image
 
+    import hashlib
+
     def API_getAlbumArt(self, uri):
         track = self.CreateTrackFromUri(uri)
         if (track == None):
             return -1 # could not queue, track not valid
-        return AlbumArtDownloader(track.artist, track.album).fetch()
+
+        art_dir = 'albumart'
+        img_hash = hashlib.sha224(uri).hexdigest()
+        img_path = art_dir + '/' + img_hash
+        if os.path.exists(img_path):
+            f = open(img_path, 'rb')
+            img_data = f.read()
+        else:
+            img_data = AlbumArtDownloader(track.artist, track.album).fetch()
+            f = open(img_path, 'wb')
+            f.write(img_data)
+
+        f.close()
+        return img_data
+
         #im = cStringIO.StringIO(img_data)
         #size = (159, 159)
         #img = Image.open(im)
         #img.thumbnail(size, Image.ANTIALIAS)
-        #return img.tostring() ??
+
 
 import re
 import urllib
