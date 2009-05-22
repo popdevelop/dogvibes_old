@@ -21,12 +21,20 @@ import cgi
 import json
 import sys
 
+import urllib
+
 # web server
 class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         c = u.path.split('/')
         method = 'API_' + c[-1]
+
+         # TODO: this should be determined on API function return:
+        raw = False
+        if method == 'API_getAlbumArt':
+            raw = True
+
         obj = c[1]
         id = c[2]
         id = 0 # TODO: remove when more amps are supported
@@ -53,6 +61,8 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             params = dict(filter(lambda k: k[0] in args, params.items()))
             # call the method
             data = getattr(klass, method).__call__(**params)
+            if data == -1: error = 4
+            # TODO: must check for functions returning errors
         except AttributeError:
             error = 1 # No such method
         except TypeError:
@@ -62,24 +72,27 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         self.send_response(400 if error else 200) # Bad request or OK
 
-        # Add results from method call only if there is any
-        if data == None or error != 0:
-            data = dict(error = error)
+        if raw:
+            self.send_header("Content-type", "image/jpeg")
         else:
-            data = dict(error = error, result = data)
+            # Add results from method call only if there is any
+            if data == None or error != 0:
+                data = dict(error = error)
+            else:
+                data = dict(error = error, result = data)
 
-        # Different JSON syntax in different versions of python
-        if sys.version_info[0] >= 2 and sys.version_info[1] >= 6:
-            data = json.dumps(data)
-        else:
-            data = json.write(data)
+            # Different JSON syntax in different versions of python
+            if sys.version_info[0] >= 2 and sys.version_info[1] >= 6:
+                data = json.dumps(data)
+            else:
+                data = json.write(data)
 
-        # Wrap result in a Javascript function if a callback was submitted
-        if callback != None:
-            data = callback + '(' + data + ')'
-            self.send_header("Content-type", "text/javascript")
-        else:
-            self.send_header("Content-type", "application/json")
+            # Wrap result in a Javascript function if a callback was submitted
+            if callback != None:
+                data = callback + '(' + data + ')'
+                self.send_header("Content-type", "text/javascript")
+            else:
+                self.send_header("Content-type", "application/json")
 
         self.end_headers()
         self.wfile.write(data)
@@ -119,6 +132,65 @@ class Dogvibes():
         for source in self.sources:
             ret += source.search(query)
         return ret
+
+    #import cStringIO
+    #from PIL import Image
+
+    def API_getAlbumArt(self, uri):
+        track = self.CreateTrackFromUri(uri)
+        if (track == None):
+            return -1 # could not queue, track not valid
+        return AlbumArtDownloader(track.artist, track.album).fetch()
+        #im = cStringIO.StringIO(img_data)
+        #size = (159, 159)
+        #img = Image.open(im)
+        #img.thumbnail(size, Image.ANTIALIAS)
+        #return img.tostring() ??
+
+import re
+import urllib
+
+class AlbumArtDownloader(object):
+  awsurl = "http://ecs.amazonaws.com/onca/xml"
+  def __init__(self, artist, album):
+    self.artist = artist
+    self.album = album
+
+  def fetch(self):
+    url = self._GetResultURL(self._SearchAmazon())
+    if not url:
+      return None
+    img_re = re.compile(r'''registerImage\("original_image", "([^"]+)"''')
+    prod_data = urllib.urlopen(url).read()
+    m = img_re.search(prod_data)
+    if not m:
+      return None
+    img_url = m.group(1)
+    return urllib.urlopen(img_url).read()
+
+  def _SearchAmazon(self):
+    data = {
+      "Service": "AWSECommerceService",
+      "Version": "2005-03-23",
+      "Operation": "ItemSearch",
+      "ContentType": "text/xml",
+      "SubscriptionId": "AKIAIQ74I7SUW5COGZCQ",
+      "SearchIndex": "Music",
+      "ResponseGroup": "Small",
+    }
+
+    data["Artist"] = self.artist
+    data["Keywords"] = self.album
+
+    fd = urllib.urlopen("%s?%s" % (self.awsurl, urllib.urlencode(data)))
+
+    return fd.read()
+
+  def _GetResultURL(self, xmldata):
+    url_re = re.compile(r"<DetailPageURL>([^<]+)</DetailPageURL>")
+    m = url_re.search(xmldata)
+    return m and m.group(1)
+
 
 class Amp():
     def __init__(self, dogvibes):
