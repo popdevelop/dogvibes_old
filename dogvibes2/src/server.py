@@ -307,7 +307,7 @@ class Amp():
     def PipelineMessage(self, bus, message):
         t = message.type
         if t == gst.MESSAGE_EOS:
-            self.nextTrack()
+            self.API_nextTrack()
 
     def PlayOnlyIfNull(self, track):
         (pending, state, timeout) = self.pipeline.get_state ()
