@@ -6,7 +6,7 @@ var poll_interval = 5000 /* ms */
 var connection_timeout = 10000; /* ms */
 /* Misc variables */
 var wait_req = 0;
-var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"rating\"><a href=\"#\">Rating</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
+var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
 var search_summary = "<div id=\"s-artists\" class=\"grid_5\"></div><div id=\"s-albums\" class=\"grid_4\"></div><div class=\"clear\">&nbsp;</div><div id=\"s-tracks\" class=\"grid_9\"></div>";
 var loading_small = "<img src=\"img/loading_small.gif\">";
 var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
@@ -213,7 +213,7 @@ function getPlayQueue(){
 		$("#s-results").empty();
 		$.each(data.result, function(i, song) {
             td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-            $("#s-results").append("<tr id=\"row_"+ i + "\">" + td + "<a href=\"#\" id=\"" + i + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + i + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + song.album);
+            $("#s-results").append("<tr id=\"row_"+ i + "\">" + td + "<a href=\"#\" id=\"" + i + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + i + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
             item_count++;
          });
          $(".remButton").click(function () { 
@@ -245,6 +245,26 @@ function getPlayQueue(){
 }
 
 /* Searching */
+var searchesArray = new Array();
+function addSearch(keyword){
+   tempArray = new Array();
+   tempArray.unshift(jQuery.trim(keyword));
+   $.each(searchesArray, function(i, entry){
+      if(jQuery.trim(keyword) != entry){
+         tempArray.push(entry);
+      }
+   });
+   if(tempArray.length > 6){
+      tempArray.pop();
+   }
+   $("#searches").empty();
+   $.each(tempArray, function(i, entry) { 
+      $("#searches").append("<li><a href=\"#\" class=\"searchClick\">"+entry+"</a>");
+   });
+   $(".searchClick").click(function() { doSearchFromLink($(this).text()); });
+   searchesArray = tempArray;
+}
+
 function doSearchFromLink(value) {
 	$("#s-input").val(value);
 	doSearch();
@@ -255,6 +275,7 @@ function doSearch() {
 	$("#playlist").html(search_summary + track_list_table);
 	$("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
 	$("#s-keyword").text($("#s-input").val());
+   addSearch($("#s-input").val());
 	$("#tab-title").text("Search");
 	$.ajax({
       url: server + command.search + $("#s-input").val(),
@@ -264,16 +285,18 @@ function doSearch() {
          var artists = {};
          var albums  = {};
       	 item_count = 0;
+          artist_count = 0;
+          album_count = 0;
          $("#s-results").empty();
             $.each(data.result, function(i, song) {
                td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-               $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "&nbsp;" +td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
+               $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
                item_count++;
-               if(!artists[song.artist]) { artists[song.artist]=0; }
+               if(!artists[song.artist]) { artists[song.artist]=0; artist_count++; }
                artists[song.artist]++;
-               if(!albums[song.artist]) { albums[song.album]=0; }
-               albums[song.album]++;               
+               if(!albums[song.album]) { albums[song.album]=song.artist; album_count++; }
             });
+            /* Add click actions */
             $(".addButton").click(function () {
                $.ajax({  
                   beforeSend: setWait(),
@@ -299,17 +322,23 @@ function doSearch() {
                $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
                
             }
+            /* Print summaries */
 			$("#s-tracks").html("<span>Tracks</span> <span class=\"count\">(" + item_count + ")</span>");
-			$("#s-artists").html("<span>Artists: </span>");
+			$("#s-artists").html("<span>Artists: </span><span class=\"count\">(" + artist_count + ")</span> ");
+			count = 0;         
 			jQuery.each(artists, function(i, artist){
-				$("#s-artists").append(i + " <span class=\"count\">(" + artist + ")</span> &#9679; ");
+				$("#s-artists").append(i + " <em>&diams;</em> ");
+				if(count++ == 18){
+					$("#s-artists").append("<span class=\"warn\"> and "+(artist_count-18)+" more... </span>");
+					return false;
+				}            
 			});
-			$("#s-albums").html("<span>Albums: </span>");
+			$("#s-albums").html("<span>Albums: </span><span class=\"count\">(" + album_count + ") ");
 			count = 0;
 			jQuery.each(albums, function(i, album){
-				$("#s-albums").append(i + " &#9679; ");
-				if(count++ == 10){
-					$("#s-albums").append("<span class=\"warn\"> more than 10 albums... </span>");
+				$("#s-albums").append(i + " <em>by "+album+" &diams;</em> ");
+				if(count++ == 8){
+					$("#s-albums").append("<span class=\"warn\"> and "+(album_count-8)+" more...  </span>");
 					return false;
 				}
 			});			
