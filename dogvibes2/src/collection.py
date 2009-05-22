@@ -20,7 +20,6 @@ class Collection:
         c = self.conn.cursor()
         c.execute('''select * from collection where uri = ?''', [track.uri])
         if c.fetchone() == None:
-            print track.uri
             c.execute('''insert into collection (name, artist, album, uri, duration) values (?, ?, ?, ?, ?)''',
                       (track.name, track.artist, track.album, track.uri, track.duration))
             self.conn.commit()
@@ -37,7 +36,3 @@ class Collection:
                     a = f.audioProperties()
                     t.duration = a.length * 1000 # to msec
                     self.add_track(t)
-
-
-#c = Collection('dogvibes.db')
-#c.index('/home/brizz/music')
