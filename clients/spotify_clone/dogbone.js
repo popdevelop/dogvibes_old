@@ -2,17 +2,18 @@
 /* Config */
 var default_server = "http://dogvibes.com:2000";
 var server = false;
-var poll_interval = 5000 /* ms */
+var poll_interval = 2000 /* ms */
 var connection_timeout = 10000; /* ms */
 /* Misc variables */
 var wait_req = 0;
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
-var search_summary = "<div id=\"s-artists\" class=\"grid_5\"></div><div id=\"s-albums\" class=\"grid_4\"></div><div class=\"clear\">&nbsp;</div><div id=\"s-tracks\" class=\"grid_9\"></div>";
+var search_summary = "<div id=\"s-artists\" class=\"grid_5\"></div><div id=\"s-albums\" class=\"grid_4\"></div><div class=\"clear\">&nbsp;</div><div id=\"s-tracks\" class=\"grid_9\"></div><div class=\"clear\">&nbsp;</div>";
 var loading_small = "<img src=\"img/loading_small.gif\">";
 var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
 var poll_handle = false;
 var current_time;
 var current_song = false;
+var current_percent = false;
 var current_playqueue = false;
 var current_page = "home";
 var time_count;
@@ -32,6 +33,7 @@ var command =
    playtrack: "/amp/0/playTrack?nbr=",
    pause: "/amp/0/pause",
    prev: "/amp/0/previousTrack",
+   volume: "/amp/0/setVolume?level=", 
    /* other */
    status: "/amp/0/getStatus",
    search: "/dogvibes/search?query="
@@ -66,6 +68,10 @@ function checkTime(i){
 function increaseCount(){
 	current_time = current_time + 1;
 	$("#playback_time").html(timestamp_to_string(current_time));
+	$('#playback_seek').slider('option', 'value', current_percent);
+	if(current_percent >= 100){
+		clearInterval(time_count);
+	}
 }
 
 /* Convert seconds to format M:SS */
@@ -109,8 +115,8 @@ function handleStatusResponse(data)
 	/* Check if song has switched */
 	if(current_song != data.index){
 		$("#row_" + current_song + " td:first").removeClass("playing_icon");      
-		$("#row_" + current_song + " td").removeClass("playing");    
-		$("#playback_total").html(timestamp_to_string(data.duration/1000));
+		$("#row_" + current_song + " td").removeClass("playing");  	
+		$("#playback_total").html(timestamp_to_string(Math.round(data.duration/1000 - 0.5)));
 		current_song = data.index;
 	}
 	/* Update play status */
@@ -118,7 +124,8 @@ function handleStatusResponse(data)
 		$("#pb-play > a").addClass("playing");
 		$("#row_" + current_song + " td:first").addClass("playing_icon");      
 		$("#row_" + current_song + " td").addClass("playing"); 
-		current_time = data.playbacktime/1000;
+		current_percent = Math.round((data.elapsedmseconds/data.duration) * 100);
+		current_time = Math.round(data.elapsedmseconds/1000 - 0.5);
 		increaseCount();
 		clearInterval(time_count);
 		time_count = setInterval(increaseCount, 1000);
@@ -127,12 +134,10 @@ function handleStatusResponse(data)
 		$("#pb-play > a").removeClass("playing");
 		clearInterval(time_count);
 	}
-	/* Update playqueue if applicable */
-	if(data.playqueuehash){
-		current_playqueue = data.playqueuehash;
-	}	   
-	if(current_playqueue && data.playqueuehash != current_playqueue && current_page == "playqueue"){
+	/* Update playqueue if applicable */   
+	if(data.playqueuehash != current_playqueue && current_page == "playqueue"){
 		getPlayQueue();
+		current_playqueue = data.playqueuehash;
 	}
 
 
@@ -443,4 +448,15 @@ $("#s-input").keypress(function (e) {
 /* Clear search keyword field if nav links are clicked*/
 $(".navlink").bind("click", function () {
 	$("#s-keyword").empty();
+});
+
+$('#playback_volume').slider({
+   change: function(event, ui) { 
+	$.ajax({ 
+		type: "GET",
+		dataType: 'jsonp',
+		url: server + command.volume + ui.value/100,
+		success: function () { requestStatus(); }
+	});		
+   }
 });
