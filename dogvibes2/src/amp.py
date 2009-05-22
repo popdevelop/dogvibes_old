@@ -116,7 +116,7 @@ class Amp():
 
     def API_playTrack(self, nbr):
         self.ChangeTrack(nbr)
-        self.play()
+        self.API_play()
 
     def API_previousTrack(self):
         self.ChangeTrack(self.playqueue_position - 1)
