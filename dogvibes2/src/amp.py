@@ -86,7 +86,8 @@ class Amp():
             status = {'title': track.name,
                       'artist': track.artist,
                       'album': track.album,
-                      'duration': track.duration}
+                      'duration': int(track.duration),
+                      'elapsedmseconds': self.API_getPlayedMilliSeconds()}
             status['index'] = self.playqueue_position
         else:
             status = {}
