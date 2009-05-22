@@ -13,6 +13,7 @@ from devicespeaker import DeviceSpeaker
 
 # import track
 from track import Track
+from collection import Collection
 
 import BaseHTTPServer
 from urlparse import urlparse
@@ -25,7 +26,7 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         c = u.path.split('/')
-        method = c[-1]
+        method = 'API_' + c[-1]
         obj = c[1]
         id = c[2]
         id = 0 # TODO: remove when more amps are supported
@@ -48,22 +49,18 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         try:
             # strip params from paramters not in the method definition
-            args = inspect.getargspec(getattr(klass, method))
-            params = dict(filter(lambda k: k[0] in args[0], params.items()))
+            args = inspect.getargspec(getattr(klass, method))[0]
+            params = dict(filter(lambda k: k[0] in args, params.items()))
             # call the method
             data = getattr(klass, method).__call__(**params)
         except AttributeError:
             error = 1 # No such method
         except TypeError:
             error = 2 # Unsupported parameter
-        except NameError, KeyError:
+        except NameError:
             error = 3 # Missing parameter
 
-        if (error == 0):
-            self.send_response(200) # OK
-        else:
-            self.send_response(400) # Bad request
-            data = dict(error = 1)
+        self.send_response(400 if error else 200) # Bad request or OK
 
         # Add results from method call only if there is any
         if data == None or error != 0:
@@ -104,7 +101,7 @@ class Dogvibes():
 
         # add all amps
         amp0 = Amp(self)
-        amp0.connectSpeaker(0)
+        amp0.API_connectSpeaker(0)
         self.amps = [amp0]
 
     def CreateTrackFromUri(self, uri):
@@ -117,7 +114,7 @@ class Dogvibes():
 
     # API
 
-    def search(self, query):
+    def API_search(self, query):
         ret = []
         for source in self.sources:
             ret += source.search(query)
@@ -156,7 +153,7 @@ class Amp():
 
     # API
 
-    def connectSpeaker(self, nbr):
+    def API_connectSpeaker(self, nbr):
         nbr = int(nbr)
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
@@ -170,7 +167,7 @@ class Amp():
         else:
             print "Speaker %d already connected" % nbr
 
-    def disconnectSpeaker(self, nbr):
+    def API_disconnectSpeaker(self, nbr):
         nbr = int(nbr)
         if nbr > len(self.dogvibes.speakers) - 1:
             print "Speaker does not exist"
@@ -187,17 +184,17 @@ class Amp():
         else:
             print "Speaker not connected"
 
-    def getAllTracksInQueue(self):
+    def API_getAllTracksInQueue(self):
         ret = []
         for track in self.playqueue:
             ret.append(track.to_dict())
         return ret
 
-    def getPlayedMilliSeconds(self):
+    def API_getPlayedMilliSeconds(self):
         (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
         return pos / gst.MSECOND
 
-    def getStatus(self):
+    def API_getStatus(self):
         # this is very ugly we need to run on GLib mainloop somehow
         self.bus.poll(gst.MESSAGE_EOS, 1)
 
@@ -225,35 +222,35 @@ class Amp():
             status['state'] = 'stopped'
         else:
             status['state'] = 'paused'
-            
+
         return status
 
-    def getQueuePosition(self):
+    def API_getQueuePosition(self):
         return self.playqueue_position
 
-    def nextTrack(self):
+    def API_nextTrack(self):
         self.ChangeTrack(self.playqueue_position + 1)
 
-    def playTrack(self, nbr):
+    def API_playTrack(self, nbr):
         self.ChangeTrack(nbr)
         self.play()
 
-    def previousTrack(self):
+    def API_previousTrack(self):
         self.ChangeTrack(self.playqueue_position - 1)
 
-    def play(self):
+    def API_play(self):
         self.PlayOnlyIfNull(self.playqueue[self.playqueue_position])
 
-    def pause(self):
+    def API_pause(self):
         self.pipeline.set_state(gst.STATE_PAUSED)
 
-    def queue(self, uri):
+    def API_queue(self, uri):
         track = self.dogvibes.CreateTrackFromUri(uri)
         if (track == None):
             return -1 #"could not queue, track not valid"
         self.playqueue.append(track)
 
-    def removeFromQueue(self, nbr):
+    def API_removeFromQueue(self, nbr):
         nbr = int(nbr)
         if (nbr > len(self.playqueue)):
             print "Too big of a number for removing"
@@ -264,17 +261,17 @@ class Amp():
         if (nbr <= self.playqueue_position):
             self.playqueue_position = self.playqueue_position - 1
 
-    def seek(self, useconds):
+    def API_seek(self, useconds):
         print "Seek simple to " + str(useconds) + " useconds"
         self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, useconds);
 
-    def setVolume(self, level):
+    def API_setVolume(self, level):
         level = float(level)
         if (level > 1.0 or level < 0.0):
             print "Volume must be between 0.0 and 1.0"
         self.volume.set_property("volume", level)
 
-    def stop(self):
+    def API_stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
 
     # Internal functions
@@ -366,10 +363,13 @@ if __name__ == '__main__':
     global dogvibes
     dogvibes = Dogvibes()
 
+    collection = Collection('dogvibes.db')
+    collection.index('/home/brizz/music')
+
     print "Running Dogvibes."
     print "   ->Vibe the dog!"
     print "                 .--.    "
-    print "                / \aa\_  "
+    print "                / \\aa\_  "
     print "         ,      \_/ ,_Y) "
     print "        ((.------`\"=(    "
     print "         \   \      |o   "
