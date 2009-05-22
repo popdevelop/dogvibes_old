@@ -13,7 +13,7 @@ var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a 
 var poll_handle = false;
 var current_time;
 var current_song = false;
-var current_percent = false;
+var current_duration = false;
 var current_playqueue = false;
 var current_page = "home";
 var time_count;
@@ -36,7 +36,8 @@ var command =
    volume: "/amp/0/setVolume?level=", 
    /* other */
    status: "/amp/0/getStatus",
-   search: "/dogvibes/search?query="
+   search: "/dogvibes/search?query=",
+   albumart: "/dogvibes/getAlbumArt?uri="
 }
 
 /*
@@ -68,8 +69,8 @@ function checkTime(i){
 function increaseCount(){
 	current_time = current_time + 1;
 	$("#playback_time").html(timestamp_to_string(current_time));
-	$('#playback_seek').slider('option', 'value', current_percent);
-	if(current_percent >= 100){
+	$('#playback_seek').slider('option', 'value', (current_time/current_duration) *100);
+	if(current_time >= current_duration){
 		clearInterval(time_count);
 	}
 }
@@ -117,6 +118,7 @@ function handleStatusResponse(data)
 		$("#row_" + current_song + " td:first").removeClass("playing_icon");      
 		$("#row_" + current_song + " td").removeClass("playing");  	
 		$("#playback_total").html(timestamp_to_string(Math.round(data.duration/1000 - 0.5)));
+		$("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
 		current_song = data.index;
 	}
 	/* Update play status */
@@ -124,7 +126,7 @@ function handleStatusResponse(data)
 		$("#pb-play > a").addClass("playing");
 		$("#row_" + current_song + " td:first").addClass("playing_icon");      
 		$("#row_" + current_song + " td").addClass("playing"); 
-		current_percent = Math.round((data.elapsedmseconds/data.duration) * 100);
+		current_duration = Math.round(data.duration/1000 - 0.5);
 		current_time = Math.round(data.elapsedmseconds/1000 - 0.5);
 		increaseCount();
 		clearInterval(time_count);
@@ -144,12 +146,6 @@ function handleStatusResponse(data)
 	if(data.artist){
 		$("#now_playing .artist").text(data.artist);
 		$("#now_playing .title").text(data.title);
-		if(data.albumart){
-			$("#album_art").html("<img src=\"" + server + data.albumart + "\">");
-		}
-		else {
-			$("#album_art").empty();
-		}
 	}
 	else {
 		$("#now_playing .title").html("Nothing playing right now");
@@ -316,7 +312,7 @@ function doSearch() {
                   beforeSend: setWait(),
                   type: "GET",
                   dataType: 'jsonp',
-                  url: server + command.playtrack + this.id,
+                  url: server + command.add + this.id,
                   success: function () {clearWait(); requestStatus(); }
                });
             });     
