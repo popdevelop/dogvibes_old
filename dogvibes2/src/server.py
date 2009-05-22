@@ -336,7 +336,7 @@ class Amp():
             return -1 #"could not queue, track not valid"
         self.playqueue.append(track)
 
-    def API_removeFromQueue(self, nbr):
+    def API_removeTrack(self, nbr):
         nbr = int(nbr)
         if (nbr > len(self.playqueue)):
             print "Too big of a number for removing"
