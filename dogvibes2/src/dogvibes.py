@@ -74,6 +74,35 @@ class Dogvibes():
         #img = Image.open(im)
         #img.thumbnail(size, Image.ANTIALIAS)
 
+    # FIXME: all playlist handling are just dummies for now
+
+    playlist_tracks = []
+
+    def API_createPlaylist(self, name):
+        pass
+
+    def API_addTrackToPlaylist(self, nbr, uri):
+        nbr = int(nbr)
+
+        track = self.CreateTrackFromUri(uri)
+        if (track == None):
+            return -1 # could not queue, track not valid
+
+        self.playlist_tracks.append(track)
+
+
+    def API_getAllPlaylists(self):
+        return ['Favourites',
+                'Roskilde 2009',
+                'A very long name for being a playlist name',
+                'Club',
+                'House',
+                'CD collection']
+
+    def API_getAllTracksInPlaylist(self, nbr):
+        nbr = int(nbr)
+        return [track.to_dict() for track in self.playlist_tracks]
+
 
 import re
 import urllib
