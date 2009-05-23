@@ -1,5 +1,7 @@
 import gobject
 import gst
+import hashlib
+import os
 
 from amp import Amp
 
@@ -45,15 +47,13 @@ class Dogvibes():
     #import cStringIO
     #from PIL import Image
 
-    import hashlib
-
     def API_getAlbumArt(self, uri):
         track = self.CreateTrackFromUri(uri)
         if (track == None):
             return -1 # could not queue, track not valid
 
         art_dir = 'albumart'
-        img_hash = hashlib.sha224(uri).hexdigest()
+        img_hash = hashlib.sha224(track.artist + track.album).hexdigest()
         img_path = art_dir + '/' + img_hash
         if os.path.exists(img_path):
             f = open(img_path, 'rb')
@@ -70,3 +70,48 @@ class Dogvibes():
         #size = (159, 159)
         #img = Image.open(im)
         #img.thumbnail(size, Image.ANTIALIAS)
+
+
+import re
+import urllib
+
+class AlbumArtDownloader(object):
+  awsurl = "http://ecs.amazonaws.com/onca/xml"
+  def __init__(self, artist, album):
+    self.artist = artist
+    self.album = album
+
+  def fetch(self):
+    url = self._GetResultURL(self._SearchAmazon())
+    if not url:
+      return None
+    img_re = re.compile(r'''registerImage\("original_image", "([^"]+)"''')
+    prod_data = urllib.urlopen(url).read()
+    m = img_re.search(prod_data)
+    if not m:
+      return None
+    img_url = m.group(1)
+    return urllib.urlopen(img_url).read()
+
+  def _SearchAmazon(self):
+    data = {
+      "Service": "AWSECommerceService",
+      "Version": "2005-03-23",
+      "Operation": "ItemSearch",
+      "ContentType": "text/xml",
+      "SubscriptionId": "AKIAIQ74I7SUW5COGZCQ",
+      "SearchIndex": "Music",
+      "ResponseGroup": "Small",
+    }
+
+    data["Artist"] = self.artist
+    data["Keywords"] = self.album
+
+    fd = urllib.urlopen("%s?%s" % (self.awsurl, urllib.urlencode(data)))
+
+    return fd.read()
+
+  def _GetResultURL(self, xmldata):
+    url_re = re.compile(r"<DetailPageURL>([^<]+)</DetailPageURL>")
+    m = url_re.search(xmldata)
+    return m and m.group(1)
