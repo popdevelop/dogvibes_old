@@ -1027,6 +1027,9 @@ gst_spot_src_stop (GstBaseSrc * basesrc)
   sp_track_release (SPOT_OBJ_CURRENT_TRACK (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
 
+  /* clear adapter (we are stopped and do not continue from same place) */
+  gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
+
   return TRUE;
 }
 
