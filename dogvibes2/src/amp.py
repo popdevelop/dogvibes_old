@@ -97,7 +97,7 @@ class Amp():
             status = {}
 
         if len(self.playqueue) > 0:
-            status['uri'] = self.playqueue[self.playqueue_position - 1].uri
+            status['uri'] = self.playqueue[self.playqueue_position].uri
             status['playqueuehash'] = self.GetHashFromPlayQueue()
         else:
             status['uri'] = "dummy"
