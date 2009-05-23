@@ -11,18 +11,23 @@ var search_summary = "<div id=\"s-artists\" class=\"grid_5\"></div><div id=\"s-a
 var loading_small = "<img src=\"img/loading_small.gif\">";
 var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a href=\"http://www.dogvibes.com\" target=\"_new\">Dogvibes</a>.</p>";
 var poll_handle = false;
-var current_time;
-var current_song = false;
-var current_duration = false;
-var current_playqueue = false;
+var current_song = {
+   album: false,
+   index: false ,
+   playqueuehash: false,
+   artist: false,
+   title: false,
+   uri: false,
+   state: false,
+   duration: false,
+   elapsedmseconds: false
+};
 var current_page = "home";
 var time_count;
 var request_in_progress = false;
-var dobj = new Date();
 
 /* These are all the commands available to the server */
-var command = 
-{
+var command = {
    /* playqueue */
    add: "/amp/0/queue?uri=",
    get: "/amp/0/getAllTracksInQueue",
@@ -37,7 +42,7 @@ var command =
    /* other */
    status: "/amp/0/getStatus",
    search: "/dogvibes/search?query=",
-   albumart: "/dogvibes/getAlbumArt?uri="
+   albumart: "/dogvibes/getAlbumArt?size=159&uri="
 }
 
 /*
@@ -67,10 +72,12 @@ function checkTime(i){
 
 /* Increase playback time counter */
 function increaseCount(){
-	current_time = current_time + 1;
-	$("#playback_time").html(timestamp_to_string(current_time));
-	$('#playback_seek').slider('option', 'value', (current_time/current_duration) *100);
-	if(current_time >= current_duration){
+	current_song.elapsedmseconds += 1000;
+   new_time = Math.round(current_song.elapsedmseconds / 1000 -0.5);
+   percent = (current_song.elapsedmseconds/current_song.duration) *100;
+	$("#playback_time").html(timestamp_to_string(new_time));
+	$('#playback_seek').slider('option', 'value', percent);
+	if(current_song.elapsedmseconds >= current_song.duration){
 		clearInterval(time_count);
 	}
 }
@@ -93,41 +100,43 @@ function requestStatus()
 {
 	if(!request_in_progress){
 		connectionRequest();
-		$.ajax({
-			url: server + command.status,
-			type: "GET",
-			dataType: 'jsonp',
-			success: function(data){
-			if(data.error != 0){
-				connectionBad("Server error! (" + data.error + ")");
-			}
-			connectionOK(); /* This will restore timeout aswell */    
-			handleStatusResponse(data.result);
-		}
-		/* error handling is not working when using jsonp, but anyway.... */
-		/*error:function (xhr, ajaxOptions, thrownError){
-            connectionBad("Server not responding! (" + thrownError + ": " + xhr.statusText + ") Trying to reconnect...");
-         }  */       
+         $.ajax({
+            url: server + command.status,
+            type: "GET",
+            dataType: 'jsonp',
+            success: function(data){
+            if(data.error != 0){
+               connectionBad("Server error! (" + data.error + ")");
+            }
+            connectionOK(); /* This will restore timeout aswell */    
+            handleStatusResponse(data.result);
+         }     
 		});
 	}
 }
 function handleStatusResponse(data)
 {
 	/* Check if song has switched */
-	if(current_song != data.index){
-		$("#row_" + current_song + " td:first").removeClass("playing_icon");      
-		$("#row_" + current_song + " td").removeClass("playing");  	
-		$("#playback_total").html(timestamp_to_string(Math.round(data.duration/1000 - 0.5)));
+	if(current_song.index != data.index){
+		$("#row_" + current_song.index + " td:first").removeClass("playing_icon");      
+		$("#row_" + current_song.index + " td").removeClass("playing");  	
 		$("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
-		current_song = data.index;
 	}
+   /* Update playqueue if applicable */   
+	if(data.playqueuehash != current_song.playqueuehash && current_page == "playqueue"){
+		getPlayQueue();
+	}
+
+   current_song = data;   
+   /* Update volume */
+   if(data.volume){
+      $('#playback_volume').slider('option', 'value', data.volume*100);
+   }
 	/* Update play status */
 	if(data.state == "playing"){
 		$("#pb-play > a").addClass("playing");
-		$("#row_" + current_song + " td:first").addClass("playing_icon");      
-		$("#row_" + current_song + " td").addClass("playing"); 
-		current_duration = Math.round(data.duration/1000 - 0.5);
-		current_time = Math.round(data.elapsedmseconds/1000 - 0.5);
+		$("#row_" + data.index + " td:first").addClass("playing_icon");      
+		$("#row_" + data.index + " td").addClass("playing"); 
 		increaseCount();
 		clearInterval(time_count);
 		time_count = setInterval(increaseCount, 1000);
@@ -136,21 +145,17 @@ function handleStatusResponse(data)
 		$("#pb-play > a").removeClass("playing");
 		clearInterval(time_count);
 	}
-	/* Update playqueue if applicable */   
-	if(data.playqueuehash != current_playqueue && current_page == "playqueue"){
-		getPlayQueue();
-		current_playqueue = data.playqueuehash;
-	}
-
-
-	if(data.artist){
+   /* Update now playing field */
+	if(data.state != "stopped"){
 		$("#now_playing .artist").text(data.artist);
 		$("#now_playing .title").text(data.title);
+      $("#playback_total").html(timestamp_to_string(Math.round(data.duration/1000 - 0.5)));
 	}
 	else {
 		$("#now_playing .title").html("Nothing playing right now");
 		$("#now_playing .artist").empty();
 		$("#album_art").empty();
+      $("#playback_total").empty();
 	}
 }
 
@@ -225,7 +230,6 @@ function getPlayQueue(){
                url: server + command.remove + this.id,
                success: function () {clearWait(); requestStatus(); }
             });
-            $("#row_" + this.id).remove(); /* FIXME: do this more data driven, we dont know if the entry actually was removed */
          });    
          $(".playButton").click(function () { 
             $.ajax({ 
@@ -236,9 +240,15 @@ function getPlayQueue(){
                success: function () {clearWait(); requestStatus(); }
             });
          });      
-         if(item_count == 0)
-         {
+         if(item_count == 0){
             $("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
+         }
+         else{
+            /* TODO: Make things sortable. Just dummy for now */
+            $(function() {
+               $("#s-results").sortable();
+               $("#s-results").disableSelection();
+            });
          }
          requestStatus();
       }
@@ -299,6 +309,7 @@ function doSearch() {
             });
             /* Add click actions */
             $(".addButton").click(function () {
+               $(this).effect('highlight');
                $.ajax({  
                   beforeSend: setWait(),
                   type: "GET",
@@ -308,6 +319,7 @@ function doSearch() {
                });
             }); 
             $(".playButton").click(function () {
+               $(this).effect('highlight');
                $.ajax({
                   beforeSend: setWait(),
                   type: "GET",
