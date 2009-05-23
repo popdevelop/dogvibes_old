@@ -96,6 +96,8 @@ class Amp():
         else:
             status = {}
 
+        status['volume'] = self.volume.get_property("volume")
+
         if len(self.playqueue) > 0:
             status['uri'] = self.playqueue[self.playqueue_position].uri
             status['playqueuehash'] = self.GetHashFromPlayQueue()
