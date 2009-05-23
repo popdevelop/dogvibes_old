@@ -339,11 +339,9 @@ static gboolean spot_obj_login (SpotObj *self)
   }
 
   /* Login using the credentials given on the command line */
-  printf ("before\n");
   g_mutex_lock (spotifylib_mutex);
   error = sp_session_login (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_USER (spot_instance) , SPOT_OBJ_PASS (spot_instance));
   g_mutex_unlock (spotifylib_mutex);
-  printf ("after\n");
 
   if (SP_ERROR_OK != error) {
     GST_ERROR ("failed to login: %s\n", sp_error_message (error));
@@ -861,11 +859,11 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
 
       switch (src_fmt) {
         case GST_FORMAT_BYTES:
+          g_print ("dst_fmt == %d == FORMAT_DEFAULT\n", dest_fmt);
           switch (dest_fmt) {
-            g_print ("dst_fmt == %d == FORMAT_DEFAULT\n", dest_fmt);
             case GST_FORMAT_TIME:
               /* samples to time */
-              dest_val = src_val / (samplerate * 4 / 1000000);
+              dest_val = src_val / ((float)samplerate * 4 / 1000000);
               g_print ("dest_val = %lld\n", dest_val);
               break;
 
