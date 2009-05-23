@@ -90,7 +90,6 @@ class Dogvibes():
 
         self.playlist_tracks.append(track)
 
-
     def API_getAllPlaylists(self):
         return ['Favourites',
                 'Roskilde 2009',
@@ -101,7 +100,7 @@ class Dogvibes():
 
     def API_getAllTracksInPlaylist(self, nbr):
         nbr = int(nbr)
-        return [track.to_dict() for track in self.playlist_tracks]
+        return [track.__dict__ for track in self.playlist_tracks]
 
 
 import re

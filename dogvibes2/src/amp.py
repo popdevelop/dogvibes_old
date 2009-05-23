@@ -1,4 +1,3 @@
-
 import gst
 import hashlib
 
@@ -32,8 +31,8 @@ class Amp():
         self.src = None
 
         # spotify is special FIXME: not how its supposed to be
-        self.spotify = self.dogvibes.sources[0].get_src ()
-        self.lastfm = self.dogvibes.sources[1].get_src ()
+        self.spotify = self.dogvibes.sources[0].get_src()
+        self.lastfm = self.dogvibes.sources[1].get_src()
 
     # API
 
@@ -44,8 +43,8 @@ class Amp():
 
         speaker = self.dogvibes.speakers[nbr];
 
-        if (self.pipeline.get_by_name (speaker.name) == None):
-            self.sink = self.dogvibes.speakers[nbr].get_speaker ();
+        if self.pipeline.get_by_name(speaker.name) == None:
+            self.sink = self.dogvibes.speakers[nbr].get_speaker();
             self.pipeline.add(self.sink)
             self.tee.link(self.sink)
         else:
@@ -58,28 +57,25 @@ class Amp():
 
         speaker = self.dogvibes.speakers[nbr];
 
-        if (self.pipeline.get_by_name (speaker.name) != None):
+        if self.pipeline.get_by_name(speaker.name) != None:
             (pending, state, timeout) = self.pipeline.get_state()
             self.pipeline.set_state(gst.STATE_NULL)
-            rm = self.pipeline.get_by_name (speaker.name)
-            self.pipeline.remove (rm)
-            self.tee.unlink (rm)
+            rm = self.pipeline.get_by_name(speaker.name)
+            self.pipeline.remove(rm)
+            self.tee.unlink(rm)
             self.pipeline.set_state(state)
         else:
             print "Speaker not connected"
 
     def API_getAllTracksInQueue(self):
-        ret = []
-        for track in self.playqueue:
-            ret.append(track.to_dict())
-        return ret
+        return [track.__dict__ for track in self.playqueue]
 
     def API_getPlayedMilliSeconds(self):
         (pending, state, timeout) = self.pipeline.get_state ()
         if (state == gst.STATE_NULL):
             return 0
         (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
-        return pos / gst.MSECOND
+        return pos / 1000 # / gst.MSECOND # FIXME: something fishy here...
 
     def API_getStatus(self):
         # this is very ugly we need to run on GLib mainloop somehow
@@ -87,7 +83,7 @@ class Amp():
 
         if (len(self.playqueue) > 0):
             track = self.playqueue[self.playqueue_position]
-            status = {'title': track.name,
+            status = {'title': track.title,
                       'artist': track.artist,
                       'album': track.album,
                       'duration': int(track.duration),
@@ -169,13 +165,13 @@ class Amp():
     def ChangeTrack(self, tracknbr):
         tracknbr = int(tracknbr)
 
-        if (tracknbr > len(self.playqueue) - 1):
+        if tracknbr > len(self.playqueue) - 1:
             return
 
-        if (tracknbr == self.playqueue_position):
+        if tracknbr == self.playqueue_position:
             return
 
-        if (tracknbr < 0):
+        if tracknbr < 0:
             tracknbr = 0
 
         self.playqueue_position = tracknbr
@@ -198,16 +194,16 @@ class Amp():
             self.API_nextTrack()
 
     def PlayOnlyIfNull(self, track):
-        (pending, state, timeout) = self.pipeline.get_state ()
-        if (state != gst.STATE_NULL):
+        (pending, state, timeout) = self.pipeline.get_state()
+        if state != gst.STATE_NULL:
             self.pipeline.set_state(gst.STATE_PLAYING)
             return
 
-        if (self.src):
-            self.pipeline.remove (self.src)
-            if (self.spotify_in_use == False):
+        if self.src:
+            self.pipeline.remove(self.src)
+            if self.spotify_in_use == False:
                 print "removed a decodebin"
-                self.pipeline.remove (self.decodebin)
+                self.pipeline.remove(self.decodebin)
 
         if track.uri[0:7] == "spotify":
             print "It was a spotify uri"
@@ -221,7 +217,7 @@ class Amp():
             print "It was a lastfm uri"
             self.src = self.lastfm
             self.dogvibes.sources[1].set_track(track)
-            self.decodebin = gst.element_factory_make ("decodebin2", "decodebin2")
+            self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")
             self.decodebin.connect('new-decoded-pad', self.PadAdded)
             self.pipeline.add(self.src)
             self.pipeline.add(self.decodebin)
@@ -230,7 +226,7 @@ class Amp():
         else:
             print "Decodebin is taking care of this uri"
             self.src = gst.element_make_from_uri(gst.URI_SRC, track.uri, "source")
-            self.decodebin = gst.element_factory_make ("decodebin2", "decodebin2")
+            self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")
             self.decodebin.connect('new-decoded-pad', self.PadAdded)
             self.pipeline.add(self.src)
             self.pipeline.add(self.decodebin)
@@ -241,4 +237,4 @@ class Amp():
 
     def PadAdded(self, element, pad, last):
         print "Lets add a speaker we found suitable elements to decode"
-        pad.link (self.volume.get_pad("sink"))
+        pad.link(self.volume.get_pad("sink"))

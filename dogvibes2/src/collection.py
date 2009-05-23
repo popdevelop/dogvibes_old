@@ -13,15 +13,15 @@ class Collection:
         else:
             self.conn = sqlite3.connect(path)
             c = self.conn.cursor()
-            c.execute('''create table collection (id INTEGER PRIMARY KEY, name TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
+            c.execute('''create table collection (id INTEGER PRIMARY KEY, title TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
         self.conn.commit()
 
     def add_track(self, track):
         c = self.conn.cursor()
         c.execute('''select * from collection where uri = ?''', [track.uri])
         if c.fetchone() == None:
-            c.execute('''insert into collection (name, artist, album, uri, duration) values (?, ?, ?, ?, ?)''',
-                      (track.name, track.artist, track.album, track.uri, track.duration))
+            c.execute('''insert into collection (title, artist, album, uri, duration) values (?, ?, ?, ?, ?)''',
+                      (track.title, track.artist, track.album, track.uri, track.duration))
             self.conn.commit()
 
     def index(self, path):
@@ -31,7 +31,7 @@ class Collection:
                     full_path = os.path.join(top, filename);
                     f = tagpy.FileRef(full_path)
                     t = Track("file://" + full_path)
-                    t.name = f.tag().title
+                    t.title = f.tag().title
                     t.artist = f.tag().artist
                     a = f.audioProperties()
                     t.duration = a.length * 1000 # to msec

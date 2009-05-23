@@ -23,7 +23,7 @@ class SpotifySource:
         d = dict(zip(k,v))
 
         track = Track(uri)
-        track.name = d["title"]
+        track.title = d["title"]
         track.artist = d["artist"]
         track.album = d["album"]
         track.uri = uri
@@ -34,7 +34,7 @@ class SpotifySource:
         if self.created == False:
             self.bin = gst.Bin(self.name)
             print "Logging on to spotify"
-            self.spotify = gst.element_factory_make("spotify", "spotify")
+            self.spotify = gst.element_factory_make("spot", "spot")
             self.spotify.set_property ("user", self.user);
             self.spotify.set_property ("pass", self.passw);
             self.spotify.set_property ("buffer-time", 100000000);

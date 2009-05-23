@@ -217,7 +217,7 @@ class LastFMSource:
         if (uri != "lastfm"):
             return None
         track = Track(uri);
-        track.name = "Dogvibes LastFM"
+        track.title = "Dogvibes LastFM"
         track.artist = "Dogvibes LastFM"
         track.album = "Dogvibes LastFM"
         track.uri = uri
@@ -236,12 +236,12 @@ class LastFMSource:
 
     def search (self, query):
         track = Track("lastfm");
-        track.name = "Dogvibes LastFM"
+        track.title = "Dogvibes LastFM"
         track.artist = "Dogvibes LastFM"
         track.album = "Dogvibes LastFM"
         track.uri = "lastfm"
         track.duration = "Dogvibes LastFM"
-        return [track.to_dict ()]
+        return [track.__dict__]
 
     def set_track (self, track):
         self.lastfm.set_property ("uri", "lastfm://artist/cher/fans")
