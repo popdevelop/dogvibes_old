@@ -53,6 +53,9 @@ class Dogvibes():
             return -1 # could not queue, track not valid
 
         art_dir = 'albumart'
+        if not os.path.exists(art_dir):
+            os.mkdir(art_dir)
+
         img_hash = hashlib.sha224(track.artist + track.album).hexdigest()
         img_path = art_dir + '/' + img_hash
         if os.path.exists(img_path):
