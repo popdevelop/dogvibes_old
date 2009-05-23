@@ -1,3 +1,4 @@
+
 import gst
 import hashlib
 
@@ -74,6 +75,9 @@ class Amp():
         return ret
 
     def API_getPlayedMilliSeconds(self):
+        (pending, state, timeout) = self.pipeline.get_state ()
+        if (state == gst.STATE_NULL):
+            return 0
         (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
         return pos / gst.MSECOND
 
