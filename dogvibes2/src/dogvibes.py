@@ -20,7 +20,7 @@ class Dogvibes():
     def __init__(self):
         # add all sources
         self.sources = [SpotifySource("spotify", "gyllen", "bobidob20"),
-                        LastFMSource("lastfm", "dogvibes", "futureinstereo")]
+                        LastFMSource("lastfm", "dogvibes", "futureinstereo"),
                         FileSource("filesource", "../testmedia/")]
 
         # add all speakers
