@@ -310,11 +310,11 @@ margin:0 -3px;
    background-image: url('../img/table_head_bg.gif');  
    background-repeat: repeat-x; 
 }
-#playlist th#indicator { width: 3%; }
+#playlist th#indicator { width: 5%; }
 #playlist th#track     { width: 25%; }
 #playlist th#artist    { width: 20%; }
 #playlist th#time      { width: 7%; }
-#playlist th#album     { width: 40%; }
+#playlist th#album     { width: 38%; }
 #playlist td.odd { background-color: #313131; }
 #playlist td { padding: 1px 0 1px 2px; margin: 0px;}
 #playlist td a { color: #c3c3c3; }
@@ -328,8 +328,25 @@ margin:0 -3px;
    margin-right: 15px;
 }
 
-#playlist tr td.playing_icon { background-image: url('../img/play_indicator.gif'); background-repeat: no-repeat; }
-#playlist tr td.playing { background-color: #707070; }
+#playlist tr td a.playing_icon { 
+   background: #707070 url('../img/play_indicator.gif') no-repeat 0 0;
+   height: 0px;
+   padding: 37px 0 0 0;
+   margin: 0;
+   width: 33px;
+   overflow:hidden;
+   float: left;
+}
+#playlist tr td.playing {
+   background: #707070 url('../img/play_bg.gif') repeat-x 0 0;
+   height: 37px;
+   vertical-align: middle;
+   color: black;
+   padding: 0 0 0 2px;
+}
+#playlist tr td.playing a, #playlist tr td.playing a:hover{
+   color: black;
+}
 
 #s-results td a.addButton, #s-results td a.remButton { 
    height: 0px; 

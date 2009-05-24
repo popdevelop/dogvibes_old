@@ -75,10 +75,15 @@ function checkTime(i){
 /* Increase playback time counter */
 function increaseCount(){
 	current_song.elapsedmseconds += 1000;
+   updateTimes();
+}
+/* playbacktime, seekbar */
+function updateTimes(){
    new_time = Math.round(current_song.elapsedmseconds / 1000 -0.5);
    percent = (current_song.elapsedmseconds/current_song.duration) *100;
 	$("#playback_time").html(timestamp_to_string(new_time));
 	$('#playback_seek').slider('option', 'value', percent);
+   $("#playback_total").html(timestamp_to_string(Math.round(current_song.duration/1000 - 0.5)));
 	if(current_song.elapsedmseconds >= current_song.duration){
 		clearInterval(time_count);
 	}
@@ -88,7 +93,7 @@ function increaseCount(){
 function timestamp_to_string(ts)
 {
 	if(!ts) { ts=0; }
-   if(ts==0) { return ""; }
+   if(ts==0) { return "0:00"; }
 	m = Math.round(ts/60 - 0.5)
 	s = ts - m*60;	
 	s=checkTime(s);
@@ -120,7 +125,8 @@ function handleStatusResponse(data)
 {
 	/* Check if song has switched */
 	if(current_song.index != data.index){
-		$("#row_" + current_song.index + " td:first").removeClass("playing_icon");      
+		$("#row_" + current_song.index + " td:first a").removeClass("playing_icon");      
+      $("#row_" + current_song.index + " td:first a").addClass("remButton"); 
 		$("#row_" + current_song.index + " td").removeClass("playing");  	
 		$("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
 	}
@@ -137,8 +143,6 @@ function handleStatusResponse(data)
 	/* Update play status */
 	if(data.state == "playing"){
 		$("#pb-play > a").addClass("playing");
-		$("#row_" + data.index + " td:first").addClass("playing_icon");      
-		$("#row_" + data.index + " td").addClass("playing"); 
 		increaseCount();
 		clearInterval(time_count);
 		time_count = setInterval(increaseCount, 1000);
@@ -151,7 +155,10 @@ function handleStatusResponse(data)
 	if(data.state != "stopped"){
 		$("#now_playing .artist").text(data.artist);
 		$("#now_playing .title").text(data.title);
-      $("#playback_total").html(timestamp_to_string(Math.round(data.duration/1000 - 0.5)));
+		$("#row_" + data.index + " td:first a").addClass("playing_icon"); 
+      $("#row_" + data.index + " td:first a").removeClass("remButton");       
+		$("#row_" + data.index + " td").addClass("playing");       
+      updateTimes();
 	}
 	else {
 		$("#now_playing .title").html("Nothing playing right now");
@@ -259,7 +266,6 @@ function getPlayQueue(){
 
 /* Playlists */
 function getPlayLists(){
-   count = 0;
    $("#playlists-items").empty();
    $.ajax({
       url: server + command.getplaylists,
@@ -268,15 +274,9 @@ function getPlayLists(){
       success: function(data) {
          $.each(data.result, function(i, list){
             $("#playlists-items").append("<li><a href=\"#\" class=\"searchClick\">"+list+"</a>");
-            count++;
          });
       }
    });
-   if(count == 0){
-      $("#playlists").hide();
-   } else {
-      $("#playlists").show();
-   }
 }
 
 /* Searching */
