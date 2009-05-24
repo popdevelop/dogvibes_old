@@ -22,7 +22,8 @@ var current_song = {
    duration: false,
    elapsedmseconds: false
 };
-var current_page = "home";
+var current_page = false;
+var current_playlist = false;
 var time_count;
 var request_in_progress = false;
 
@@ -34,6 +35,7 @@ var command = {
    remove: "/amp/0/removeTrack?nbr=",
    /* Playlists */
    getplaylists: "/dogvibes/getAllPlaylists",
+   getplaylisttracks: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
    /* playback control */
    next: "/amp/0/nextTrack",
    play: "/amp/0/play",
@@ -216,11 +218,17 @@ function connectionTimeout()
 	$("#message .text").html("Connection timed out! Check server and reload page to try again.");
 }
 
-/* Get the playqueue */
+/* Get playqueue or playlist */
 function getPlayQueue(){
 	$("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
+   var getcommand;
+   if(current_playlist == "playqueue"){
+      getcommand = command.get;
+   } else {
+      getcommand = command.getplaylisttracks + current_playlist;
+   }
 	$.ajax({
-      url: server + command.get,
+      url: server + getcommand,
       type: "GET",
       dataType: "jsonp",
       success: function(data) {
@@ -250,7 +258,7 @@ function getPlayQueue(){
             });
          });      
          if(item_count == 0){
-            $("#s-results").html("<tr><td colspan=6><i>No stuff in play queue</i>");
+            $("#s-results").html("<tr><td colspan=6><i>No tracks in this list</i>");
          }
          else{
             /* TODO: Make things sortable. Just dummy for now */
@@ -273,8 +281,15 @@ function getPlayLists(){
       dataType: "jsonp",
       success: function(data) {
          $.each(data.result, function(i, list){
-            $("#playlists-items").append("<li><a href=\"#\" class=\"searchClick\">"+list+"</a>");
+            $("#playlists-items").append("<li id=\"pl-"+list.id+"\"><a href=\"#\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a>");
          });
+         $(".playlistClick").click(function() { 
+            current_playlist = this.name;
+            setPage("pl-" + this.name);
+            $("#tab-title").text("Playlist");
+            $("#playlist").html(track_list_table);
+            getPlayQueue();
+         });         
       }
    });
 }
@@ -294,7 +309,7 @@ function addSearch(keyword){
    }
    $("#searches-items").empty();
    $.each(tempArray, function(i, entry) { 
-      $("#searches-items").append("<li><a href=\"#\" class=\"searchClick\">"+entry+"</a>");
+      $("#searches-items").append("<li id=\"s-"+i+"\"><a href=\"#\" class=\"searchClick\">"+entry+"</a>");
    });
    $(".searchClick").click(function() { doSearchFromLink($(this).text()); });
    searchesArray = tempArray;
@@ -306,11 +321,11 @@ function doSearchFromLink(value) {
 }
 
 function doSearch() {
-	current_page = "search";
+   addSearch($("#s-input").val());
+	setPage("s-0");
 	$("#playlist").html(search_summary + track_list_table);
 	$("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
 	$("#s-keyword").text($("#s-input").val());
-   addSearch($("#s-input").val());
 	$("#tab-title").text("Search");
 	$.ajax({
       url: server + command.search + $("#s-input").val(),
@@ -392,6 +407,7 @@ function doSearch() {
 $("document").ready(function() { 
    $("#message .btn").hide();
 	connectionBad("No server configured.");
+   setPage("p-home");
 	$("#playback_seek").slider();
 	$("#playback_volume").slider();
 	/* Do we have a server? otherwise prompt */ 
@@ -442,14 +458,19 @@ connectionInit();
 });
 
 /* Sections */
+function setPage(name){
+   $("#"+current_page).removeClass("selected");
+   current_page = name;
+   $("#"+current_page).addClass("selected");   
+}
 $("#p-home").click(function () {
-	current_page = "home";
+	setPage("p-home");
 	$("#tab-title").text("Home");
 	$("#playlist").html(welcome_text);
 });
 
 $("#p-local").click(function () {
-	current_page = "local";
+	setPage("p-local");
 	$("#tab-title").text("Local media");
 	$("#playlist").html("<h1>Local files:</h1><div id=\"file_tree\"></div>");
 	$('#file_tree').fileTree({
@@ -465,7 +486,8 @@ $("#p-local").click(function () {
 /* Play queue management */
 
 $("#p-playqueue").click(function () {
-	current_page = "playqueue";
+	setPage("p-playqueue");
+   current_playlist = "playqueue";
 	$("#tab-title").text("Play queue");
 	$("#playlist").html(track_list_table);
 	getPlayQueue();

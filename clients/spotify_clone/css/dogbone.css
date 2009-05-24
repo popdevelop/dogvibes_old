@@ -145,20 +145,23 @@ margin:0 -3px;
 #navigation { padding: 0px; }
 #navigation a { color: #c3c3c3; }
 #navigation a:hover { color: white; text-decoration:none; }
-#navigation ul { list-style-type: none; margin: 8px;}
-#navigation li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px;}
-#navigation li#p-home { background:url('../img/icon_house.gif') no-repeat scroll 0 2px; }
-#navigation li#p-playqueue { background:url('../img/icon_playqueue.gif') no-repeat scroll 0 2px; }
+#navigation ul { list-style-type: none; margin: 8px 0 8px 0;}
+#navigation li { list-type-style: none; margin:0; padding: 0 0 0 28px;}
+#navigation li#p-home { background-image:url('../img/icon_house.gif'); background-repeat:no-repeat; background-position: 10px 2px; }
+#navigation li#p-playqueue { background-image:url('../img/icon_playqueue.gif'); background-repeat: no-repeat; background-position: 10px 2px; }
+#navigation li.selected { background-color: #707070; font-weight: bold;}
 
-#searches-items { list-style-type: none; margin: 8px;}
-#searches-items li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px; background:url('../img/icon_search.gif') no-repeat scroll 0 2px;}
+#searches-items { list-style-type: none; margin: 8px 0 8px 0;}
+#searches-items li { list-type-style: none; margin:0; padding: 0 0 0 28px; background-image:url('../img/icon_search.gif'); background-repeat:no-repeat; background-position: 10px 2px;}
 #searches a { color: #c3c3c3; }
 #searches a:hover { color: white; text-decoration:none; }
+#searches li.selected { background-color: #707070; font-weight: bold;}
 
-#playlists-items { list-style-type: none; margin: 8px;}
-#playlists-items li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px; background:url('../img/icon_playlist.gif') no-repeat scroll 0 2px;}
+#playlists-items { list-style-type: none; margin: 8px 0 8px 0;}
+#playlists-items li { list-type-style: none; margin:0; padding: 0 0 0 28px; background-image:url('../img/icon_playlist.gif'); background-repeat:no-repeat; background-position: 10px 2px;}
 #playlists a { color: #c3c3c3; }
 #playlists a:hover { color: white; text-decoration:none; }
+#playlists li.selected { background-color: #707070; font-weight: bold;}
 
 #main_col
 {
