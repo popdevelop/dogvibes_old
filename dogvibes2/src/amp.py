@@ -92,7 +92,8 @@ class Amp():
         else:
             status = {}
 
-        status['volume'] = self.volume.get_property("volume")
+        # FIXME this should be speaker specific
+        status['volume'] = self.dogvibes.speakers[0].get_volume() #self.volume.get_property("volume")
 
         if len(self.playqueue) > 0:
             status['uri'] = self.playqueue[self.playqueue_position].uri
@@ -155,7 +156,8 @@ class Amp():
         level = float(level)
         if (level > 1.0 or level < 0.0):
             print "Volume must be between 0.0 and 1.0"
-        self.volume.set_property("volume", level)
+        self.dogvibes.speakers[0].set_volume(level)
+        #self.volume.set_property("volume", level)
 
     def API_stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
