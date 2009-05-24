@@ -8,19 +8,20 @@ from amp import Amp
 # import spources
 from spotifysource import SpotifySource
 from lastfmsource import LastFMSource
-from filesource import FileSource
+#from filesource import FileSource
 
 # import speakers
 from devicespeaker import DeviceSpeaker
 
 from track import Track
+from playlist import Playlist
 
 class Dogvibes():
     def __init__(self):
         # add all sources
         self.sources = [SpotifySource("spotify", "gyllen", "bobidob20"),
-                        LastFMSource("lastfm", "dogvibes", "futureinstereo"),
-                        FileSource("filesource", "../testmedia/")]
+                        LastFMSource("lastfm", "dogvibes", "futureinstereo")]
+                        #FileSource("filesource", "../testmedia/")]
 
         # add all speakers
         self.speakers = [DeviceSpeaker("devicesink")]
@@ -76,33 +77,42 @@ class Dogvibes():
         #img = Image.open(im)
         #img.thumbnail(size, Image.ANTIALIAS)
 
-    # FIXME: all playlist handling are just dummies for now
-
-    playlist_tracks = []
-
     def API_createPlaylist(self, name):
-        pass
+        Playlist.create(name)
 
-    def API_addTrackToPlaylist(self, nbr, uri):
-        nbr = int(nbr)
-
+    def API_addTrackToPlaylist(self, playlist_id, uri):
         track = self.create_track_from_uri(uri)
-        if (track == None):
+        if track == None:
             return -1 # could not queue, track not valid
 
-        self.playlist_tracks.append(track)
+        playlist = Playlist.get(playlist_id)
+        if playlist == None:
+            return -1 # no playlist with that id
+        playlist.add_track(track)
+        #playlist.save()
+
+    def API_removeTrackFromPlaylist(self, playlist_id, track_id):
+        playlist = Playlist.get(playlist_id)
+        if playlist == None:
+            return -1 # no playlist with that id
+        # TODO: return error if track_id isn't present in database
+        playlist.remove_track(track_id)
 
     def API_getAllPlaylists(self):
-        return ['Favourites',
-                'Roskilde 2009',
-                'A very long name for being a playlist name',
-                'Club',
-                'House',
-                'CD collection']
+        return [playlist.to_dict() for playlist in Playlist.get_all()]
 
-    def API_getAllTracksInPlaylist(self, nbr):
-        nbr = int(nbr)
-        return [track.__dict__ for track in self.playlist_tracks]
+    def API_getAllTracksInPlaylist(self, playlist_id):
+        playlist = Playlist.get(playlist_id)
+        if playlist == None:
+            return -1 # no playlist with that id
+
+        # TODO: (track_id, uri) are returned from playlist. Should return tracks.
+        tracks = []
+        for uri in playlist.get_all_tracks():
+            track = self.CreateTrackFromUri(uri[1]).__dict__
+            track['id'] = uri[0]
+            tracks.append(track)
+        return tracks
 
 
 import re
