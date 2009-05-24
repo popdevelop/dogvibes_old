@@ -100,6 +100,10 @@ class API:
 
 
 if __name__ == '__main__':
+    if os.path.exists('dogvibes.db'):
+        os.remove('dogvibes.db')
+        print '''REMOVING DATABASE! DON'T DO THIS IF YOU WANNA KEEP YOUR PLAYLISTS'''
+
     os.system("./spotifysch&")
     os.system("sleep 1")
 
