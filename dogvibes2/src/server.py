@@ -107,9 +107,6 @@ if __name__ == '__main__':
     global dogvibes
     dogvibes = Dogvibes()
 
-    collection = Collection('dogvibes.db')
-    collection.index('/home/brizz/music')
-
     print "Running Dogvibes."
     print "   ->Vibe the dog!"
     print "                 .--.    "

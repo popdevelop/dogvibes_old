@@ -8,6 +8,7 @@ from amp import Amp
 # import spources
 from spotifysource import SpotifySource
 from lastfmsource import LastFMSource
+from filesource import FileSource
 
 # import speakers
 from devicespeaker import DeviceSpeaker
@@ -18,7 +19,8 @@ class Dogvibes():
     def __init__(self):
         # add all sources
         self.sources = [SpotifySource("spotify", "gyllen", "bobidob20"),
-                        LastFMSource("lastfm", "dogvibes", "futureinstereo")]
+                        LastFMSource("lastfm", "dogvibes", "futureinstereo"),
+                        FileSource("filesource", "../testmedia/")]
 
         # add all speakers
         self.speakers = [DeviceSpeaker("devicesink")]
