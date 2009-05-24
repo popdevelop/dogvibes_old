@@ -235,6 +235,9 @@ class LastFMSource:
         return self.bin
 
     def search (self, query):
+        if query != "lastfm":
+            return []
+
         track = Track("lastfm");
         track.title = "Dogvibes LastFM"
         track.artist = "Dogvibes LastFM"

@@ -26,10 +26,19 @@ class Collection:
 
     def CreateTrackFromUri(self, uri):
         c = self.conn.cursor()
-        # Fixme
-        c.execute('''select * from collection where uri = ?''', [track.uri])
-        if c.fetchone() == None:
-            print "found it"
+        c.execute('''select * from collection where uri = ?''', (uri,))
+        row = c.fetchone()
+        if row != None:
+            return self.row_to_track(row)
+        return None
+
+    def row_to_track(self, row):
+        #FIXME pleaz find out how this works
+        track = Track(str(row[4]))
+        track.title = str(row[1])
+        track.artist = str(row[2])
+        track.album = str(row[3])
+        return track
 
 
     def Index(self, path):
@@ -47,8 +56,12 @@ class Collection:
                     self.AddTrack(t)
 
     def search(self, query):
+        ret = []
         c = self.conn.cursor()
-        # Fixme
-        #c.execute('''select * from collection where name LIKE %?% or artist LIKE %?% or album LIKE %?% or uri LIKE %?%''', query, query, query, query)
-        return []
+        query = "%" + query + "%"
+        c.execute('''select * from collection where title LIKE ? or artist LIKE ? or album LIKE ? or uri LIKE ?''', (query, query, query, query))
+        for row in c:
+            ret += [self.row_to_track(row).__dict__]
+
+        return ret
 
