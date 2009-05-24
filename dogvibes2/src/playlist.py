@@ -3,7 +3,7 @@ from track import Track
 
 class Playlist():
     def __init__(self, id, name, db):
-        self.id = id
+        self.id = str(id)
         self.name = name
         self.db = db
 
@@ -47,7 +47,7 @@ class Playlist():
         row = self.db.fetchone()
         tracks = []
         while row != None:
-            tracks.append((row[0], row[2]))
+            tracks.append((str(row[0]), row[2]))
             row = self.db.fetchone()
         return tracks
 
