@@ -30,10 +30,10 @@ class Dogvibes():
         amp0.API_connectSpeaker(0)
         self.amps = [amp0]
 
-    def CreateTrackFromUri(self, uri):
+    def create_track_from_uri(self, uri):
         track = None
         for source in self.sources:
-            track = source.CreateTrackFromUri(uri);
+            track = source.create_track_from_uri(uri);
             if track != None:
                 break
         return track
@@ -50,7 +50,7 @@ class Dogvibes():
     #from PIL import Image
 
     def API_getAlbumArt(self, uri):
-        track = self.CreateTrackFromUri(uri)
+        track = self.create_track_from_uri(uri)
         if (track == None):
             return -1 # could not queue, track not valid
 
@@ -86,7 +86,7 @@ class Dogvibes():
     def API_addTrackToPlaylist(self, nbr, uri):
         nbr = int(nbr)
 
-        track = self.CreateTrackFromUri(uri)
+        track = self.create_track_from_uri(uri)
         if (track == None):
             return -1 # could not queue, track not valid
 

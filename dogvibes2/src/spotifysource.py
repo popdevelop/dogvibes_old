@@ -13,7 +13,7 @@ class SpotifySource:
         self.proxy = bus.get_object('com.Dogvibes',
                                     '/com/dogvibes/dogvibes')
 
-    def CreateTrackFromUri(self, uri):
+    def create_track_from_uri(self, uri):
         a = self.proxy.CreateTrackFromUri(uri, dbus_interface='com.Dogvibes.SpotifySearch', utf8_strings = True)
         if (a == {}):
             return None

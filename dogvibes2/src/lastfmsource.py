@@ -213,7 +213,7 @@ class LastFMSource:
         self.user = user
         self.created = False
 
-    def CreateTrackFromUri(self, uri):
+    def create_track_from_uri(self, uri):
         if (uri != "lastfm"):
             return None
         track = Track(uri);

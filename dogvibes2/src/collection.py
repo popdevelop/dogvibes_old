@@ -24,7 +24,7 @@ class Collection:
                       (track.title, track.artist, track.album, track.uri, track.duration))
             self.conn.commit()
 
-    def CreateTrackFromUri(self, uri):
+    def create_track_from_uri(self, uri):
         c = self.conn.cursor()
         c.execute('''select * from collection where uri = ?''', (uri,))
         row = c.fetchone()

@@ -22,7 +22,7 @@ class Amp():
         # listen for EOS
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
-        self.bus.connect('message', self.PipelineMessage)
+        self.bus.connect('message', self.pipeline_message)
 
         # create the playqueue
         self.playqueue = []
@@ -96,7 +96,7 @@ class Amp():
 
         if len(self.playqueue) > 0:
             status['uri'] = self.playqueue[self.playqueue_position].uri
-            status['playqueuehash'] = self.GetHashFromPlayQueue()
+            status['playqueuehash'] = self.get_hash_from_play_queue()
         else:
             status['uri'] = "dummy"
             status['playqueuehash'] = "dummy"
@@ -115,23 +115,23 @@ class Amp():
         return self.playqueue_position
 
     def API_nextTrack(self):
-        self.ChangeTrack(self.playqueue_position + 1)
+        self.change_track(self.playqueue_position + 1)
 
     def API_playTrack(self, nbr):
-        self.ChangeTrack(nbr)
+        self.change_track(nbr)
         self.API_play()
 
     def API_previousTrack(self):
-        self.ChangeTrack(self.playqueue_position - 1)
+        self.change_track(self.playqueue_position - 1)
 
     def API_play(self):
-        self.PlayOnlyIfNull(self.playqueue[self.playqueue_position])
+        self.play_only_if_null(self.playqueue[self.playqueue_position])
 
     def API_pause(self):
         self.pipeline.set_state(gst.STATE_PAUSED)
 
     def API_queue(self, uri):
-        track = self.dogvibes.CreateTrackFromUri(uri)
+        track = self.dogvibes.create_track_from_uri(uri)
         if (track == None):
             return -1 #"could not queue, track not valid"
         self.playqueue.append(track)
@@ -162,7 +162,7 @@ class Amp():
 
     # Internal functions
 
-    def ChangeTrack(self, tracknbr):
+    def change_track(self, tracknbr):
         tracknbr = int(tracknbr)
 
         if tracknbr > len(self.playqueue) - 1:
@@ -177,23 +177,23 @@ class Amp():
         self.playqueue_position = tracknbr
         (pending, state, timeout) = self.pipeline.get_state()
         self.pipeline.set_state(gst.STATE_NULL)
-        self.PlayOnlyIfNull(self.playqueue[self.playqueue_position])
+        self.play_only_if_null(self.playqueue[self.playqueue_position])
         self.pipeline.set_state(state)
 
 
 
-    def GetHashFromPlayQueue(self):
+    def get_hash_from_play_queue(self):
         ret = ""
         for track in self.playqueue:
             ret += track.uri
         return hashlib.md5(ret).hexdigest()
 
-    def PipelineMessage(self, bus, message):
+    def pipeline_message(self, bus, message):
         t = message.type
         if t == gst.MESSAGE_EOS:
             self.API_nextTrack()
 
-    def PlayOnlyIfNull(self, track):
+    def play_only_if_null(self, track):
         (pending, state, timeout) = self.pipeline.get_state()
         if state != gst.STATE_NULL:
             self.pipeline.set_state(gst.STATE_PLAYING)
@@ -218,7 +218,7 @@ class Amp():
             self.src = self.lastfm
             self.dogvibes.sources[1].set_track(track)
             self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")
-            self.decodebin.connect('new-decoded-pad', self.PadAdded)
+            self.decodebin.connect('new-decoded-pad', self.pad_added)
             self.pipeline.add(self.src)
             self.pipeline.add(self.decodebin)
             self.src.link(self.decodebin)
@@ -227,7 +227,7 @@ class Amp():
             print "Decodebin is taking care of this uri"
             self.src = gst.element_make_from_uri(gst.URI_SRC, track.uri, "source")
             self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")
-            self.decodebin.connect('new-decoded-pad', self.PadAdded)
+            self.decodebin.connect('new-decoded-pad', self.pad_added)
             self.pipeline.add(self.src)
             self.pipeline.add(self.decodebin)
             self.src.link(self.decodebin)
@@ -235,6 +235,6 @@ class Amp():
 
         self.pipeline.set_state(gst.STATE_PLAYING)
 
-    def PadAdded(self, element, pad, last):
+    def pad_added(self, element, pad, last):
         print "Lets add a speaker we found suitable elements to decode"
         pad.link(self.volume.get_pad("sink"))
