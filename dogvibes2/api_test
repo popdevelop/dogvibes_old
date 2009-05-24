@@ -19,12 +19,18 @@ function dogvibes {
 }
 
 dogvibes "search?query=memories"
-dogvibes "createPlaylist?name=API%20test"
+
+# NOTE: requires that dogvibes.db is removed prior to server startup for
+# intended result. When JSON parsing is included here we can make smarter
+# decisions...
+dogvibes "createPlaylist?name=My%20Favourites"
 dogvibes "getAllPlaylists"
-dogvibes "addTrackToPlaylist?nbr=0&uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz"
-dogvibes "addTrackToPlaylist?nbr=0&uri=spotify:track:0S3gpZzlT9Hb7CCSV2owX7"
-dogvibes "addTrackToPlaylist?nbr=0&uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n"
-dogvibes "getAllTracksInPlaylist?nbr=0"
+dogvibes "addTrackToPlaylist?playlist_id=1&uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz"
+dogvibes "addTrackToPlaylist?playlist_id=1&uri=spotify:track:0S3gpZzlT9Hb7CCSV2owX7"
+dogvibes "addTrackToPlaylist?playlist_id=1&uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n"
+dogvibes "getAllTracksInPlaylist?playlist_id=1"
+dogvibes "removeTrackFromPlaylist?playlist_id=1&track_id=1"
+dogvibes "getAllTracksInPlaylist?playlist_id=1"
 
 amp "queue?uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz"
 amp "queue?uri=spotify:track:3ZlFUr0RBrUYYsmlcFvD0e"
