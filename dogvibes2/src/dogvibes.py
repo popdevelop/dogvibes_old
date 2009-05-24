@@ -109,7 +109,7 @@ class Dogvibes():
         # TODO: (track_id, uri) are returned from playlist. Should return tracks.
         tracks = []
         for uri in playlist.get_all_tracks():
-            track = self.CreateTrackFromUri(uri[1]).__dict__
+            track = self.create_track_from_uri(uri[1]).__dict__
             track['id'] = uri[0]
             tracks.append(track)
         return tracks
