@@ -16,7 +16,7 @@ class Collection:
             c.execute('''create table collection (id INTEGER PRIMARY KEY, title TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
         self.conn.commit()
 
-    def AddTrack(self, track):
+    def add_track(self, track):
         c = self.conn.cursor()
         c.execute('''select * from collection where uri = ?''', [track.uri])
         if c.fetchone() == None:
@@ -41,7 +41,7 @@ class Collection:
         return track
 
 
-    def Index(self, path):
+    def index(self, path):
         for top, dirnames, filenames in os.walk(path):
             for filename in filenames:
                 if filename.endswith('.mp3'):
@@ -53,7 +53,7 @@ class Collection:
                     t.album = f.tag().album
                     a = f.audioProperties()
                     t.duration = a.length * 1000 # to msec
-                    self.AddTrack(t)
+                    self.add_track(t)
 
     def search(self, query):
         ret = []

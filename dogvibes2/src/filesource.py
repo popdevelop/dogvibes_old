@@ -8,7 +8,7 @@ class FileSource:
 
         # create database of files
         self.collection = Collection("dogvibes.db")
-        self.collection.Index("/home/gyllen/dogvibes/testmedia/")
+        self.collection.index("/home/gyllen/dogvibes/testmedia/")
 
     def create_track_from_uri(self, uri):
         return self.collection.create_track_from_uri(uri)
