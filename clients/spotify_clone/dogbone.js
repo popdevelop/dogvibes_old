@@ -32,6 +32,8 @@ var command = {
    add: "/amp/0/queue?uri=",
    get: "/amp/0/getAllTracksInQueue",
    remove: "/amp/0/removeTrack?nbr=",
+   /* Playlists */
+   getplaylists: "/dogvibes/getAllPlaylists",
    /* playback control */
    next: "/amp/0/nextTrack",
    play: "/amp/0/play",
@@ -255,6 +257,28 @@ function getPlayQueue(){
 	});   
 }
 
+/* Playlists */
+function getPlayLists(){
+   count = 0;
+   $("#playlists-items").empty();
+   $.ajax({
+      url: server + command.getplaylists,
+      type: "GET",
+      dataType: "jsonp",
+      success: function(data) {
+         $.each(data.result, function(i, list){
+            $("#playlists-items").append("<li><a href=\"#\" class=\"searchClick\">"+list+"</a>");
+            count++;
+         });
+      }
+   });
+   if(count == 0){
+      $("#playlists").hide();
+   } else {
+      $("#playlists").show();
+   }
+}
+
 /* Searching */
 var searchesArray = new Array();
 function addSearch(keyword){
@@ -268,9 +292,9 @@ function addSearch(keyword){
    if(tempArray.length > 6){
       tempArray.pop();
    }
-   $("#searches").empty();
+   $("#searches-items").empty();
    $.each(tempArray, function(i, entry) { 
-      $("#searches").append("<li><a href=\"#\" class=\"searchClick\">"+entry+"</a>");
+      $("#searches-items").append("<li><a href=\"#\" class=\"searchClick\">"+entry+"</a>");
    });
    $(".searchClick").click(function() { doSearchFromLink($(this).text()); });
    searchesArray = tempArray;
@@ -376,6 +400,7 @@ $("document").ready(function() {
 	}
 	if(server){
       connectionInit();
+      getPlayLists(); /* TODO: move this when we have playlisthash */
 		return;
 	}
 	connectionBad("No server configured. Press reload to set");

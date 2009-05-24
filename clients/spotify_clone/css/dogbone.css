@@ -148,12 +148,17 @@ margin:0 -3px;
 #navigation ul { list-style-type: none; margin: 8px;}
 #navigation li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px;}
 #navigation li#p-home { background:url('../img/icon_house.gif') no-repeat scroll 0 2px; }
-#navigation li#p-playqueue { background:url('../img/icon_playlist.gif') no-repeat scroll 0 2px; }
+#navigation li#p-playqueue { background:url('../img/icon_playqueue.gif') no-repeat scroll 0 2px; }
 
-#searches { list-style-type: none; margin: 8px;}
-#searches li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px; background:url('../img/icon_search.gif') no-repeat scroll 0 2px;}
+#searches-items { list-style-type: none; margin: 8px;}
+#searches-items li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px; background:url('../img/icon_search.gif') no-repeat scroll 0 2px;}
 #searches a { color: #c3c3c3; }
 #searches a:hover { color: white; text-decoration:none; }
+
+#playlists-items { list-style-type: none; margin: 8px;}
+#playlists-items li { list-type-style: none; margin-left:5px; padding: 0 0 0 19px; background:url('../img/icon_playlist.gif') no-repeat scroll 0 2px;}
+#playlists a { color: #c3c3c3; }
+#playlists a:hover { color: white; text-decoration:none; }
 
 #main_col
 {
