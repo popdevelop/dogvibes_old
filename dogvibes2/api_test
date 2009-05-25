@@ -24,13 +24,17 @@ dogvibes "search?query=memories"
 # intended result. When JSON parsing is included here we can make smarter
 # decisions...
 dogvibes "createPlaylist?name=My%20Favourites"
+dogvibes "createPlaylist?name=More&20Music"
 dogvibes "getAllPlaylists"
 dogvibes "addTrackToPlaylist?playlist_id=1&uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz"
 dogvibes "addTrackToPlaylist?playlist_id=1&uri=spotify:track:0S3gpZzlT9Hb7CCSV2owX7"
 dogvibes "addTrackToPlaylist?playlist_id=1&uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n"
+dogvibes "addTrackToPlaylist?playlist_id=2&uri=spotify:track:5WO8Vzz5hFWBGzJaNI5U5n"
 dogvibes "getAllTracksInPlaylist?playlist_id=1"
 dogvibes "removeTrackFromPlaylist?playlist_id=1&track_id=1"
 dogvibes "getAllTracksInPlaylist?playlist_id=1"
+dogvibes "removePlaylist?id=1"
+dogvibes "getAllPlaylists"
 
 amp "queue?uri=spotify:track:3A3WCIkkm5MqGRnc4LT6fz"
 amp "queue?uri=spotify:track:3ZlFUr0RBrUYYsmlcFvD0e"
