@@ -3,6 +3,12 @@ import hashlib
 
 from track import Track
 
+class DogError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 class Amp():
     def __init__(self, dogvibes):
         self.dogvibes = dogvibes
@@ -133,13 +139,12 @@ class Amp():
 
     def API_queue(self, uri):
         track = self.dogvibes.create_track_from_uri(uri)
-        if (track == None):
-            return -1 #"could not queue, track not valid"
         self.playqueue.append(track)
 
     def API_removeTrack(self, nbr):
+        # TODO: rewrite to use id, not index in queue
         nbr = int(nbr)
-        if (nbr > len(self.playqueue)):
+        if nbr > len(self.playqueue):
             print "Too big of a number for removing"
             return
 
@@ -155,7 +160,7 @@ class Amp():
     def API_setVolume(self, level):
         level = float(level)
         if (level > 1.0 or level < 0.0):
-            print "Volume must be between 0.0 and 1.0"
+            raise DogError, 'Volume must be between 0.0 and 1.0'
         self.dogvibes.speakers[0].set_volume(level)
         #self.volume.set_property("volume", level)
 

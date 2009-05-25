@@ -1,6 +1,12 @@
 from database import Database
 from track import Track
 
+class DogError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 class Playlist():
     def __init__(self, id, name, db):
         self.id = str(id)
@@ -15,7 +21,9 @@ class Playlist():
         db = Database()
         db.commit_statement('''select * from playlists where id = ?''', [int(id)])
         row = db.fetchone()
-        return Playlist(id, row[1], db) if row != None else None
+        if row == None:
+            raise DogError, 'Could not get playlist with id=' + id
+        return Playlist(id, row[1], db)
 
     @classmethod
     def get_all(self):
@@ -39,6 +47,7 @@ class Playlist():
         self.db.commit_statement('''insert into playlist_tracks (playlist_id, track_uri) values (?, ?)''', [int(self.id), track.uri])
 
     def remove_track(self, id):
+        # There'll be no notification if the track doesn't exists
         self.db.commit_statement('''delete from playlist_tracks where id = ?''', [int(id)])
 
     # TODO: returns tuples of (track_id, uri), should return Tracks

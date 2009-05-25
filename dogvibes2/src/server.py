@@ -20,6 +20,12 @@ import sys
 
 import urllib
 
+class DogError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 # web server
 class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -56,14 +62,15 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             params = dict(filter(lambda k: k[0] in args, params.items()))
             # call the method
             data = getattr(klass, method).__call__(**params)
-            if data == -1: error = 4
-            # TODO: must check for functions returning errors
-        except AttributeError:
+        except AttributeError as e:
+            print e
             error = 1 # No such method
-        except TypeError:
-            error = 2 # Unsupported parameter
-        except NameError:
-            error = 3 # Missing parameter
+        except TypeError as e:
+            print e
+            error = 2 # Missing parameter
+        except DogError as e:
+            print e
+            error = 3 # Internal error, e.g. could not find specified uri
 
         self.send_response(400 if error else 200) # Bad request or OK
 

@@ -16,6 +16,12 @@ from devicespeaker import DeviceSpeaker
 from track import Track
 from playlist import Playlist
 
+class DogError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 class Dogvibes():
     def __init__(self):
         # add all sources
@@ -36,8 +42,8 @@ class Dogvibes():
         for source in self.sources:
             track = source.create_track_from_uri(uri);
             if track != None:
-                break
-        return track
+                return track
+        raise DogError, 'Could not create track from URI'
 
     # API
 
@@ -52,8 +58,6 @@ class Dogvibes():
 
     def API_getAlbumArt(self, uri):
         track = self.create_track_from_uri(uri)
-        if (track == None):
-            return -1 # could not queue, track not valid
 
         art_dir = 'albumart'
         if not os.path.exists(art_dir):
@@ -82,20 +86,11 @@ class Dogvibes():
 
     def API_addTrackToPlaylist(self, playlist_id, uri):
         track = self.create_track_from_uri(uri)
-        if track == None:
-            return -1 # could not queue, track not valid
-
         playlist = Playlist.get(playlist_id)
-        if playlist == None:
-            return -1 # no playlist with that id
         playlist.add_track(track)
-        #playlist.save()
 
     def API_removeTrackFromPlaylist(self, playlist_id, track_id):
         playlist = Playlist.get(playlist_id)
-        if playlist == None:
-            return -1 # no playlist with that id
-        # TODO: return error if track_id isn't present in database
         playlist.remove_track(track_id)
 
     def API_getAllPlaylists(self):
@@ -103,8 +98,6 @@ class Dogvibes():
 
     def API_getAllTracksInPlaylist(self, playlist_id):
         playlist = Playlist.get(playlist_id)
-        if playlist == None:
-            return -1 # no playlist with that id
 
         # TODO: (track_id, uri) are returned from playlist. Should return tracks.
         tracks = []
