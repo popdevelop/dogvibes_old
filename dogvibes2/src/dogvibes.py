@@ -63,10 +63,13 @@ class Dogvibes():
     def API_createPlaylist(self, name):
         Playlist.create(name)
 
+    def API_removePlaylist(self, id):
+        Playlist.remove(id)
+
     def API_addTrackToPlaylist(self, playlist_id, uri):
         track = self.create_track_from_uri(uri)
         playlist = Playlist.get(playlist_id)
-        playlist.add_track(track)
+        return playlist.add_track(track)
 
     def API_removeTrackFromPlaylist(self, playlist_id, track_id):
         playlist = Playlist.get(playlist_id)

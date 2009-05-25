@@ -43,8 +43,17 @@ class Playlist():
         print "Adding playlist '" + name + "'"
         return Playlist(db.lastid(), name, db)
 
+    @classmethod
+    def remove(self, id):
+        db = Database()
+        db.add_statement('''delete from playlist_tracks where playlist_id = ?''', [id])
+        db.add_statement('''delete from playlists where id = ?''', [id])
+        db.commit()
+
     def add_track(self, track):
         self.db.commit_statement('''insert into playlist_tracks (playlist_id, track_uri) values (?, ?)''', [int(self.id), track.uri])
+        # return the id so client don't have to look it up right after add
+        return self.db.lastid()
 
     def remove_track(self, id):
         # There'll be no notification if the track doesn't exists
