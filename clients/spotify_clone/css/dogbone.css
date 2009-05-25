@@ -127,6 +127,7 @@ margin:0 -3px;
    position:fixed;
    top:56px;   
    left:0px; 
+   z-index:0;
 }
 #footer
 {
@@ -142,31 +143,31 @@ margin:0 -3px;
    overflow:hidden;
    height: 100%;
 }
+#left_col a { color: #c3c3c3; }
+#left_col a:hover { color: white; text-decoration:none; }
+#left_col ul { list-style-type: none; margin: 8px 0 8px 0;}
+
 #navigation { padding: 0px; }
-#navigation a { color: #c3c3c3; }
-#navigation a:hover { color: white; text-decoration:none; }
-#navigation ul { list-style-type: none; margin: 8px 0 8px 0;}
 #navigation li { list-type-style: none; margin:0; padding: 0 0 0 28px;}
 #navigation li#p-home { background-image:url('../img/icon_house.gif'); background-repeat:no-repeat; background-position: 10px 2px; }
 #navigation li#p-playqueue { background-image:url('../img/icon_playqueue.gif'); background-repeat: no-repeat; background-position: 10px 2px; }
 #navigation li.selected { background-color: #707070; font-weight: bold;}
 
-#searches-items { list-style-type: none; margin: 8px 0 8px 0;}
 #searches-items li { list-type-style: none; margin:0; padding: 0 0 0 28px; background-image:url('../img/icon_search.gif'); background-repeat:no-repeat; background-position: 10px 2px;}
-#searches a { color: #c3c3c3; }
-#searches a:hover { color: white; text-decoration:none; }
 #searches li.selected { background-color: #707070; font-weight: bold;}
 
-#playlists-items { list-style-type: none; margin: 8px 0 8px 0;}
 #playlists-items li { list-type-style: none; margin:0; padding: 0 0 0 28px; background-image:url('../img/icon_playlist.gif'); background-repeat:no-repeat; background-position: 10px 2px;}
-#playlists a { color: #c3c3c3; }
-#playlists a:hover { color: white; text-decoration:none; }
+#playlists-items .drophover { background-color: #a9d9fe; color: black;}
+#playlists-items .drophover a { color: black;}
+
 #playlists li.selected { background-color: #707070; font-weight: bold;}
+#new_playlist { list-type-style: none; margin:0; padding: 0 0 0 28px; background-image:url('../img/icon_plus.gif'); background-repeat:no-repeat; background-position: 10px 1px;}
 
 #main_col
 {
    overflow:hidden;
    height: 100%;
+   z-index:0;
 }
 #playlist
 {
@@ -361,6 +362,8 @@ margin:0 -3px;
 }
 #s-results td a.addButton { background-image: url('../img/icon_playlist_add.gif'); }
 #s-results td a.remButton { background-image: url('../img/icon_playlist_remove.gif'); }
+#s-results td.selected { background-color: #a9d9fe; color: black; }
+#s-results td.selected a { color: black; }
 
 #s-artists, #s-albums, #s-tracks { font-size: 11px; color:#a0a0a0; padding: 10px; }
 #s-artists span, #s-albums span, #s-tracks span { color: white; font-size: 12px;}

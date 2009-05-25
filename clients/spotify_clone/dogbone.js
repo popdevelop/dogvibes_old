@@ -36,6 +36,9 @@ var command = {
    /* Playlists */
    getplaylists: "/dogvibes/getAllPlaylists",
    getplaylisttracks: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
+   playlistadd: "/dogvibes/createPlaylist?name=",
+   addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",
+   removefromplaylist: "/dogvibes/removeTrackFromPlaylist?playlist_id=",
    /* playback control */
    next: "/amp/0/nextTrack",
    play: "/amp/0/play",
@@ -127,13 +130,15 @@ function handleStatusResponse(data)
 {
 	/* Check if song has switched */
 	if(current_song.index != data.index){
-		$("#row_" + current_song.index + " td:first a").removeClass("playing_icon");      
-      $("#row_" + current_song.index + " td:first a").addClass("remButton"); 
-		$("#row_" + current_song.index + " td").removeClass("playing");  	
+      if(current_page == "p-playqueue"){
+         $("#row_" + current_song.index + " td:first a").removeClass("playing_icon");      
+         $("#row_" + current_song.index + " td:first a").addClass("remButton"); 
+         $("#row_" + current_song.index + " td").removeClass("playing");  	
+      }
 		$("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
 	}
    /* Update playqueue if applicable */   
-	if(data.playqueuehash != current_song.playqueuehash && current_page == "playqueue"){
+	if(data.playqueuehash != current_song.playqueuehash && current_page == "p-playqueue"){
 		getPlayQueue();
 	}
 
@@ -157,15 +162,18 @@ function handleStatusResponse(data)
 	if(data.state != "stopped"){
 		$("#now_playing .artist").text(data.artist);
 		$("#now_playing .title").text(data.title);
-		$("#row_" + data.index + " td:first a").addClass("playing_icon"); 
-      $("#row_" + data.index + " td:first a").removeClass("remButton");       
-		$("#row_" + data.index + " td").addClass("playing");       
+      if(current_page == "p-playqueue"){
+         $("#row_" + data.index + " td:first a").addClass("playing_icon"); 
+         $("#row_" + data.index + " td:first a").removeClass("remButton");       
+         $("#row_" + data.index + " td").addClass("playing");       
+      }
       updateTimes();
 	}
 	else {
 		$("#now_playing .title").html("Nothing playing right now");
 		$("#now_playing .artist").empty();
 		$("#album_art").empty();
+      $("#playback_time").empty();
       $("#playback_total").empty();
 	}
 }
@@ -181,7 +189,7 @@ function connectionInit()
    clearTimeout(connection_timer);      
    connectionBad("Connecting to server '" + server + "'...");
    poll_handle = setInterval(requestStatus,poll_interval);
-   requestStatus();   
+   requestStatus(); 
 }
 
 function connectionRequest()
@@ -220,23 +228,28 @@ function connectionTimeout()
 
 /* Get playqueue or playlist */
 function getPlayQueue(){
-	$("#s-results").html("<tr><td colspan=6>"+ loading_small+ " <i>Fetching play queue...</i>");
-   var getcommand;
+	setWait();
+   var getcommand, addcommand, removecommand;
    if(current_playlist == "playqueue"){
       getcommand = command.get;
+      addcommand = command.playtrack;
+      removecommand = command.remove;
    } else {
       getcommand = command.getplaylisttracks + current_playlist;
+      addcommand = command.add;
+      removecommand = command.removefromplaylist + current_playlist + "&track_id=";
    }
 	$.ajax({
       url: server + getcommand,
       type: "GET",
       dataType: "jsonp",
       success: function(data) {
-      item_count = 0;
-		$("#s-results").empty();
-		$.each(data.result, function(i, song) {
+         item_count = 0;
+         $("#s-results").empty();
+         $.each(data.result, function(i, song) {
             td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-            $("#s-results").append("<tr id=\"row_"+ i + "\">" + td + "<a href=\"#\" id=\"" + i + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + i + "\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
+            id = current_playlist == "playqueue" ? i : song.id; 
+            $("#s-results").append("<tr id=\"row_"+ i + "\" class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + id + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + id + "\" name=\""+song.uri+"\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
             item_count++;
          });
          $(".remButton").click(function () { 
@@ -244,29 +257,35 @@ function getPlayQueue(){
                beforeSend: setWait(),
                type: "GET",
                dataType: 'jsonp',
-               url: server + command.remove + this.id,
-               success: function () {clearWait(); requestStatus(); }
+               url: server + removecommand + this.id,
+               success: function () {clearWait(); getPlayQueue(); } /* TODO: change back this when we have playlisthash */
             });
          });    
-         $(".playButton").click(function () { 
+         $(".playButton").dblclick(function () { 
+            var data = current_playlist == "playqueue" ? this.id : $(this).attr("name");
             $.ajax({ 
                beforeSend: setWait(),
                type: "GET",
                dataType: 'jsonp',
-               url: server + command.playtrack + this.id,
+               url: server + addcommand + data,
                success: function () {clearWait(); requestStatus(); }
             });
-         });      
+         });   
          if(item_count == 0){
             $("#s-results").html("<tr><td colspan=6><i>No tracks in this list</i>");
          }
          else{
+            $(".pl_row").click(function(){
+               $(".pl_row").find("td").removeClass("selected");
+               $(this).find("td").addClass("selected");
+            });         
             /* TODO: Make things sortable. Just dummy for now */
             $(function() {
                $("#s-results").sortable();
                $("#s-results").disableSelection();
             });
          }
+         clearWait();
          requestStatus();
       }
 	});   
@@ -282,6 +301,20 @@ function getPlayLists(){
       success: function(data) {
          $.each(data.result, function(i, list){
             $("#playlists-items").append("<li id=\"pl-"+list.id+"\"><a href=\"#\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a>");
+            $("#pl-"+list.id).droppable({
+               hoverClass: 'drophover',
+               drop: function(event, ui) {
+                  id = $(this).find("a").attr("name");
+                  uri = ui.draggable.attr("id");
+                  //alert("Dropped " + uri + " into " + id);
+                  $.ajax({
+                     type: "GET",
+                     dataType: "jsonp",
+                     url: server + command.addtoplaylist + id + "&uri=" + uri
+                     });
+                  $(this).effect("highlight");
+               }
+            });            
          });
          $(".playlistClick").click(function() { 
             current_playlist = this.name;
@@ -289,7 +322,7 @@ function getPlayLists(){
             $("#tab-title").text("Playlist");
             $("#playlist").html(track_list_table);
             getPlayQueue();
-         });         
+         });
       }
    });
 }
@@ -340,7 +373,7 @@ function doSearch() {
          $("#s-results").empty();
             $.each(data.result, function(i, song) {
                td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-               $("#s-results").append("<tr>" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
+               $("#s-results").append("<tr class=\"pl_row\">" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
                item_count++;
                if(!artists[song.artist]) { artists[song.artist]=0; artist_count++; }
                artists[song.artist]++;
@@ -348,7 +381,8 @@ function doSearch() {
             });
             /* Add click actions */
             $(".addButton").click(function () {
-               $(this).effect('highlight');
+               $("#s-results .selected").effect('highlight');
+               $("#p-playqueue").effect('highlight');
                $.ajax({  
                   beforeSend: setWait(),
                   type: "GET",
@@ -357,8 +391,9 @@ function doSearch() {
                   success: clearWait()
                });
             }); 
-            $(".playButton").click(function () {
-               $(this).effect('highlight');
+            $(".playButton").dblclick(function () {
+               $("#s-results .selected").effect('highlight');
+               $("#p-playqueue").effect('highlight');
                $.ajax({
                   beforeSend: setWait(),
                   type: "GET",
@@ -372,7 +407,15 @@ function doSearch() {
             });
             if(item_count == 0){
                $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
-               
+            } else {
+               $(".pl_row").click(function(){
+                  $(".pl_row").find("td").removeClass("selected");
+                  $(this).find("td").addClass("selected");
+               });   
+            /* TODO: Make things sortable. Just dummy for now */
+            $(function() {
+               $(".playButton").draggable({ revert: true, scroll: false, zIndex: 1000, revertDuration: 100, helper: 'clone', stack: { group: 'products', min: 50 } });
+            });
             }
             /* Print summaries */
 			$("#s-tracks").html("<span>Tracks</span> <span class=\"count\">(" + item_count + ")</span>");
@@ -491,6 +534,18 @@ $("#p-playqueue").click(function () {
 	$("#tab-title").text("Play queue");
 	$("#playlist").html(track_list_table);
 	getPlayQueue();
+});
+
+$("#new_playlist").click(function() {
+   newlist = prompt("Enter new playlist name:", "");
+   if(newlist && newlist!=""){
+      $.ajax({
+         type: "GET",
+         dataType: 'jsonp',
+         url: server + command.playlistadd + newlist,
+         success: function() { getPlayLists(); }
+      });
+   }
 });
 
 /* Searching */
