@@ -5,12 +5,16 @@ import hashlib
 import gobject
 import gst
 
+
 #import dogvibes object
 from dogvibes import Dogvibes
 
 # import track
 from track import Track
 from collection import Collection
+
+# import threads
+from threading import Thread
 
 import BaseHTTPServer
 from urlparse import urlparse
@@ -100,20 +104,23 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(data)
 
 
-class API:
+class API(Thread):
     def __init__(self):
+        Thread.__init__ (self)
+
+    def run(self):
+        global dogvibes
+        dogvibes = Dogvibes()
+
         httpserver = BaseHTTPServer.HTTPServer(("", 2000), APIHandler)
         httpserver.serve_forever()
-
 
 if __name__ == '__main__':
     if os.path.exists('dogvibes.db'):
         os.remove('dogvibes.db')
-        print '''REMOVING DATABASE! DON'T DO THIS IF YOU WANNA KEEP YOUR PLAYLISTS'''
+        print "REMOVING DATABASE! DON'T DO THIS IF YOU WANNA KEEP YOUR PLAYLISTS"
 
     # create the dogvibes object
-    global dogvibes
-    dogvibes = Dogvibes()
 
     print "Running Dogvibes."
     print "   ->Vibe the dog!"
@@ -126,4 +133,9 @@ if __name__ == '__main__':
     print "        / \ \_  / /|     "
     print "        \_)\__) \_)_)    "
 
-    api = API()
+    gobject.threads_init()
+
+    API().start()
+
+    loop = gobject.MainLoop()
+    loop.run()

@@ -85,8 +85,6 @@ class Amp():
 
     def API_getStatus(self):
         # this is very ugly we need to run on GLib mainloop somehow
-        self.bus.poll(gst.MESSAGE_EOS, 1)
-
         if (len(self.playqueue) > 0):
             track = self.playqueue[self.playqueue_position]
             status = {'title': track.title,
