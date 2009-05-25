@@ -1,5 +1,5 @@
-import dbus
 import gst
+import spotifydogvibes
 from track import Track
 
 class SpotifySource:
@@ -8,19 +8,12 @@ class SpotifySource:
         self.passw = passw
         self.user = user
         self.created = False
-
-        bus = dbus.SystemBus()
-        self.proxy = bus.get_object('com.Dogvibes',
-                                    '/com/dogvibes/dogvibes')
+        spotifydogvibes.login(user, passw);
 
     def create_track_from_uri(self, uri):
-        a = self.proxy.CreateTrackFromUri(uri, dbus_interface='com.Dogvibes.SpotifySearch', utf8_strings = True)
-        if (a == {}):
+        d = spotifydogvibes.create_track_from_uri(uri)
+        if (d == {}):
             return None
-
-        k = map(lambda x: str(x), a.keys())
-        v = map(lambda x: str(x), a.values())
-        d = dict(zip(k,v))
 
         track = Track(uri)
         track.title = d["title"]
@@ -45,14 +38,7 @@ class SpotifySource:
         return self.bin
 
     def search (self, query):
-        a = self.proxy.Search(query, dbus_interface='com.Dogvibes.SpotifySearch', utf8_strings = True)
-        r = []
-        for i in a:
-            k = map(lambda x: str(x), i.keys())
-            v = map(lambda x: str(x), i.values())
-            d = dict(zip(k,v))
-            r.append(d)
-        return r
+        return spotifydogvibes.search(query);
 
     def set_track (self, track):
         self.spotify.set_property ("spotifyuri", track.uri)
