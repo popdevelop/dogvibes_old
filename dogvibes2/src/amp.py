@@ -153,9 +153,10 @@ class Amp():
         if (nbr <= self.playqueue_position):
             self.playqueue_position = self.playqueue_position - 1
 
-    def API_seek(self, useconds):
-        print "Seek simple to " + str(useconds) + " useconds"
-        self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, useconds);
+    def API_seek(self, mseconds):
+        print "Seek simple to " + mseconds + " useconds"
+         # FIXME: this *1000-hack only works for Spotify?
+        self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, int(mseconds) * 1000);
 
     def API_setVolume(self, level):
         level = float(level)

@@ -93,6 +93,13 @@ sleep 1
 amp "getPlayedMilliSeconds"
 sleep 1
 
+amp "seek?mseconds=30000"
+amp "getPlayedMilliSeconds"
+sleep 2
+amp "seek?mseconds=2000"
+amp "getPlayedMilliSeconds"
+sleep 2
+
 amp "disconnectSpeaker?nbr=0"
 sleep 2
 
