@@ -24,9 +24,15 @@ class DogError(Exception):
 
 class Dogvibes():
     def __init__(self):
+
+        spot_user = os.environ.get('SPOTIFY_USER') or "gyllen"
+        spot_pass = os.environ.get('SPOTIFY_PASS') or "bobidob20"
+        lastfm_user = os.environ.get('LASTFM_USER') or "dogvibes"
+        lastfm_pass = os.environ.get('LASTFM_PASS') or "futureinstereo"
+
         # add all sources
-        self.sources = [SpotifySource("spotify", "gyllen", "bobidob20"),
-                        LastFMSource("lastfm", "dogvibes", "futureinstereo"),
+        self.sources = [SpotifySource("spotify", spot_user, spot_pass),
+                        LastFMSource("lastfm", lastfm_user, lastfm_pass),
                         FileSource("filesource", "../testmedia/")]
 
         # add all speakers
