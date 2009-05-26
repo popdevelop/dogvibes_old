@@ -157,6 +157,8 @@ class Amp():
         print "Seek simple to " + mseconds + " useconds"
          # FIXME: this *1000-hack only works for Spotify?
         self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, int(mseconds) * 1000);
+        self.src.get_pad("src").push_event(gst.event_new_flush_start())
+        self.src.get_pad("src").push_event(gst.event_new_flush_stop())
 
     def API_setVolume(self, level):
         level = float(level)
