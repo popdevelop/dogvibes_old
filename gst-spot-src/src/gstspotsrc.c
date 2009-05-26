@@ -162,6 +162,9 @@ static gboolean keep_spotify_thread = TRUE;
 
 static GstSpotSrc *spot;
 
+/* ugly hack remove as soon as possible */
+static int uglysearchcounter = 0;
+
 /*****************************************************************************/
 /*** LIBSPOTIFY FUNCTIONS ****************************************************/
 
@@ -246,6 +249,16 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   }
 
   GST_DEBUG_OBJECT (spot,"%s - start %p with %d frames with size=%d\n",__FUNCTION__, frames, num_frames, bufsize);
+
+  if (num_frames == 0) {
+    if (uglysearchcounter <= 0) {
+      GstPad *src_pad = gst_element_get_pad (GST_ELEMENT (spot), "src");
+      gst_pad_push_event (src_pad, gst_event_new_eos ());
+      return 0;
+    } else {
+      uglysearchcounter--;
+    }
+  }
 
   //FIXME: send EOS
 
@@ -751,6 +764,7 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
       gint channels = GST_SPOT_SRC_FORMAT (spot)->channels;
       gint64 frames = offset / (channels * sizeof (int16_t));
       g_print ("offset (%lld) / channels (%d) * samplesize (%d) = frames (%lld)\n", offset, channels, sizeof (int16_t), frames);
+      uglysearchcounter = 2;
       gint64 seek_usec = frames / ((float)sample_rate/1000);
       g_print ("seek_usec = (%lld) = frames (%lld) /  sample_rate (%d/1000)\n", seek_usec, frames, sample_rate);
       g_print ("perform seek to %lld bytes and %lld usec\n", offset, seek_usec);
