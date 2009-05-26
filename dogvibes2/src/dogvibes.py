@@ -80,11 +80,4 @@ class Dogvibes():
 
     def API_getAllTracksInPlaylist(self, playlist_id):
         playlist = Playlist.get(playlist_id)
-
-        # TODO: (track_id, uri) are returned from playlist. Should return tracks.
-        tracks = []
-        for uri in playlist.get_all_tracks():
-            track = self.create_track_from_uri(uri[1]).__dict__
-            track['id'] = uri[0]
-            tracks.append(track)
-        return tracks
+        return [track.__dict__ for track in playlist.get_all_tracks()]
