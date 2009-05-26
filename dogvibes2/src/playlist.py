@@ -68,7 +68,15 @@ class Playlist():
         while row != None:
             tracks.append((str(row['id']), row['track_id'])) # FIXME: broken!
             row = self.db.fetchone()
-        return tracks
+
+        ret_tracks = []
+        for track in tracks:
+            # TODO: replace with an SQL statement that instantly creates a Track object
+            self.db.commit_statement('''select * from tracks where id = ?''', [track[1]])
+            row = self.db.fetchone()
+            ret_tracks.append((track[0], row['uri']))
+
+        return ret_tracks
 
 
 if __name__ == '__main__':
