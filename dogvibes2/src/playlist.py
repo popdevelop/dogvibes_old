@@ -23,7 +23,7 @@ class Playlist():
         row = db.fetchone()
         if row == None:
             raise DogError, 'Could not get playlist with id=' + id
-        return Playlist(id, row[1], db)
+        return Playlist(id, row['name'], db)
 
     @classmethod
     def get_all(self):
@@ -32,7 +32,7 @@ class Playlist():
         row = db.fetchone()
         playlists = []
         while row != None:
-            playlists.append(Playlist(row[0], row[1], db))
+            playlists.append(Playlist(row['id'], row['name'], db))
             row = db.fetchone()
         return playlists
 
@@ -46,8 +46,8 @@ class Playlist():
     @classmethod
     def remove(self, id):
         db = Database()
-        db.add_statement('''delete from playlist_tracks where playlist_id = ?''', [id])
-        db.add_statement('''delete from playlists where id = ?''', [id])
+        db.add_statement('''delete from playlist_tracks where playlist_id = ?''', [int(id)])
+        db.add_statement('''delete from playlists where id = ?''', [int(id)])
         db.commit()
 
     # returns: the id so client don't have to look it up right after add
@@ -62,11 +62,11 @@ class Playlist():
 
     # TODO: returns tuples of (track_id, uri), should return Tracks
     def get_all_tracks(self):
-        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [self.id])
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
         row = self.db.fetchone()
         tracks = []
         while row != None:
-            tracks.append((str(row[0]), row[2]))
+            tracks.append((str(row['id']), row['track_id'])) # FIXME: broken!
             row = self.db.fetchone()
         return tracks
 

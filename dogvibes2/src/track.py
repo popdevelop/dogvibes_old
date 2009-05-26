@@ -1,12 +1,14 @@
 from database import Database
 
 class Track:
-    def __init__(self, uri):
-        self.title = "Name"
-        self.artist = "Artist"
-        self.album = "Album"
+    # Set all attributes as parateters to be able to initialize with a **dict
+    def __init__(self, uri, title = 'Name', artist = 'Artist', album = 'Album',
+                 duration = 0):
+        self.title = title
+        self.artist = artist
+        self.album = album
         self.uri = uri
-        self.duration = 0
+        self.duration = duration
 
     def __str__(self):
         return self.artist + ' - ' + self.title
@@ -22,4 +24,4 @@ class Track:
                                 (self.title, self.artist, self.album, self.uri, self.duration))
             return db.inserted_id()
         else:
-            return row[0]
+            return row['id']

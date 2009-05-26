@@ -20,17 +20,9 @@ class Collection:
         db.commit_statement('''select * from tracks where uri = ?''', [uri])
         row = db.fetchone()
         if row != None:
-            return self.row_to_track(row)
+            del row['id'] # the id isn't part of a Track object
+            return Track(**row)
         return None
-
-    def row_to_track(self, row):
-        #FIXME pleaz find out how this works
-        track = Track(str(row[4]))
-        track.title = str(row[1])
-        track.artist = str(row[2])
-        track.album = str(row[3])
-        return track
-
 
     def index(self, path):
         for top, dirnames, filenames in os.walk(path):
@@ -54,7 +46,8 @@ class Collection:
         db.commit_statement('''select * from tracks where (title LIKE ? or artist LIKE ? or album LIKE ?) and uri LIKE ?''', (query, query, query, 'file://%'))
         row = db.fetchone()
         while row != None:
-            ret += [self.row_to_track(row).__dict__]
+            del row['id'] # the id isn't part of a Track object
+            ret.append(row) # TODO: return a Track here instead
             row = db.fetchone()
         return ret
 

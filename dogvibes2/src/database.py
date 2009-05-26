@@ -5,6 +5,8 @@ class Database():
 
     def __init__(self):
         self.connection = sqlite3.connect('dogvibes.db')
+        # Enable returning tuples instead of just an string array
+        self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
         # Table for storing results from indexing a file system
         self.add_statement('''create table if not exists collection (id INTEGER PRIMARY KEY, track_id INTEGER)''')
@@ -34,7 +36,8 @@ class Database():
         self.statements = []
 
     def fetchone(self):
-        return self.cursor.fetchone()
+        row = self.cursor.fetchone()
+        return dict(zip(row.keys(), row)) if row != None else None
 
     # TODO: check that this is always the same as the 'id' field after an insert
     def inserted_id(self):
@@ -49,3 +52,6 @@ if __name__ == '__main__':
     db.commit()
     db.commit_statement('''insert into playlists (name) values (?)''', ['musungen'])
     db.add_statement('''insert into playlists (name) values (?)''', ['should not be saved'])
+
+    db.commit_statement('''select * from playlists''')
+    print db.fetchone()
