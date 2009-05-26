@@ -60,7 +60,7 @@ class Playlist():
         # There'll be no notification if the track doesn't exists
         self.db.commit_statement('''delete from playlist_tracks where id = ?''', [int(id)])
 
-    # TODO: returns tuples of (track_id, uri), should return Tracks
+    # returns: an array of Track objects
     def get_all_tracks(self):
         self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
         row = self.db.fetchone()
@@ -74,7 +74,6 @@ class Playlist():
             # TODO: replace with an SQL statement that instantly creates a Track object
             self.db.commit_statement('''select * from tracks where id = ?''', [track[1]])
             row = self.db.fetchone()
-            #ret_tracks.append((track[0], row['uri']))
             del row['id']
             t = Track(**row)
             t.id = track[0] # add the playlist-to-track id instead
