@@ -760,6 +760,7 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
         goto create_seek_failed;
       }
       src->read_position = offset;
+      gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
     }
 
     /* see if we have bytes to write */
