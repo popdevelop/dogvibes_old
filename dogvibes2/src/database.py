@@ -6,9 +6,19 @@ class Database():
     def __init__(self):
         self.connection = sqlite3.connect('dogvibes.db')
         self.cursor = self.connection.cursor()
-        self.add_statement('''create table if not exists collection (id INTEGER PRIMARY KEY, title TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
+        # Table for storing results from indexing a file system
+        self.add_statement('''create table if not exists collection (id INTEGER PRIMARY KEY, track_id INTEGER)''')
+        # Table for storing information of all tracks that has passed through
+        # dogvibes in any way, like added to a queue of playlist. This way we
+        # are able to keep track of properties such as play count and can
+        # reference tracks by an unique dogvibes id, rather than an uri which
+        # can change over time.
+        self.add_statement('''create table if not exists tracks (id INTEGER PRIMARY KEY, title TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
+        # Table for storing playlists
         self.add_statement('''create table if not exists playlists (id INTEGER PRIMARY KEY, name TEXT)''')
-        self.add_statement('''create table if not exists playlist_tracks (id INTEGER PRIMARY KEY, playlist_id INTEGER, track_uri TEXT)''')
+        # Table for storing the relation between playlists and tracks, i.e.
+        # the contents of a playlists as references
+        self.add_statement('''create table if not exists playlist_tracks (id INTEGER PRIMARY KEY, playlist_id INTEGER, track_id INTEGER)''')
         self.commit()
 
     def commit_statement(self, statement, args = []):
@@ -27,7 +37,7 @@ class Database():
         return self.cursor.fetchone()
 
     # TODO: check that this is always the same as the 'id' field after an insert
-    def lastid(self):
+    def inserted_id(self):
         return self.cursor.lastrowid
 
 if __name__ == '__main__':

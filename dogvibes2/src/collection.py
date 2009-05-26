@@ -4,30 +4,21 @@ import tagpy
 import sqlite3
 
 from track import Track
+from database import Database
 
 class Collection:
-    def __init__(self, path):
-        if os.path.exists(path):
-            self.conn = sqlite3.connect(path)
-            c = self.conn.cursor()
-        else:
-            self.conn = sqlite3.connect(path)
-            c = self.conn.cursor()
-            c.execute('''create table collection (id INTEGER PRIMARY KEY, title TEXT, artist TEXT, album TEXT, uri TEXT, duration INTEGER)''')
-        self.conn.commit()
-
     def add_track(self, track):
-        c = self.conn.cursor()
-        c.execute('''select * from collection where uri = ?''', [track.uri])
-        if c.fetchone() == None:
-            c.execute('''insert into collection (title, artist, album, uri, duration) values (?, ?, ?, ?, ?)''',
-                      (track.title, track.artist, track.album, track.uri, track.duration))
-            self.conn.commit()
+        db = Database()
+        track_id = track.store()
+        db.commit_statement('''select * from collection where track_id = ?''', [int(track_id)])
+        if db.fetchone() == None:
+            db.commit_statement('''insert into collection (track_id) values (?)''', [track_id])
 
     def create_track_from_uri(self, uri):
-        c = self.conn.cursor()
-        c.execute('''select * from collection where uri = ?''', (uri,))
-        row = c.fetchone()
+        db = Database()
+        # TODO: better way than searching through ALL tracks?
+        db.commit_statement('''select * from tracks where uri = ?''', [uri])
+        row = db.fetchone()
         if row != None:
             return self.row_to_track(row)
         return None
@@ -56,12 +47,20 @@ class Collection:
                     self.add_track(t)
 
     def search(self, query):
+        db = Database()
         ret = []
-        c = self.conn.cursor()
         query = "%" + query + "%"
-        c.execute('''select * from collection where title LIKE ? or artist LIKE ? or album LIKE ? or uri LIKE ?''', (query, query, query, query))
-        for row in c:
+        # TODO: do a join between tracks and collection here. Not search on uri
+        db.commit_statement('''select * from tracks where (title LIKE ? or artist LIKE ? or album LIKE ?) and uri LIKE ?''', (query, query, query, 'file://%'))
+        row = db.fetchone()
+        while row != None:
             ret += [self.row_to_track(row).__dict__]
-
+            row = db.fetchone()
         return ret
 
+
+if __name__ == '__main__':
+
+    collection = Collection()
+    collection.index('/home/brizz/music')
+    print collection.search('hurricanes')

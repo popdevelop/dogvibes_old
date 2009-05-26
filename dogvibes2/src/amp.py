@@ -130,6 +130,8 @@ class Amp():
         self.change_track(self.playqueue_position - 1)
 
     def API_play(self):
+        if self.playqueue_position > len(self.playqueue) - 1:
+            raise DogError, 'Trying to play an empty play queue'
         self.play_only_if_null(self.playqueue[self.playqueue_position])
 
     def API_pause(self):

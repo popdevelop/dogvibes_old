@@ -41,7 +41,7 @@ class Playlist():
         db = Database()
         db.commit_statement('''insert into playlists (name) values (?)''', [name])
         print "Adding playlist '" + name + "'"
-        return Playlist(db.lastid(), name, db)
+        return Playlist(db.inserted_id(), name, db)
 
     @classmethod
     def remove(self, id):
@@ -50,10 +50,11 @@ class Playlist():
         db.add_statement('''delete from playlists where id = ?''', [id])
         db.commit()
 
+    # returns: the id so client don't have to look it up right after add
     def add_track(self, track):
-        self.db.commit_statement('''insert into playlist_tracks (playlist_id, track_uri) values (?, ?)''', [int(self.id), track.uri])
-        # return the id so client don't have to look it up right after add
-        return self.db.lastid()
+        track_id = track.store()
+        self.db.commit_statement('''insert into playlist_tracks (playlist_id, track_id) values (?, ?)''', [int(self.id), int(track_id)])
+        return self.db.inserted_id()
 
     def remove_track(self, id):
         # There'll be no notification if the track doesn't exists
@@ -71,6 +72,7 @@ class Playlist():
 
 
 if __name__ == '__main__':
+
     p = Playlist.create("testlist 1")
     p = Playlist.create("testlist 2")
     p = Playlist.create("testlist 3")
@@ -78,8 +80,10 @@ if __name__ == '__main__':
     t = Track("dummy-uri0")
     p.add_track(t)
     print p.get_all_tracks()
-    p = Playlist.get(1000) # should not crash
-    p = Playlist.get(2)
+    try:
+        p = Playlist.get('1000') # should not crash
+    except DogError: pass
+    p = Playlist.get('2')
     print p.name
     ps = Playlist.get_all()
     print ps[1].name
