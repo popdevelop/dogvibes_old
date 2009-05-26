@@ -152,6 +152,9 @@ margin:0 -3px;
 #navigation li#p-home { background-image:url('../img/icon_house.gif'); background-repeat:no-repeat; background-position: 10px 2px; }
 #navigation li#p-playqueue { background-image:url('../img/icon_playqueue.gif'); background-repeat: no-repeat; background-position: 10px 2px; }
 #navigation li.selected { background-color: #707070; font-weight: bold;}
+#navigation .drophover { background-color: #a9d9fe; color: black;}
+#navigation .drophover a { color: black;}
+
 
 #searches-items li { list-type-style: none; margin:0; padding: 0 0 0 28px; background-image:url('../img/icon_search.gif'); background-repeat:no-repeat; background-position: 10px 2px;}
 #searches li.selected { background-color: #707070; font-weight: bold;}

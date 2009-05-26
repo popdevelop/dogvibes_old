@@ -26,6 +26,8 @@ var current_page = false;
 var current_playlist = false;
 var time_count;
 var request_in_progress = false;
+var seek_in_progress = false; /* FIXME: */
+var vol_in_progress = false; /* FIXME: */
 
 /* These are all the commands available to the server */
 var command = {
@@ -45,6 +47,7 @@ var command = {
    playtrack: "/amp/0/playTrack?nbr=",
    pause: "/amp/0/pause",
    prev: "/amp/0/previousTrack",
+   seek: "/amp/0/seek?mseconds=",
    volume: "/amp/0/setVolume?level=", 
    /* other */
    status: "/amp/0/getStatus",
@@ -87,7 +90,9 @@ function updateTimes(){
    new_time = Math.round(current_song.elapsedmseconds / 1000 -0.5);
    percent = (current_song.elapsedmseconds/current_song.duration) *100;
 	$("#playback_time").html(timestamp_to_string(new_time));
-	$('#playback_seek').slider('option', 'value', percent);
+   if(!seek_in_progress) {
+      $('#playback_seek').slider('option', 'value', percent);
+   }
    $("#playback_total").html(timestamp_to_string(Math.round(current_song.duration/1000 - 0.5)));
 	if(current_song.elapsedmseconds >= current_song.duration){
 		clearInterval(time_count);
@@ -144,7 +149,7 @@ function handleStatusResponse(data)
 
    current_song = data;   
    /* Update volume */
-   if(data.volume){
+   if(!vol_in_progress && data.volume){
       $('#playback_volume').slider('option', 'value', data.volume*100);
    }
 	/* Update play status */
@@ -281,7 +286,7 @@ function getPlayQueue(){
             });         
             /* TODO: Make things sortable. Just dummy for now */
             $(function() {
-               $("#s-results").sortable();
+               $("#s-results").sortable({appendTo: "body", scroll: false });
                $("#s-results").disableSelection();
             });
          }
@@ -414,7 +419,7 @@ function doSearch() {
                });   
             /* TODO: Make things sortable. Just dummy for now */
             $(function() {
-               $(".playButton").draggable({ revert: true, scroll: false, zIndex: 1000, revertDuration: 100, helper: 'clone', stack: { group: 'products', min: 50 } });
+               $(".playButton").draggable({ revert: 'invalid', scroll: false, revertDuration: 100, helper: 'clone', appendTo: "body" });
             });
             }
             /* Print summaries */
@@ -535,6 +540,21 @@ $("#p-playqueue").click(function () {
 	$("#playlist").html(track_list_table);
 	getPlayQueue();
 });
+$("#p-playqueue").droppable({
+   hoverClass: 'drophover',
+   drop: function(event, ui) {
+      id = $(this).find("a").attr("name");
+      uri = ui.draggable.attr("id");
+      //alert("Dropped " + uri + " into " + id);
+      $.ajax({
+         type: "GET",
+         dataType: "jsonp",
+         url: server + command.add + uri
+         });
+      $(this).effect("highlight");
+   }
+});
+
 
 $("#new_playlist").click(function() {
    newlist = prompt("Enter new playlist name:", "");
@@ -561,11 +581,26 @@ $(".navlink").bind("click", function () {
 });
 
 $('#playback_volume').slider({
+   start: function(e, ui) { vol_in_progress = true; },
+   stop: function(e, ui) { vol_in_progress = false; },
    change: function(event, ui) { 
 	$.ajax({ 
 		type: "GET",
 		dataType: 'jsonp',
 		url: server + command.volume + ui.value/100,
+		success: function () { requestStatus(); }
+	});		
+   }
+});
+
+$('#playback_seek').slider({
+   start: function(e, ui) { seek_in_progress = true; },
+   stop: function(e, ui) { seek_in_progress = false; },
+   change: function(event, ui) { 
+	$.ajax({ 
+		type: "GET",
+		dataType: 'jsonp',
+		url: server + command.seek + Math.round((ui.value*current_song.duration)/100),
 		success: function () { requestStatus(); }
 	});		
    }
