@@ -15,16 +15,9 @@ class Amp():
         self.dogvibes = dogvibes
         self.pipeline = gst.Pipeline ("amppipeline")
 
-        # create volume element
-        self.volume = gst.element_factory_make("volume", "volume")
-        self.pipeline.add(self.volume)
-
         # create the tee element
         self.tee = gst.element_factory_make("tee", "tee")
         self.pipeline.add(self.tee)
-
-        # link volume with tee
-        self.volume.link(self.tee)
 
         # listen for EOS
         self.bus = self.pipeline.get_bus()
@@ -100,7 +93,7 @@ class Amp():
             status = {}
 
         # FIXME this should be speaker specific
-        status['volume'] = self.dogvibes.speakers[0].get_volume() #self.volume.get_property("volume")
+        status['volume'] = self.dogvibes.speakers[0].get_volume()
 
         if len(self.playqueue) > 0:
             status['uri'] = self.playqueue[self.playqueue_position].uri
@@ -234,7 +227,7 @@ class Amp():
             # FIXME ugly
             self.dogvibes.sources[0].set_track(track)
             self.pipeline.add(self.src)
-            self.src.link(self.volume)
+            self.src.link(self.tee)
             self.spotify_in_use = True
         elif track.uri == "lastfm":
             print "It was a lastfm uri"
@@ -260,4 +253,4 @@ class Amp():
 
     def pad_added(self, element, pad, last):
         print "Lets add a speaker we found suitable elements to decode"
-        pad.link(self.volume.get_pad("sink"))
+        pad.link(self.tee.get_pad("sink"))
