@@ -71,6 +71,15 @@ enum
   ARG_BUFFER_TIME
 };
 
+/* src signals */
+enum
+{
+  SIGNAL_PLAY_TOKEN_LOST,
+  LAST_SIGNAL
+};
+
+static guint gst_spot_signals[LAST_SIGNAL] = { 0 };
+
 /* libspotify */
 static int spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *format, const void *frames, int num_frames);
 static void spotify_cb_logged_in (sp_session *spotify_session, sp_error error);
@@ -183,6 +192,7 @@ spotify_cb_message_to_user (sp_session *session, const char *msg)
 static void
 spotify_cb_play_token_lost (sp_session *session)
 {
+  g_signal_emit(spot, gst_spot_signals[SIGNAL_PLAY_TOKEN_LOST], 0);
   GST_DEBUG_OBJECT (spot, "play token lost");
 }
 
@@ -259,8 +269,6 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
       uglysearchcounter--;
     }
   }
-
-  //FIXME: send EOS
 
   buffer = gst_buffer_new_and_alloc (bufsize);
 
@@ -621,6 +629,12 @@ gst_spot_src_class_init (GstSpotSrcClass * klass)
                       0,BUFFER_TIME_MAX,BUFFER_TIME_DEFAULT,
                       G_PARAM_READWRITE));
 
+  gst_spot_signals[SIGNAL_PLAY_TOKEN_LOST] =
+      g_signal_new ("play-token-lost", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_FIRST,
+      0, NULL, NULL,
+      g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
+
+
    process_events_cond = g_cond_new ();
    process_events_mutex = g_mutex_new ();
    spotifylib_mutex = g_mutex_new ();
@@ -815,6 +829,10 @@ gst_spot_src_create (GstBaseSrc * basesrc, guint64 offset, guint length, GstBuff
   GstSpotSrc *src;
   GstFlowReturn ret;
   src = GST_SPOT_SRC (basesrc);
+
+  //FIXME this is stupid, but I do not know how to determine that we start playing
+  //      so please FIXME
+  sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), 1);
 
   ret = gst_spot_src_create_read (src, offset, length, buffer);
 
