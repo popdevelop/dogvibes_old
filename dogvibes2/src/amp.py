@@ -1,5 +1,6 @@
 import gst
 import hashlib
+import random
 
 from track import Track
 
@@ -35,6 +36,9 @@ class Amp():
         self.playqueue_position = 0
 
         self.src = None
+
+        # set playqueue mode to normal
+        self.playqueue_mode = "normal"
 
         # spotify is special FIXME: not how its supposed to be
         self.spotify = self.dogvibes.sources[0].get_src()
@@ -84,7 +88,6 @@ class Amp():
         return pos / 1000 # / gst.MSECOND # FIXME: something fishy here...
 
     def API_getStatus(self):
-        # this is very ugly we need to run on GLib mainloop somehow
         if (len(self.playqueue) > 0):
             track = self.playqueue[self.playqueue_position]
             status = {'title': track.title,
@@ -145,8 +148,7 @@ class Amp():
         # TODO: rewrite to use id, not index in queue
         nbr = int(nbr)
         if nbr > len(self.playqueue):
-            print "Too big of a number for removing"
-            return
+            raise DogError, 'Track not removed, playqueue is not that big'
 
         self.playqueue.remove(self.playqueue[nbr])
 
@@ -160,12 +162,18 @@ class Amp():
         self.src.get_pad("src").push_event(gst.event_new_flush_start())
         self.src.get_pad("src").push_event(gst.event_new_flush_stop())
 
+    def API_setPlayQueueMode(self, mode):
+        if (mode != "normal" and mode != "random" and mode != "repeat" and mode != "repeattrack"):
+            raise DogError, "Unknown playqueue mode:" + mode
+        self.playqueue_mode = mode
+
+        print self.playqueue_mode
+
     def API_setVolume(self, level):
         level = float(level)
         if (level > 1.0 or level < 0.0):
             raise DogError, 'Volume must be between 0.0 and 1.0'
         self.dogvibes.speakers[0].set_volume(level)
-        #self.volume.set_property("volume", level)
 
     def API_stop(self):
         self.pipeline.set_state(gst.STATE_NULL)
@@ -175,22 +183,27 @@ class Amp():
     def change_track(self, tracknbr):
         tracknbr = int(tracknbr)
 
-        if tracknbr > len(self.playqueue) - 1:
+        if (self.playqueue_mode == "random"):
+            self.playqueue_position = random.randint(0, (len(self.playqueue) - 1))
+        elif (self.playqueue_mode == "repeattrack"):
+            pass
+        elif (tracknbr == self.playqueue_position):
+            return
+        elif (tracknbr >= 0) and (tracknbr < len(self.playqueue)):
+            self.playqueue_position = tracknbr
+        elif tracknbr < 0:
+            self.playqueue_position = 0
+        elif (tracknbr >= len(self.playqueue)) and (self.playqueue_mode == "repeat"):
+            self.playqueue_position = 0
+        else:
+            self.playqueue_position = (len(self.playqueue) - 1)
+            self.pipeline.set_state(gst.STATE_NULL)
             return
 
-        if tracknbr == self.playqueue_position:
-            return
-
-        if tracknbr < 0:
-            tracknbr = 0
-
-        self.playqueue_position = tracknbr
         (pending, state, timeout) = self.pipeline.get_state()
         self.pipeline.set_state(gst.STATE_NULL)
         self.play_only_if_null(self.playqueue[self.playqueue_position])
         self.pipeline.set_state(state)
-
-
 
     def get_hash_from_play_queue(self):
         ret = ""
