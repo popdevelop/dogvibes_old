@@ -35,6 +35,7 @@ class Amp():
 
         # spotify is special FIXME: not how its supposed to be
         self.spotify = self.dogvibes.sources[0].get_src()
+        self.spotify.get_by_name("spot").connect('play-token-lost', self.play_token_lost)
         self.lastfm = self.dogvibes.sources[1].get_src()
 
     # API
@@ -173,6 +174,10 @@ class Amp():
 
     # Internal functions
 
+    def pad_added(self, element, pad, last):
+        print "Lets add a speaker we found suitable elements to decode"
+        pad.link(self.tee.get_pad("sink"))
+
     def change_track(self, tracknbr):
         tracknbr = int(tracknbr)
 
@@ -251,6 +256,5 @@ class Amp():
 
         self.pipeline.set_state(gst.STATE_PLAYING)
 
-    def pad_added(self, element, pad, last):
-        print "Lets add a speaker we found suitable elements to decode"
-        pad.link(self.tee.get_pad("sink"))
+    def play_token_lost(self, data):
+        self.API_pause()
