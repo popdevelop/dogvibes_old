@@ -147,6 +147,17 @@ margin:0 -3px;
 #left_col a:hover { color: white; text-decoration:none; }
 #left_col ul { list-style-type: none; margin: 8px 0 8px 0;}
 
+#logo { 
+   background-image: url('../img/logo_small.gif');
+   background-repeat: no-repeat;
+   width: 65px;
+   height: 38px;
+   float: right;
+   border: 0;
+   padding: 0;
+   margin: 8px 15px 0 0;
+}
+
 #navigation { padding: 0px; }
 #navigation li { list-type-style: none; margin:0; padding: 0 0 0 28px;}
 #navigation li#p-home { background-image:url('../img/icon_house.gif'); background-repeat:no-repeat; background-position: 10px 2px; }
@@ -273,7 +284,7 @@ margin:0 -3px;
  *  Prev, Play, Next controls
  */
  
-#playback_control { margin: 6px 0 0 10px; padding: 0; }
+#playback_control { margin: 6px 0 0 10px; padding: 0; width: 110px;}
 #playback_control li { display: inline; }
 #playback_control li a { float: left; width: 31px; height: 0; padding: 31px 0 0 0; overflow: hidden; }
 #playback_control li a { background-image: url('../img/prev_play_next.gif');  background-repeat: no-repeat; _background-image: url('../img/prev_play_next.gif');}
@@ -289,11 +300,48 @@ margin:0 -3px;
 #playback_control li#pb-play a:active { background-position: -31px -31px; }
 #playback_control li#pb-next a:active { background-position: -62px -31px; }
 
-#playback_time, #playback_total { height:29px; display:inline; float:left; padding-top: 14px; color: white; font-size: 9px;}
-#playback_time { text-align:left; }
-#playback_seek { width: 390px; height: 9px; float: left; display:inline; margin: 15px 10px 0px 10px;}
+/* 
+ *Shuffle rand 
+ */
+#playback_options { margin: 11px 0 0 12px; padding: 0; }
+#playback_options li { display: inline; }
+#playback_options li a { float: left; width: 25px; height: 0; padding: 21px 0 0 0; overflow: hidden; }
+#playback_options li a { background-image: url('../img/play_mode.gif');  background-repeat: no-repeat; _background-image: url('../img/play_mode.gif');}
+
+/* BUTTONS */
+#playback_options li#pb-shuf a { background-position: 0px 0px; }
+#playback_options li#pb-rep a { background-position: -25px 0; }
+
+/* PRESSED STATES */
+#playback_options li#pb-shuf a:active { background-position: 0 -21px; }
+#playback_options li#pb-rep a:active { background-position: -25px -21px; }
+
+#playback_options li#pb-shuf .set { background-position: 0 -42px; }
+#playback_options li#pb-rep .set { background-position: -25px -42px; }
+
+#playback_time, #playback_total { width: 19px; height:29px; display:inline; float:left; padding-top: 14px; color: white; font-size: 9px;}
+#playback_time { text-align:right; margin-left: 8px; }
+#playback_total { text-align:left; margin-left: 0; }
+#playback_seek { width: 480px; height: 9px; float: left; display:inline; margin: 15px 10px 0px 10px;}
 #playback_seek a { background-color: white; }
-#playback_volume { width: 80px; height: 9px; float: left; display:inline; margin: -8px 10px 0px 12px; }
+#playback_volume { width: 80px; height: 9px; margin: 15px 1px 0px 0px;float: left;   display:inline; }
+#volume_icon { 
+   width: 10px; 
+   height: 22px; 
+   margin: 9px 15px 0px 0px;
+   background-image: url("../img/icon_volume.gif");
+   background-repeat: no-repeat;
+   display:inline;
+   float: left;
+}
+
+div.footer_sep
+{
+   background-image: url("../img/footer_sep.gif");
+   background-position: top right;
+   background-repeat: no-repeat;
+   height: 43px;
+}
 
 /*
  * Songlist table

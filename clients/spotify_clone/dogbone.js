@@ -3,7 +3,7 @@
 var default_server = "http://dogvibes.com:2000";
 var server = false;
 var poll_interval = 2000 /* ms */
-var connection_timeout = 10000; /* ms */
+var connection_timeout = 5000; /* ms */
 /* Misc variables */
 var wait_req = 0;
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
@@ -24,6 +24,7 @@ var current_song = {
 };
 var current_page = false;
 var current_playlist = false;
+var current_search_results = false;
 var time_count;
 var request_in_progress = false;
 var seek_in_progress = false; /* FIXME: */
@@ -355,11 +356,11 @@ function addSearch(keyword){
 
 function doSearchFromLink(value) {
 	$("#s-input").val(value);
-	doSearch();
+	doSearch(false);
 }
 
-function doSearch() {
-   addSearch($("#s-input").val());
+function doSearch(save) {
+   if(save) {addSearch($("#s-input").val());}
 	setPage("s-0");
 	$("#playlist").html(search_summary + track_list_table);
 	$("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
@@ -372,13 +373,15 @@ function doSearch() {
       success: function(data) {
          var artists = {};
          var albums  = {};
+         current_search_results = {};
       	 item_count = 0;
           artist_count = 0;
           album_count = 0;
          $("#s-results").empty();
             $.each(data.result, function(i, song) {
                td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-               $("#s-results").append("<tr class=\"pl_row\">" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.artist + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "<a href=\"#\" id=\"" + song.album + "\" class=\"searchArtistButton\">" + song.album);
+               $("#s-results").append("<tr class=\"pl_row\">" + td +"<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"searchAlbumButton\">" + song.album);
+               current_search_results[song.uri] = { artist:song.artist, album:song.album };
                item_count++;
                if(!artists[song.artist]) { artists[song.artist]=0; artist_count++; }
                artists[song.artist]++;
@@ -408,8 +411,11 @@ function doSearch() {
                });
             });     
             $(".searchArtistButton").click(function () {
-               doSearchFromLink(this.id);
+               doSearchFromLink("artist:"+current_search_results[this.id].artist);
             });
+            $(".searchAlbumButton").click(function () {
+               doSearchFromLink("artist:"+current_search_results[this.id].artist + " album:"+current_search_results[this.id].album);
+            });            
             if(item_count == 0){
                $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
             } else {
@@ -418,9 +424,9 @@ function doSearch() {
                   $(this).find("td").addClass("selected");
                });   
             /* TODO: Make things sortable. Just dummy for now */
-            $(function() {
-               $(".playButton").draggable({ revert: 'invalid', scroll: false, revertDuration: 100, helper: 'clone', appendTo: "body" });
-            });
+               $(function() {
+                  $(".playButton").draggable({ revert: 'invalid', scroll: false, revertDuration: 100, helper: 'clone', appendTo: "body" });
+               });
             }
             /* Print summaries */
 			$("#s-tracks").html("<span>Tracks</span> <span class=\"count\">(" + item_count + ")</span>");
@@ -569,10 +575,10 @@ $("#new_playlist").click(function() {
 });
 
 /* Searching */
-$("#s-submit").click(doSearch);
+$("#s-submit").click(function(){doSearch(true)});
 $("#s-input").keypress(function (e) {
 	if (e.which == 13)
-		doSearch();
+		doSearch(true);
 });
 
 /* Clear search keyword field if nav links are clicked*/

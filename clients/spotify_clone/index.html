@@ -21,11 +21,11 @@
 <div id="header" class="container_12 thm_header_bg">
    <div class="grid_5">
       <p>
-         <span id="s-left"></span><input type="text" id="s-input"><input id="s-submit" type="button">
+         <span id="s-left"></span><input type="text" id="s-input" onFocus="this.select()"><input id="s-submit" type="button">
       </p>
    </div>
    <div class="grid_7">
-      &nbsp;
+      <div id="logo">&nbsp;</div>
    </div>      
 </div>
 <div class="clear">&nbsp;</div>  
@@ -86,20 +86,27 @@
 </div>
 <!-- FOOTER //-->
 <div id="footer" class="container_12 thm_footer_bg">
-   <div class="grid_3 footer_sep">
+   <div style="width:100;" class="grid_default">
       <ul id="playback_control">
          <li id="pb-prev"><a href="#" onclick="this.blur();">Prev</a></li>
          <li id="pb-play"><a href="#" onclick="this.blur();">Play</a></li>
          <li id="pb-next"><a href="#" onclick="this.blur();">Next</a></li>
       </ul>
-      <div id="playback_volume"></div>
    </div>
-   <div id="playback_info" class="grid_6 footer_sep">
+   <div style="width:140;" class="footer_sep grid_default">
+         <div id="playback_volume"></div>
+         <div id="volume_icon"></div>
+   </div>
+   <div id="playback_info" class="grid_7 footer_sep">
       <div id="playback_time"></div>
       <div id="playback_seek"></div>
       <div id="playback_total"></div>
    </div>
-   <div id="playback_options" class="grid_3">
+   <div class="grid_2">
+      <ul id="playback_options">
+         <li id="pb-shuf"><a href="#" onclick="this.blur();">Shuf</a></li>
+         <li id="pb-rep"><a href="#" onclick="this.blur();">Rep</a></li>
+      </ul>
    </div>
    <div class="clear">&nbsp;</div>
 </div>
