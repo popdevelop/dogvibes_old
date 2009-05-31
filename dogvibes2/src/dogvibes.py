@@ -1,7 +1,7 @@
 import gobject
 import gst
 import os
-
+import config
 from amp import Amp
 
 # import spources
@@ -24,16 +24,23 @@ class DogError(Exception):
 
 class Dogvibes():
     def __init__(self):
-
-        spot_user = os.environ.get('SPOTIFY_USER') or "gyllen"
-        spot_pass = os.environ.get('SPOTIFY_PASS') or "bobidob20"
-        lastfm_user = os.environ.get('LASTFM_USER') or "dogvibes"
-        lastfm_pass = os.environ.get('LASTFM_PASS') or "futureinstereo"
-
-        # add all sources
-        self.sources = [SpotifySource("spotify", spot_user, spot_pass),
-                        LastFMSource("lastfm", lastfm_user, lastfm_pass),
-                        FileSource("filesource", "../testmedia/")]
+        try: cfg = config.load("dogvibes.conf")
+        except Exception, e: 
+            print "ERROR: Cannot load configuration file\n"
+            sys.exit(1)
+        #FIXME: Right now sources need to be at fixed positions due to some 
+        #       hacks in the rest of the code. 
+        self.sources = [None,None,None]
+        if("ENABLE_SPOTIFY_SOURCE" in cfg):
+            spot_user = os.environ.get('SPOTIFY_USER') or cfg["SPOTIFY_USER"]
+            spot_pass = os.environ.get('SPOTIFY_PASS') or cfg["SPOTIFY_PASS"]
+            self.sources[0] = (SpotifySource("spotify", spot_user, spot_pass))
+        if("ENABLE_LASTFM_SOURCE" in cfg):
+            lastfm_user = os.environ.get('LASTFM_USER') or cfg["LASTFM_USER"]
+            lastfm_pass = os.environ.get('LASTFM_PASS') or cfg["LASTFM_PASS"]
+            self.sources[1] = (LastFMSource("lastfm", lastfm_user, lastfm_pass))
+        if("ENABLE_FILE_SOURCE" in cfg):
+            self.sources[2] = (FileSource("filesource", cfg["FILE_SOURCE_ROOT"]))
 
         # add all speakers
         self.speakers = [DeviceSpeaker("devicesink")]
@@ -46,9 +53,10 @@ class Dogvibes():
     def create_track_from_uri(self, uri):
         track = None
         for source in self.sources:
-            track = source.create_track_from_uri(uri);
-            if track != None:
-                return track
+            if source:
+                track = source.create_track_from_uri(uri);
+                if track != None:
+                    return track
         raise DogError, 'Could not create track from URI'
 
     # API
@@ -56,7 +64,8 @@ class Dogvibes():
     def API_search(self, query):
         ret = []
         for source in self.sources:
-            ret += source.search(query)
+            if source:
+                ret += source.search(query)
         return ret
 
     def API_getAlbumArt(self, uri, size = 0):

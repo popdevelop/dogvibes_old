@@ -1,6 +1,7 @@
 import gst
 import hashlib
 import random
+import config
 
 from track import Track
 
@@ -12,6 +13,7 @@ class DogError(Exception):
 
 class Amp():
     def __init__(self, dogvibes):
+        cfg = config.load("dogvibes.conf")
         self.dogvibes = dogvibes
         self.pipeline = gst.Pipeline ("amppipeline")
 
@@ -32,11 +34,12 @@ class Amp():
 
         # set playqueue mode to normal
         self.playqueue_mode = "normal"
-
-        # spotify is special FIXME: not how its supposed to be
-        self.spotify = self.dogvibes.sources[0].get_src()
-        self.spotify.get_by_name("spot").connect('play-token-lost', self.play_token_lost)
-        self.lastfm = self.dogvibes.sources[1].get_src()
+        if("ENABLE_SPOTIFY_SOURCE" in cfg):
+            # spotify is special FIXME: not how its supposed to be
+            self.spotify = self.dogvibes.sources[0].get_src()
+            self.spotify.get_by_name("spot").connect('play-token-lost', self.play_token_lost)
+        if("ENABLE_LASTFM_SOURCE" in cfg):
+            self.lastfm = self.dogvibes.sources[1].get_src()
 
     # API
 
@@ -135,6 +138,7 @@ class Amp():
         self.pipeline.set_state(gst.STATE_PAUSED)
 
     def API_queue(self, uri):
+        print "\n API_queue ==>"+uri
         track = self.dogvibes.create_track_from_uri(uri)
         self.playqueue.append(track)
 
