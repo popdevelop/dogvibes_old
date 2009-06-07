@@ -53,7 +53,8 @@ var command = {
    /* other */
    status: "/amp/0/getStatus",
    search: "/dogvibes/search?query=",
-   albumart: "/dogvibes/getAlbumArt?size=159&uri="
+   albumart: "/dogvibes/getAlbumArt?size=159&uri=",
+   list: "/dogvibes/list?type="
 }
 
 /*
@@ -526,15 +527,26 @@ $("#p-home").click(function () {
 $("#p-local").click(function () {
 	setPage("p-local");
 	$("#tab-title").text("Local media");
-	$("#playlist").html("<h1>Local files:</h1><div id=\"file_tree\"></div>");
-	$('#file_tree').fileTree({
-		root: '/',
-		script: server + '/jqueryFileTree.php',
-		multiFolder: true,
-		loadMessage: loading_small
-	}, function(file) {
-		alert(file);
-	});	
+	$("#playlist").html("<h1>Local music:</h1><table id=\"s-results\"></table>");
+	$.ajax({
+        type: "GET",
+        dataType: "jsonp",
+        url: server + command.list + "album",
+        success: function (data) {
+            obj = $("#s-results");
+            obj.append("<thead><th id=\"indicator\">&nbsp;<th><a href=\"#\">Artist</a><th><a href=\"#\">Album</a></thead>");
+            var prev_artist = false;
+            $.each(data.result, function(i, song){
+                td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+                current_artist = "";
+                if(song.artist != prev_artist){
+                    current_artist = song.artist;
+                    prev_artist    = song.artist;
+                }               
+                obj.append("<tr>"+ td + td + current_artist + td + song.album);
+            });
+        }
+    });
 });
 
 /* Play queue management */

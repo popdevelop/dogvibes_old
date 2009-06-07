@@ -36,7 +36,6 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         u = urlparse(self.path)
         c = u.path.split('/')
         method = 'API_' + c[-1]
-
          # TODO: this should be determined on API function return:
         raw = method == 'API_getAlbumArt'
 
@@ -56,14 +55,15 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         params = cgi.parse_qs(u.query)
         # use only the first value for each key (feel free to clean up):
         params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
-
         if 'callback' in params:
             callback = params.pop('callback')
+            if '_' in params:
+                params.pop('_')                
 
         try:
             # strip params from paramters not in the method definition
             args = inspect.getargspec(getattr(klass, method))[0]
-            params = dict(filter(lambda k: k[0] in args, params.items()))
+            params = dict(filter(lambda k: k[0] in args, params.items()))        
             # call the method
             data = getattr(klass, method).__call__(**params)
         except AttributeError: # as e:

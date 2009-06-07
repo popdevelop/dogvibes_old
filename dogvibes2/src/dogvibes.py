@@ -67,7 +67,14 @@ class Dogvibes():
             if source:
                 ret += source.search(query)
         return ret
-
+    
+    def API_list(self, type):
+        ret = []
+        for source in self.sources:
+            if source:
+                ret += source.list(type)
+        return ret
+    
     def API_getAlbumArt(self, uri, size = 0):
         try:
             track = self.create_track_from_uri(uri)

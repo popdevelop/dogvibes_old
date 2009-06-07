@@ -246,5 +246,8 @@ class LastFMSource:
         track.duration = "Dogvibes LastFM"
         return [track.__dict__]
 
+    def list(self, type):
+        return []
+
     def set_track (self, track):
         self.lastfm.set_property ("uri", "lastfm://artist/cher/fans")

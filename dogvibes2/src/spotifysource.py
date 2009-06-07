@@ -40,5 +40,8 @@ class SpotifySource:
     def search (self, query):
         return spotifydogvibes.search(query);
 
+    def list(self, type):
+        return[]
+
     def set_track (self, track):
         self.spotify.set_property ("spotifyuri", track.uri)

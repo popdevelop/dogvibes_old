@@ -14,7 +14,7 @@ class Collection:
         if db.fetchone() == None:
             db.commit_statement('''insert into collection (track_id) values (?)''', [track_id])
 
-    def create_track_from_uri(self, uri):
+    def create_track_from_uri(self, uri): 
         db = Database()
         # TODO: better way than searching through ALL tracks?
         db.commit_statement('''select * from tracks where uri = ?''', [uri])
@@ -50,6 +50,22 @@ class Collection:
             ret.append(row) # TODO: return a Track here instead
             row = db.fetchone()
         return ret
+
+    def list(self, type):
+        db = Database()
+        ret = []
+        if type.lower() == "artist":
+            db.commit_statement('''SELECT DISTINCT artist FROM tracks WHERE artist > '' ORDER BY artist ASC''')
+        elif type.lower() == "album":
+            db.commit_statement('''SELECT DISTINCT album,artist FROM tracks WHERE album > '' ORDER BY artist ASC''')
+        else:
+            return []    
+        row = db.fetchone()
+        while row != None:
+            #del row['id'] # the id isn't part of a Track object
+            ret.append(row) # TODO: return a Track here instead
+            row = db.fetchone()
+        return ret  
 
 
 if __name__ == '__main__':

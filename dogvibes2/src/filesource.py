@@ -16,3 +16,6 @@ class FileSource:
 
     def search(self, query):
         return self.collection.search(query)
+
+    def list(self, type):
+        return self.collection.list(type)
