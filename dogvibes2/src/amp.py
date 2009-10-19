@@ -38,8 +38,6 @@ class Amp():
             # spotify is special FIXME: not how its supposed to be
             self.spotify = self.dogvibes.sources[0].get_src()
             self.spotify.get_by_name("spot").connect('play-token-lost', self.play_token_lost)
-        if("ENABLE_LASTFM_SOURCE" in cfg):
-            self.lastfm = self.dogvibes.sources[1].get_src()
 
     # API
 
@@ -204,6 +202,7 @@ class Amp():
 
         (pending, state, timeout) = self.pipeline.get_state()
         self.pipeline.set_state(gst.STATE_NULL)
+
         self.play_only_if_null(self.playqueue[self.playqueue_position])
         self.pipeline.set_state(state)
 
@@ -227,11 +226,9 @@ class Amp():
         if self.src:
             self.pipeline.remove(self.src)
             if self.spotify_in_use == False:
-                print "removed a decodebin"
                 self.pipeline.remove(self.decodebin)
 
         if track.uri[0:7] == "spotify":
-            print "It was a spotify uri"
             self.src = self.spotify
             # FIXME ugly
             self.dogvibes.sources[0].set_track(track)
@@ -239,7 +236,6 @@ class Amp():
             self.src.link(self.tee)
             self.spotify_in_use = True
         elif track.uri == "lastfm":
-            print "It was a lastfm uri"
             self.src = self.lastfm
             self.dogvibes.sources[1].set_track(track)
             self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")

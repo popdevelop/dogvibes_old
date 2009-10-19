@@ -6,7 +6,6 @@ from amp import Amp
 
 # import spources
 from spotifysource import SpotifySource
-from lastfmsource import LastFMSource
 from filesource import FileSource
 from albumart import AlbumArt
 
@@ -30,17 +29,13 @@ class Dogvibes():
             sys.exit(1)
         #FIXME: Right now sources need to be at fixed positions due to some 
         #       hacks in the rest of the code. 
-        self.sources = [None,None,None]
+        self.sources = [None,None]
         if("ENABLE_SPOTIFY_SOURCE" in cfg):
             spot_user = os.environ.get('SPOTIFY_USER') or cfg["SPOTIFY_USER"]
             spot_pass = os.environ.get('SPOTIFY_PASS') or cfg["SPOTIFY_PASS"]
             self.sources[0] = (SpotifySource("spotify", spot_user, spot_pass))
-        if("ENABLE_LASTFM_SOURCE" in cfg):
-            lastfm_user = os.environ.get('LASTFM_USER') or cfg["LASTFM_USER"]
-            lastfm_pass = os.environ.get('LASTFM_PASS') or cfg["LASTFM_PASS"]
-            self.sources[1] = (LastFMSource("lastfm", lastfm_user, lastfm_pass))
         if("ENABLE_FILE_SOURCE" in cfg):
-            self.sources[2] = (FileSource("filesource", cfg["FILE_SOURCE_ROOT"]))
+            self.sources[1] = (FileSource("filesource", cfg["FILE_SOURCE_ROOT"]))
 
         # add all speakers
         self.speakers = [DeviceSpeaker("devicesink")]
@@ -67,14 +62,14 @@ class Dogvibes():
             if source:
                 ret += source.search(query)
         return ret
-    
+
     def API_list(self, type):
         ret = []
         for source in self.sources:
             if source:
                 ret += source.list(type)
         return ret
-    
+
     def API_getAlbumArt(self, uri, size = 0):
         try:
             track = self.create_track_from_uri(uri)

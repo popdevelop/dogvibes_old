@@ -66,14 +66,14 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             params = dict(filter(lambda k: k[0] in args, params.items()))        
             # call the method
             data = getattr(klass, method).__call__(**params)
-        except AttributeError: # as e:
-            #print e
+        except AttributeError as e:
+            print e
             error = 1 # No such method
-        except TypeError: #as e:
-            #print e
+        except TypeError as e:
+            print e
             error = 2 # Missing parameter
-        except DogError: # as e:
-            #print e
+        except DogError as e:
+            print e
             error = 3 # Internal error, e.g. could not find specified uri
 
         self.send_response(400 if error else 200) # Bad request or OK
@@ -116,11 +116,9 @@ class API(Thread):
         httpserver.serve_forever()
 
 if __name__ == '__main__':
-    if os.path.exists('dogvibes.db'):
-        os.remove('dogvibes.db')
-        print "REMOVING DATABASE! DON'T DO THIS IF YOU WANNA KEEP YOUR PLAYLISTS"
-
-    # create the dogvibes object
+    #if os.path.exists('dogvibes.db'):
+    #    os.remove('dogvibes.db')
+    #    print "REMOVING DATABASE! DON'T DO THIS IF YOU WANNA KEEP YOUR PLAYLISTS"
 
     print "Running Dogvibes."
     print "   ->Vibe the dog!"
