@@ -4,6 +4,7 @@ import random
 import config
 
 from track import Track
+from playlist import Playlist
 
 class DogError(Exception):
     def __init__(self, value):
@@ -12,7 +13,7 @@ class DogError(Exception):
         return repr(self.value)
 
 class Amp():
-    def __init__(self, dogvibes):
+    def __init__(self, dogvibes, id):
         cfg = config.load("dogvibes.conf")
         self.dogvibes = dogvibes
         self.pipeline = gst.Pipeline ("amppipeline")
@@ -26,8 +27,13 @@ class Amp():
         self.bus.add_signal_watch()
         self.bus.connect('message', self.pipeline_message)
 
+        playlistname = "amp" + id
+
         # create the playqueue
-        self.playqueue = []
+        if (Playlist.name_exists(playlistname) == False):
+            Playlist.create(playlistname)
+
+        self.playqueue = Playlist.get_by_name(playlistname)
         self.playqueue_position = 0
 
         self.src = None
@@ -73,7 +79,7 @@ class Amp():
             print "Speaker not connected"
 
     def API_getAllTracksInQueue(self):
-        return [track.__dict__ for track in self.playqueue]
+        return [track.__dict__ for track in self.playqueue.get_all_tracks()]
 
     def API_getPlayedMilliSeconds(self):
         (pending, state, timeout) = self.pipeline.get_state ()
@@ -83,22 +89,23 @@ class Amp():
         return pos / 1000 # / gst.MSECOND # FIXME: something fishy here...
 
     def API_getStatus(self):
-        if (len(self.playqueue) > 0):
-            track = self.playqueue[self.playqueue_position]
+        if self.playqueue.length() == 0:
+            status = {}
+        else:
+            track = self.playqueue.get_track_nbr(self.playqueue_position)
+
             status = {'title': track.title,
                       'artist': track.artist,
                       'album': track.album,
                       'duration': int(track.duration),
                       'elapsedmseconds': self.API_getPlayedMilliSeconds()}
             status['index'] = self.playqueue_position
-        else:
-            status = {}
 
         # FIXME this should be speaker specific
         status['volume'] = self.dogvibes.speakers[0].get_volume()
 
-        if len(self.playqueue) > 0:
-            status['uri'] = self.playqueue[self.playqueue_position].uri
+        if self.playqueue.length() > 0:
+            status['uri'] = self.playqueue.get_track_nbr(self.playqueue_position).uri
             status['playqueuehash'] = self.get_hash_from_play_queue()
         else:
             status['uri'] = "dummy"
@@ -128,9 +135,9 @@ class Amp():
         self.change_track(self.playqueue_position - 1)
 
     def API_play(self):
-        if self.playqueue_position > len(self.playqueue) - 1:
+        if self.playqueue_position > self.playqueue.length() - 1:
             raise DogError, 'Trying to play an empty play queue'
-        self.play_only_if_null(self.playqueue[self.playqueue_position])
+        self.play_only_if_null(self.playqueue.get_track_nbr(self.playqueue_position))
 
     def API_pause(self):
         self.pipeline.set_state(gst.STATE_PAUSED)
@@ -138,15 +145,15 @@ class Amp():
     def API_queue(self, uri):
         print "\n API_queue ==>"+uri
         track = self.dogvibes.create_track_from_uri(uri)
-        self.playqueue.append(track)
+        self.playqueue.add_track(track)
 
     def API_removeTrack(self, nbr):
         # TODO: rewrite to use id, not index in queue
         nbr = int(nbr)
-        if nbr > len(self.playqueue):
+        if nbr > self.playqueue.length():
             raise DogError, 'Track not removed, playqueue is not that big'
 
-        self.playqueue.remove(self.playqueue[nbr])
+        self.playqueue.remove_track_nbr(nbr)
 
         if (nbr <= self.playqueue_position):
             self.playqueue_position = self.playqueue_position - 1
@@ -184,31 +191,35 @@ class Amp():
         tracknbr = int(tracknbr)
 
         if (self.playqueue_mode == "random"):
-            self.playqueue_position = random.randint(0, (len(self.playqueue) - 1))
+            self.playqueue_position = random.randint(0, self.playqueue.length() - 1)
         elif (self.playqueue_mode == "repeattrack"):
             pass
         elif (tracknbr == self.playqueue_position):
             return
-        elif (tracknbr >= 0) and (tracknbr < len(self.playqueue)):
+        elif (tracknbr >= 0) and (tracknbr < self.playqueue.length()):
             self.playqueue_position = tracknbr
         elif tracknbr < 0:
             self.playqueue_position = 0
-        elif (tracknbr >= len(self.playqueue)) and (self.playqueue_mode == "repeat"):
+        elif (tracknbr >= self.playqueue.length()) and (self.playqueue_mode == "repeat"):
             self.playqueue_position = 0
         else:
-            self.playqueue_position = (len(self.playqueue) - 1)
+            self.playqueue_position = (self.playqueue.length() - 1)
             self.pipeline.set_state(gst.STATE_NULL)
             return
 
         (pending, state, timeout) = self.pipeline.get_state()
         self.pipeline.set_state(gst.STATE_NULL)
 
-        self.play_only_if_null(self.playqueue[self.playqueue_position])
+        self.play_only_if_null(self.playqueue.get_track_nbr(self.playqueue_position))
         self.pipeline.set_state(state)
 
     def get_hash_from_play_queue(self):
         ret = ""
-        for track in self.playqueue:
+
+        # Room for improvment this should be handled in playlist
+        tracks = self.playqueue.get_all_tracks();
+
+        for track in tracks:
             ret += track.uri
         return hashlib.md5(ret).hexdigest()
 
@@ -235,15 +246,6 @@ class Amp():
             self.pipeline.add(self.src)
             self.src.link(self.tee)
             self.spotify_in_use = True
-        elif track.uri == "lastfm":
-            self.src = self.lastfm
-            self.dogvibes.sources[1].set_track(track)
-            self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")
-            self.decodebin.connect('new-decoded-pad', self.pad_added)
-            self.pipeline.add(self.src)
-            self.pipeline.add(self.decodebin)
-            self.src.link(self.decodebin)
-            self.spotify_in_use = False
         else:
             print "Decodebin is taking care of this uri"
             self.src = gst.element_make_from_uri(gst.URI_SRC, track.uri, "source")

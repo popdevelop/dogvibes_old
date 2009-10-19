@@ -41,7 +41,7 @@ class Dogvibes():
         self.speakers = [DeviceSpeaker("devicesink")]
 
         # add all amps
-        amp0 = Amp(self)
+        amp0 = Amp(self, "0")
         amp0.API_connectSpeaker(0)
         self.amps = [amp0]
 

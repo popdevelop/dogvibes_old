@@ -26,6 +26,25 @@ class Playlist():
         return Playlist(id, row['name'], db)
 
     @classmethod
+    def get_by_name(self, name):
+        db = Database()
+        db.commit_statement('''select * from playlists where name = ?''', [name])
+        row = db.fetchone()
+        if row == None:
+            raise DogError, 'Could not get playlist with id=' + id
+        return Playlist(row['id'], row['name'], db)
+
+    @classmethod
+    def name_exists(self, name):
+        db = Database()
+        db.commit_statement('''select * from playlists where name = ?''', [name])
+        row = db.fetchone()
+        if row == None:
+            return False
+        else:
+            return True
+
+    @classmethod
     def get_all(self):
         db = Database()
         db.commit_statement('''select * from playlists''')
@@ -81,6 +100,52 @@ class Playlist():
 
         return ret_tracks
 
+    def get_track_nbr(self, nbr):
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
+
+        row = self.db.fetchone()
+
+        # There is probably a much smarter way to fetch a specific row number
+        i = 0
+        while i < nbr:
+            row = self.db.fetchone()
+            i = i + 1
+
+        tid = row['id']
+
+        self.db.commit_statement('''select * from tracks where id = ?''', [row['track_id']])
+        row = self.db.fetchone()
+        del row['id']
+        t = Track(**row)
+        t.id = tid
+        return t
+
+    def remove_track_nbr(self, nbr):
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
+
+        row = self.db.fetchone()
+
+        # There is probably a much smarter way to fetch a specific row number
+        i = 0
+        while i < nbr:
+            row = self.db.fetchone()
+            i = i + 1
+
+        # There'll be no notification if the track doesn't exists
+        self.db.commit_statement('''delete from playlist_tracks where id = ?''', [row['id']])
+
+    def length(self):
+        # FIXME this is insane we need to do a real sql count here
+        i = 0
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
+
+        row = self.db.fetchone()
+
+        while row != None:
+            i = i + 1
+            row = self.db.fetchone()
+
+        return i
 
 if __name__ == '__main__':
 
