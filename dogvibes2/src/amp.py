@@ -27,19 +27,16 @@ class Amp():
         self.bus.add_signal_watch()
         self.bus.connect('message', self.pipeline_message)
 
-        playlistname = "amp" + id
+        self.playqueue = []
+        self.inplayqueue = False
 
-        # create the playqueue
-        if (Playlist.name_exists(playlistname) == False):
-            Playlist.create(playlistname)
-
-        self.playqueue = Playlist.get_by_name(playlistname)
-        self.playqueue_position = 0
+        self.playlist = None
+        self.playlist_position = 0
 
         self.src = None
 
-        # set playqueue mode to normal
-        self.playqueue_mode = "normal"
+        # set playlist mode to normal
+        self.playlist_mode = "normal"
         if("ENABLE_SPOTIFY_SOURCE" in cfg):
             # spotify is special FIXME: not how its supposed to be
             self.spotify = self.dogvibes.sources[0].get_src()
@@ -79,7 +76,7 @@ class Amp():
             print "Speaker not connected"
 
     def API_getAllTracksInQueue(self):
-        return [track.__dict__ for track in self.playqueue.get_all_tracks()]
+        return [track.__dict__ for track in self.playqueue]
 
     def API_getPlayedMilliSeconds(self):
         (pending, state, timeout) = self.pipeline.get_state ()
@@ -89,27 +86,33 @@ class Amp():
         return pos / 1000 # / gst.MSECOND # FIXME: something fishy here...
 
     def API_getStatus(self):
-        if self.playqueue.length() == 0:
-            status = {}
-        else:
-            track = self.playqueue.get_track_nbr(self.playqueue_position)
-
-            status = {'title': track.title,
-                      'artist': track.artist,
-                      'album': track.album,
-                      'duration': int(track.duration),
-                      'elapsedmseconds': self.API_getPlayedMilliSeconds()}
-            status['index'] = self.playqueue_position
+        status = {}
 
         # FIXME this should be speaker specific
         status['volume'] = self.dogvibes.speakers[0].get_volume()
 
-        if self.playqueue.length() > 0:
-            status['uri'] = self.playqueue.get_track_nbr(self.playqueue_position).uri
-            status['playqueuehash'] = self.get_hash_from_play_queue()
+        status['playqueuehash'] = self.get_hash_from_play_queue()
+
+        track = None
+
+        if self.inplayqueue:
+            if len(self.playqueue) > 0:
+                track = self.playqueue[0]
         else:
-            status['uri'] = "dummy"
-            status['playqueuehash'] = "dummy"
+            if self.playlist != None and self.playlist.length() > 0:
+                track = self.playlist.get_track_nbr(self.playlist_position)
+
+        status['uri'] = "dummy"
+
+        if track != None:
+            status['uri'] = track.uri
+            status['title'] = track.title,
+            status['artist'] = track.artist,
+            status['album'] = track.album,
+            status['duration'] = int(track.duration),
+            status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
+
+        status['index'] = self.playlist_position
 
         (pending, state, timeout) = self.pipeline.get_state()
         if state == gst.STATE_PLAYING:
@@ -122,41 +125,65 @@ class Amp():
         return status
 
     def API_getQueuePosition(self):
-        return self.playqueue_position
+        return self.playlist_position
 
     def API_nextTrack(self):
-        self.change_track(self.playqueue_position + 1)
+        if (len(self.playqueue) > 0 and self.inplayqueue):
+            self.playqueue.remove(self.playqueue[0])
+
+        if (len(self.playqueue) > 0):
+            self.inplayqueue = True
+            (pending, state, timeout) = self.pipeline.get_state()
+            self.pipeline.set_state(gst.STATE_NULL)
+            self.play_only_if_null(self.playqueue[0])
+            self.pipeline.set_state(state)
+        else:
+            self.change_track(self.playlist_position + 1)
 
     def API_playTrack(self, nbr):
         self.change_track(nbr)
         self.API_play()
 
+    def API_playQueueTrack(self, nbr):
+        if (nbr > (len(self.playqueue) - 1)):
+            raise DogError, 'Trying to remove none existsing track from playqueue'
+        self.inplayqueue = True
+
+        for i in range(0, nbr):
+            self.playqueue.remove(self.playqueue[0])
+
+        self.API_play()
+
     def API_previousTrack(self):
-        self.change_track(self.playqueue_position - 1)
+        if (self.inplayqueue):
+            self.change_track(self.playlist_position)
+        else:
+            self.change_track(self.playlist_position - 1)
 
     def API_play(self):
-        if self.playqueue_position > self.playqueue.length() - 1:
-            raise DogError, 'Trying to play an empty play queue'
-        self.play_only_if_null(self.playqueue.get_track_nbr(self.playqueue_position))
+        if (len(self.playqueue) > 0 and (self.inplayqueue or self.playlist == None)):
+            self.inplayqueue = True
+            self.play_only_if_null(self.playqueue[0])
+        else:
+            if self.playlist == None:
+                pass
+            elif self.playlist_position > self.playlist.length() - 1:
+                raise DogError, 'Trying to play an empty playqueue'
+            else:
+                self.play_only_if_null(self.playlist.get_track_nbr(self.playlist_position))
 
     def API_pause(self):
         self.pipeline.set_state(gst.STATE_PAUSED)
 
     def API_queue(self, uri):
-        print "\n API_queue ==>"+uri
         track = self.dogvibes.create_track_from_uri(uri)
-        self.playqueue.add_track(track)
+        self.playqueue.append(track)
 
     def API_removeTrack(self, nbr):
-        # TODO: rewrite to use id, not index in queue
         nbr = int(nbr)
-        if nbr > self.playqueue.length():
+        if nbr > len(self.playqueue):
             raise DogError, 'Track not removed, playqueue is not that big'
-
-        self.playqueue.remove_track_nbr(nbr)
-
-        if (nbr <= self.playqueue_position):
-            self.playqueue_position = self.playqueue_position - 1
+        self.playqueue.remove(self.playqueue[nbr])
 
     def API_seek(self, mseconds):
         print "Seek simple to " + mseconds + " useconds"
@@ -165,12 +192,14 @@ class Amp():
         self.src.get_pad("src").push_event(gst.event_new_flush_start())
         self.src.get_pad("src").push_event(gst.event_new_flush_stop())
 
+    def API_setPlayList(self, id):
+        self.playlist = Playlist.get(id)
+        self.playlist_position = 0
+
     def API_setPlayQueueMode(self, mode):
         if (mode != "normal" and mode != "random" and mode != "repeat" and mode != "repeattrack"):
             raise DogError, "Unknown playqueue mode:" + mode
-        self.playqueue_mode = mode
-
-        print self.playqueue_mode
+        self.playlist_mode = mode
 
     def API_setVolume(self, level):
         level = float(level)
@@ -190,36 +219,35 @@ class Amp():
     def change_track(self, tracknbr):
         tracknbr = int(tracknbr)
 
-        if (self.playqueue_mode == "random"):
-            self.playqueue_position = random.randint(0, self.playqueue.length() - 1)
-        elif (self.playqueue_mode == "repeattrack"):
-            pass
-        elif (tracknbr == self.playqueue_position):
+        self.inplayqueue = False
+
+        if self.playlist == None:
+            self.pipeline.set_state(gst.STATE_NULL)
             return
-        elif (tracknbr >= 0) and (tracknbr < self.playqueue.length()):
-            self.playqueue_position = tracknbr
+        elif (self.playlist_mode == "random"):
+            self.playlist_position = random.randint(0, self.playlist.length() - 1)
+        elif (self.playlist_mode == "repeattrack"):
+            pass
+        elif (tracknbr >= 0) and (tracknbr < self.playlist.length()):
+            self.playlist_position = tracknbr
         elif tracknbr < 0:
-            self.playqueue_position = 0
-        elif (tracknbr >= self.playqueue.length()) and (self.playqueue_mode == "repeat"):
-            self.playqueue_position = 0
+            self.playlist_position = 0
+        elif (tracknbr >= self.playlist.length()) and (self.playlist_mode == "repeat"):
+            self.playlist_position = 0
         else:
-            self.playqueue_position = (self.playqueue.length() - 1)
+            self.playlist_position = (self.playlist.length() - 1)
             self.pipeline.set_state(gst.STATE_NULL)
             return
 
         (pending, state, timeout) = self.pipeline.get_state()
         self.pipeline.set_state(gst.STATE_NULL)
 
-        self.play_only_if_null(self.playqueue.get_track_nbr(self.playqueue_position))
+        self.play_only_if_null(self.playlist.get_track_nbr(self.playlist_position))
         self.pipeline.set_state(state)
 
     def get_hash_from_play_queue(self):
-        ret = ""
-
-        # Room for improvment this should be handled in playlist
-        tracks = self.playqueue.get_all_tracks();
-
-        for track in tracks:
+        ret = "dummy"
+        for track in self.playqueue:
             ret += track.uri
         return hashlib.md5(ret).hexdigest()
 
