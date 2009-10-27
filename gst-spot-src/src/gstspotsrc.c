@@ -90,6 +90,7 @@ static void spotify_cb_log_message (sp_session *spotify_session, const char *dat
 static void spotify_cb_metadata_updated (sp_session *session);
 static void spotify_cb_message_to_user (sp_session *session, const char *msg);
 static void spotify_cb_play_token_lost (sp_session *session);
+static void spotify_cb_end_of_track (sp_session *session);
 static void* spotify_thread_func (void *ptr);
 
 /* basesrc stuff */
@@ -124,7 +125,8 @@ static sp_session_callbacks g_callbacks = {
   &spotify_cb_notify_main_thread,
   &spotify_cb_music_delivery,
   &spotify_cb_play_token_lost,
-  &spotify_cb_log_message
+  &spotify_cb_log_message,
+  &spotify_cb_end_of_track
 };
 
 static const uint8_t g_appkey[] = {
@@ -171,11 +173,12 @@ static gboolean keep_spotify_thread = TRUE;
 
 static GstSpotSrc *spot;
 
-/* ugly hack remove as soon as possible */
-static int uglysearchcounter = 0;
+/* gyllen was here */
 
 /*****************************************************************************/
 /*** LIBSPOTIFY FUNCTIONS ****************************************************/
+
+//FIXME: sort
 
 static void
 spotify_cb_metadata_updated (sp_session *session)
@@ -196,6 +199,15 @@ spotify_cb_play_token_lost (sp_session *session)
   GST_DEBUG_OBJECT (spot, "play token lost");
 }
 
+static void
+spotify_cb_end_of_track (sp_session *session)
+{
+  /* its the end of the track as we now it */
+  GstPad *src_pad = gst_element_get_pad (GST_ELEMENT (spot), "src");
+  //FIXME: deprecated, change this and unref correctly
+  gst_pad_push_event (src_pad, gst_event_new_eos ());
+  GST_DEBUG_OBJECT (spot, "end of track");
+}
 static void
 spotify_cb_connection_error (sp_session *spotify_session, sp_error error)
 {
@@ -261,13 +273,8 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   GST_DEBUG_OBJECT (spot,"%s - start %p with %d frames with size=%d\n",__FUNCTION__, frames, num_frames, bufsize);
 
   if (num_frames == 0) {
-    if (uglysearchcounter <= 0) {
-      GstPad *src_pad = gst_element_get_pad (GST_ELEMENT (spot), "src");
-      gst_pad_push_event (src_pad, gst_event_new_eos ());
-      return 0;
-    } else {
-      uglysearchcounter--;
-    }
+    /* we have a seek */
+    return 0;
   }
 
   buffer = gst_buffer_new_and_alloc (bufsize);
@@ -777,11 +784,11 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
       gint sample_rate = GST_SPOT_SRC_FORMAT (spot)->sample_rate;
       gint channels = GST_SPOT_SRC_FORMAT (spot)->channels;
       gint64 frames = offset / (channels * sizeof (int16_t));
-      g_print ("offset (%lld) / channels (%d) * samplesize (%d) = frames (%lld)\n", offset, channels, sizeof (int16_t), frames);
-      uglysearchcounter = 2;
+      //g_print ("offset (%lld) / channels (%d) * samplesize (%d) = frames (%lld)\n", offset, channels, sizeof (int16_t), frames);
+
       gint64 seek_usec = frames / ((float)sample_rate/1000);
-      g_print ("seek_usec = (%lld) = frames (%lld) /  sample_rate (%d/1000)\n", seek_usec, frames, sample_rate);
-      g_print ("perform seek to %lld bytes and %lld usec\n", offset, seek_usec);
+      //g_print ("seek_usec = (%lld) = frames (%lld) /  sample_rate (%d/1000)\n", seek_usec, frames, sample_rate);
+      //g_print ("perform seek to %lld bytes and %lld usec\n", offset, seek_usec);
       error = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), seek_usec);
       if (error != SP_ERROR_OK) {
         g_print ("seek error!!\n");
@@ -789,6 +796,8 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
       }
       src->read_position = offset;
       gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
+    } else {
+      //this happens all the time!
     }
 
     /* see if we have bytes to write */
@@ -845,6 +854,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
   gboolean ret = TRUE;
   GstSpotSrc *src = GST_SPOT_SRC (basesrc);
   gint samplerate = GST_SPOT_SRC_FORMAT (spot)->sample_rate;
+  gint64 src_val, dest_val;
 
   switch (GST_QUERY_TYPE (query)) {
     case GST_QUERY_URI:
@@ -878,13 +888,11 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
       break;
     }
     case GST_QUERY_CONVERT:
-    {
+        {
       GstFormat src_fmt, dest_fmt;
-      gint64 src_val, dest_val;
 
       gst_query_parse_convert (query, &src_fmt, &src_val, &dest_fmt, &dest_val);
-      g_print ("convert src_fmt %d dst_fmt %d\n", src_fmt, dest_fmt);
-      g_print ("        src_val %lld dst_val %lld\n", src_val, dest_val);
+      //g_print ("convert src_fmt %d dst_fmt %d\n", src_fmt, dest_fmt);
 
       if (src_fmt == dest_fmt) {
         dest_val = src_val;
@@ -893,12 +901,12 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
 
       switch (src_fmt) {
         case GST_FORMAT_BYTES:
-          g_print ("dst_fmt == %d == FORMAT_DEFAULT\n", dest_fmt);
+         // g_print ("dst_fmt == %d == FORMAT_DEFAULT\n", dest_fmt);
           switch (dest_fmt) {
             case GST_FORMAT_TIME:
               /* samples to time */
               dest_val = src_val / ((float)samplerate * 4 / 1000000);
-              g_print ("dest_val = %lld\n", dest_val);
+              //g_print "dest_val = %lld\n", dest_val);
               break;
 
             default:
@@ -908,7 +916,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
           break;
 
         case GST_FORMAT_TIME:
-          g_print ("dst_fmt == %d == FORMAT_TIME\n", dest_fmt);
+          //g_print ("dst_fmt == %d == FORMAT_TIME\n", dest_fmt);
           switch (dest_fmt) {
             case GST_FORMAT_BYTES:
               /* time to samples */
@@ -927,6 +935,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
           ret = FALSE;
           break;
       }
+      //g_print ("   done src_val %lld dst_val %lld\n", src_val, dest_val);
     done:
       gst_query_set_convert (query, src_fmt, src_val, dest_fmt, dest_val);
       break;
@@ -971,7 +980,7 @@ gst_spot_src_get_size (GstBaseSrc * basesrc, guint64 * size)
     goto no_duration;
 
   *size = (duration/1000) * 44100 * 4;
-  g_print ("%s - duration=%d, size=%lld\n", __FUNCTION__, duration, *size);
+  //g_print ("%s - duration=%d, size=%lld\n", __FUNCTION__, duration, *size);
 
   return TRUE;
 
