@@ -131,8 +131,20 @@ spotifydogvibes_search(PyObject *self, PyObject *args, PyObject * kwargs)
   if (!PyArg_ParseTuple(args, "s", &query)){
     Py_BuildValue("{s,s}");;
   }
+  /* sp_search *   sp_search_create (sp_session *session, 
+   *                                 const char *query, 
+   *                                 int track_offset, 
+   *                                 int track_count,
+   *                                 int album_offset,
+   *                                 int album_count,
+   *                                 int artist_offset,
+   *                                 int artist_count, 
+   *                                 search_complete_cb *callback, 
+   *                                 void *userdata) 
+   */
 
-  search = sp_search_create(session, query, 0, 100,
+  //FIXME: remove offset 0, limit 30 and comment when you have time
+  search = sp_search_create(session, query, 0, 30, 0,30, 0, 100,
                             &search_complete, NULL);
 
   if (!search) {
