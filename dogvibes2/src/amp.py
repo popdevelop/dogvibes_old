@@ -197,9 +197,9 @@ class Amp():
         self.src.get_pad("src").push_event(gst.event_new_flush_start())
         self.src.get_pad("src").push_event(gst.event_new_flush_stop())
 
-    def API_setPlayList(self, id):
+    def API_setPlayList(self, id, position):
         self.playlist = Playlist.get(id)
-        self.playlist_position = 0
+        self.playlist_position = position
 
     def API_setPlayQueueMode(self, mode):
         if (mode != "normal" and mode != "random" and mode != "repeat" and mode != "repeattrack"):
