@@ -181,6 +181,7 @@ class Amp():
         self.pipeline.set_state(gst.STATE_PAUSED)
 
     def API_queue(self, uri):
+        self.inplayqueue = True
         track = self.dogvibes.create_track_from_uri(uri)
         self.playqueue.append(track)
 
