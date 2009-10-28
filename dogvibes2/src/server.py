@@ -15,7 +15,6 @@ from collection import Collection
 # import threads
 from threading import Thread
 
-import BaseHTTPServer
 from urlparse import urlparse
 import cgi
 import json
@@ -32,6 +31,19 @@ class DogError(Exception):
         return repr(self.value)
 
 # web server
+from SocketServer import ThreadingMixIn
+from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+import BaseHTTPServer
+
+class ClientHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write("<html><body>")
+        self.wfile.write("<b>A client should be displayed here. HTML and images is to be fetched from the spotify clone directory</b>")
+        self.wfile.write("</html></body>")
+
 class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
@@ -104,6 +116,12 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
+
+def serve_client(port):
+    server = ThreadingHTTPServer(("", port), ClientHandler)
+    server.serve_forever()
 
 class API(Thread):
     def __init__(self):
@@ -113,8 +131,10 @@ class API(Thread):
         global dogvibes
         dogvibes = Dogvibes()
 
-        httpserver = BaseHTTPServer.HTTPServer(("", 2000), APIHandler)
-        httpserver.serve_forever()
+        Thread(target=serve_client, args=[8080]).start()
+
+        server = BaseHTTPServer.HTTPServer(("", 2000), APIHandler)
+        server.serve_forever()
 
 if __name__ == '__main__':
     #if os.path.exists('dogvibes.db'):
