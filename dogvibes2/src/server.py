@@ -5,7 +5,6 @@ import hashlib
 import gobject
 import gst
 
-
 #import dogvibes object
 from dogvibes import Dogvibes
 
@@ -23,6 +22,8 @@ import json
 import sys
 
 import urllib
+
+import signal
 
 class DogError(Exception):
     def __init__(self, value):
@@ -130,6 +131,9 @@ if __name__ == '__main__':
     print "         /)  /__\  /     "
     print "        / \ \_  / /|     "
     print "        \_)\__) \_)_)    "
+
+    # Enable Ctrl-C
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     gobject.threads_init()
 
