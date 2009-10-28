@@ -465,11 +465,15 @@ $("document").ready(function() {
    setPage("p-home");
 	$("#playback_seek").slider();
 	$("#playback_volume").slider();
-	/* Do we have a server? otherwise prompt */ 
+	/* Do we have a server? otherwise prompt */
+   if((temp = getCookie("dogvibes.server")) != ""){
+      default_server = temp;
+   }
 	if(!server){
 		server = prompt("Enter Dogvibes server URL:", default_server);
 	}
 	if(server){
+      setCookie("dogvibes.server", server, 365);
       connectionInit();
       getPlayLists(); /* TODO: move this when we have playlisthash */
 		return;
@@ -563,7 +567,6 @@ $("#p-playqueue").droppable({
    drop: function(event, ui) {
       id = $(this).find("a").attr("name");
       uri = ui.draggable.attr("id");
-      //alert("Dropped " + uri + " into " + id);
       $.ajax({
          type: "GET",
          dataType: "jsonp",
