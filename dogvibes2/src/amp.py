@@ -30,7 +30,11 @@ class Amp():
         self.playqueue = []
         self.inplayqueue = False
 
-        self.playlist = None
+        playlistname = "amp" + id
+        # create the playqueue
+        if (Playlist.name_exists(playlistname) == False):
+            Playlist.create(playlistname)
+        self.playlist = Playlist.get_by_name(playlistname)
         self.playlist_position = 0
 
         self.src = None
@@ -90,7 +94,6 @@ class Amp():
 
         # FIXME this should be speaker specific
         status['volume'] = self.dogvibes.speakers[0].get_volume()
-
         status['playqueuehash'] = self.get_hash_from_play_queue()
 
         track = None
@@ -113,6 +116,8 @@ class Amp():
             status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
 
         status['index'] = self.playlist_position
+
+        print self.playlist_position
 
         (pending, state, timeout) = self.pipeline.get_state()
         if state == gst.STATE_PLAYING:
