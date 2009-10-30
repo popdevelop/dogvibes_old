@@ -1059,14 +1059,18 @@ static gboolean
 gst_spot_src_stop (GstBaseSrc * basesrc)
 {
   GST_DEBUG_OBJECT (basesrc, "STOP\n");
-  g_mutex_lock (spotifylib_mutex);
+
+  /* For now try to uncomment these locks since they seems to cause a deadlock
+   * will probably cause a segfault now instead */
+
+  //g_mutex_lock (spotifylib_mutex);
   sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
-  g_mutex_unlock (spotifylib_mutex);
+  //g_mutex_unlock (spotifylib_mutex);
 
   //FIXME someone is holding references
-  g_mutex_lock (spotifylib_mutex);
+  //g_mutex_lock (spotifylib_mutex);
   sp_track_release (SPOT_OBJ_CURRENT_TRACK (spot_instance));
-  g_mutex_unlock (spotifylib_mutex);
+  //g_mutex_unlock (spotifylib_mutex);
 
   /* clear adapter (we are stopped and do not continue from same place) */
   gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
