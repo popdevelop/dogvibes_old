@@ -23,7 +23,8 @@ libgstspot_la_SOURCES = gstspot.c gstspotsrc.c
 
 libgstspot_la_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) $(GST_CFLAGS) \
 	-I$(prefix)/include
-libgstspot_la_LIBADD = $(GST_LIBS) $(prefix)/lib/libgstaudio-0.10.la
+#This line is probably not needed
+#libgstspot_la_LIBADD = $(GST_LIBS) $(prefix)/lib/libgstaudio-0.10.la
 libgstspot_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS) -lspotify
 libgstspot_la_LIBTOOLFLAGS = --tag=disable-static
 
