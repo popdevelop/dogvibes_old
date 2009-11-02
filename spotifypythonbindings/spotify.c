@@ -181,17 +181,27 @@ spotifydogvibes_get_songs(PyObject *self, PyObject *args, PyObject * kwargs) {
     sp_track *track;
     const char *name;
     int nbr_of_artists;
+    int j;
 
     track = sp_playlist_track (pl, i);
     name = sp_track_name (track);
-    /*
-    int j = 0;
-    nbr_of_artists = sp_track_num_artists (track);
-    for (j = 0; j < nbr_of_artists;j++) {
 
-    } */
     PyObject *songinfo = Py_BuildValue("{s,i}", "index",i);
     PyDict_Update(songinfo, Py_BuildValue("{s,s}", "name", name));
+    
+    nbr_of_artists = sp_track_num_artists (track);
+    for (j = 0; j < nbr_of_artists;j++) {
+      sp_artist *artist = sp_track_artist (track, j);
+      PyObject *artists = Py_BuildValue("[]");
+
+      if (sp_artist_is_loaded (artist)) {
+	/* should i take a ref before? */
+        const char* name = sp_artist_name (artist);
+        PyList_Append(artists, Py_BuildValue("s", name));
+        PyDict_SetItemString(songinfo, "artists", artists);
+      } 
+
+    } 
     PyList_Append(ret, songinfo);
   }
 
