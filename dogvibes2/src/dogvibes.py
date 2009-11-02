@@ -2,6 +2,7 @@ import gobject
 import gst
 import os
 import config
+
 from amp import Amp
 
 # import spources
@@ -24,16 +25,19 @@ class DogError(Exception):
 class Dogvibes():
     def __init__(self):
         try: cfg = config.load("dogvibes.conf")
-        except Exception, e: 
+        except Exception, e:
             print "ERROR: Cannot load configuration file\n"
             sys.exit(1)
-        #FIXME: Right now sources need to be at fixed positions due to some 
-        #       hacks in the rest of the code. 
+        #FIXME: Right now sources need to be at fixed positions due to some
+        #       hacks in the rest of the code.
+
         self.sources = [None,None]
         if("ENABLE_SPOTIFY_SOURCE" in cfg):
             spot_user = os.environ.get('SPOTIFY_USER') or cfg["SPOTIFY_USER"]
             spot_pass = os.environ.get('SPOTIFY_PASS') or cfg["SPOTIFY_PASS"]
             self.sources[0] = (SpotifySource("spotify", spot_user, spot_pass))
+            self.sources[0].create_playlists(spot_user, spot_pass)
+
         if("ENABLE_FILE_SOURCE" in cfg):
             self.sources[1] = (FileSource("filesource", cfg["FILE_SOURCE_ROOT"]))
 

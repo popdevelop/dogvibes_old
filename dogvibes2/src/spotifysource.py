@@ -12,7 +12,7 @@ class SpotifySource:
         self.passw = passw
         self.user = user
         self.created = False
-        spotifydogvibes.login(user, passw);
+        #spotifydogvibes.login(user, passw);
 
     def create_track_from_uri(self, uri):
         url = "http://ws.spotify.com/lookup/1/?uri=" + uri
@@ -36,6 +36,21 @@ class SpotifySource:
         track.duration = duration
 
         return track
+
+    def create_playlists(self, spot_user, spot_pass):
+        spotifydogvibes.login(spot_user, spot_pass)
+        pl = spotifydogvibes.get_playlists()
+
+        for l in pl:
+            print l
+            songs = spotifydogvibes.get_songs(l["index"])
+            print "found " + str(len(songs)) + " songs in playlist " + str(l["index"])
+            # -- spam --
+            #for s in songs:
+                #print s
+
+        spotifydogvibes.logout()
+
 
     def get_src(self):
         if self.created == False:
