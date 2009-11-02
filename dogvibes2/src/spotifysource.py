@@ -1,5 +1,9 @@
 import gst
 import spotifydogvibes
+
+import urllib
+import xml.etree.ElementTree as ET
+
 from track import Track
 
 class SpotifySource:
@@ -11,16 +15,28 @@ class SpotifySource:
         spotifydogvibes.login(user, passw);
 
     def create_track_from_uri(self, uri):
-        d = spotifydogvibes.create_track_from_uri(uri)
-        if (d == {}):
+        url = "http://ws.spotify.com/lookup/1/?uri=" + uri
+
+        try:
+            e = ET.parse(urllib.urlopen(url))
+        except Exception as e:
             return None
 
+        ns = "http://www.spotify.com/ns/music/1"
+
+        title = e.find('.//{%s}name' % ns).text
+        artist = e.find('.//{%s}artist/{%s}name' % (ns, ns)).text
+        album = e.find('.//{%s}album/{%s}name' % (ns, ns)).text
+        duration = int(float(e.find('.//{%s}length' % ns).text))
+
         track = Track(uri)
-        track.title = d["title"]
-        track.artist = d["artist"]
-        track.album = d["album"]
-        track.uri = uri
-        track.duration = d["duration"]
+        track.title = title
+        track.artist = artist
+        track.album = album
+        track.duration = duration
+
+        print track
+
         return track
 
     def get_src(self):
@@ -38,7 +54,23 @@ class SpotifySource:
         return self.bin
 
     def search (self, query):
-        return spotifydogvibes.search(query);
+        tracks = []
+
+        url = "http://ws.spotify.com/search/1/track?q=" + query
+        tree = ET.parse(urllib.urlopen(url))
+
+        ns = "http://www.spotify.com/ns/music/1"
+
+        for e in tree.findall('.//{%s}track' % ns):
+            track = {}
+            track['title'] = e.find('.//{%s}name' % ns).text
+            track['artist'] = e.find('.//{%s}artist/{%s}name' % (ns, ns)).text
+            track['album'] = e.find('.//{%s}album/{%s}name' % (ns, ns)).text
+            track['duration'] = int(float(e.find('.//{%s}length' % ns).text)) * 1000
+            track['uri'] = e.items()[0][1]
+            tracks.append(track)
+
+        return tracks
 
     def list(self, type):
         return[]
