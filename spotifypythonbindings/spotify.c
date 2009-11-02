@@ -70,15 +70,15 @@ spotifydogvibes_login(PyObject *self, PyObject *args, PyObject * kwargs)
 {
   char *user;
   char *pass;
+  int timeout = -1;
+  sp_session_config config;
+  sp_error error;
 
   if (!PyArg_ParseTuple(args, "ss", &user, &pass)){
     return NULL;
   }
 
-  printf("Trying to log in user=%s pass=%s\n", user, pass);
-
-  sp_session_config config;
-  sp_error error;
+  printf("Binding login - Trying to log in user=%s pass=%s\n", user, pass);
 
   config.api_version = SPOTIFY_API_VERSION;
   config.cache_location = "tmp";
@@ -91,26 +91,111 @@ spotifydogvibes_login(PyObject *self, PyObject *args, PyObject * kwargs)
   error = sp_session_init(&config, &session);
 
   if (SP_ERROR_OK != error) {
-    printf("failed to create session: %s\n",
-           sp_error_message(error));
+    printf("failed to create session: %s\n", sp_error_message(error));
     return Py_BuildValue("i", 2);
   }
 
   error = sp_session_login(session, user, pass);
 
-  int timeout = -1;
   while (!loggedin) {
     sp_session_process_events(session, &timeout);
     sleep(0.1);
   }
 
   if (SP_ERROR_OK != error) {
-    printf("failed to login: %s\n",
-           sp_error_message(error));
+    printf("failed to login: %s\n", sp_error_message(error));
     return Py_BuildValue("i", 3);
   }
 
   return Py_BuildValue("i", 1);
+}
+
+static PyObject *
+spotifydogvibes_logout(PyObject *self, PyObject *args, PyObject * kwargs)
+{
+  sp_error error = sp_session_logout(session);
+
+  printf("Binding logout\n");
+  if (SP_ERROR_OK != error) {
+    fprintf(stderr, "failed to log out from Spotify: %s\n", sp_error_message(error));
+    return Py_BuildValue("i", 3);
+  }
+  /*how do you return nothing?*/
+  return Py_BuildValue("i", 1);
+}
+
+static PyObject *
+spotifydogvibes_get_playlists(PyObject *self, PyObject *args, PyObject * kwargs)
+{
+  sp_error err;
+  int i;
+  int nbr;
+  PyObject *ret;
+
+  /* fetch playlist */
+  sp_playlistcontainer *pc = sp_session_playlistcontainer(session);
+
+  nbr = sp_playlistcontainer_num_playlists(pc);
+
+  ret = Py_BuildValue("[]");
+
+  for (i = 0; i < nbr; ++i) {
+    sp_playlist *pl = sp_playlistcontainer_playlist(pc, i);
+    sp_user *o = sp_playlist_owner(pl);
+    const char *owner_name = (sp_user_is_loaded(o) ? sp_user_display_name(o) : sp_user_canonical_name(o));
+
+    // sp_playlist_add_callbacks(pl, &pl_callbacks, NULL);
+    PyObject *playlistinfo = Py_BuildValue("{s,i}", "index",i);
+    PyDict_Update(playlistinfo, Py_BuildValue("{s,b}", "collaborative", pl));
+    PyDict_Update(playlistinfo, Py_BuildValue("{s,s}", "name", sp_playlist_name(pl)));
+    PyDict_Update(playlistinfo, Py_BuildValue("{s,s}", "owner", owner_name));
+    PyList_Append(ret, playlistinfo);
+
+    printf("Playlist %d: %s\n",i , sp_playlist_name(pl));
+  }
+  return ret;
+}
+
+static PyObject *
+spotifydogvibes_get_songs(PyObject *self, PyObject *args, PyObject * kwargs) {
+
+  sp_error err;
+  int i;
+  int nbr;
+  int index;
+  PyObject *ret;
+  sp_playlist *pl;
+
+  if (!PyArg_ParseTuple(args, "i", &index)){
+    return NULL;
+  }
+
+  /* fetch songs */
+  sp_playlistcontainer *pc = sp_session_playlistcontainer(session);
+  pl = sp_playlistcontainer_playlist(pc, index);
+  nbr = sp_playlist_num_tracks (pl);
+
+  ret = Py_BuildValue("[]");
+
+  for (i = 0; i < nbr; ++i) {
+    sp_track *track;
+    const char *name;
+    int nbr_of_artists;
+
+    track = sp_playlist_track (pl, i);
+    name = sp_track_name (track);
+    /*
+    int j = 0;
+    nbr_of_artists = sp_track_num_artists (track);
+    for (j = 0; j < nbr_of_artists;j++) {
+
+    } */
+    PyObject *songinfo = Py_BuildValue("{s,i}", "index",i);
+    PyDict_Update(songinfo, Py_BuildValue("{s,s}", "name", name));
+    PyList_Append(ret, songinfo);
+  }
+
+  return ret;
 }
 
 static void search_complete(sp_search *search, void *userdata)
@@ -129,18 +214,18 @@ spotifydogvibes_search(PyObject *self, PyObject *args, PyObject * kwargs)
   int timeout = -1;
 
   if (!PyArg_ParseTuple(args, "s", &query)){
-    Py_BuildValue("{s,s}");;
+    Py_BuildValue("{s,s}");
   }
-  /* sp_search *   sp_search_create (sp_session *session, 
-   *                                 const char *query, 
-   *                                 int track_offset, 
+  /* sp_search *   sp_search_create (sp_session *session,
+   *                                 const char *query,
+   *                                 int track_offset,
    *                                 int track_count,
    *                                 int album_offset,
    *                                 int album_count,
    *                                 int artist_offset,
-   *                                 int artist_count, 
-   *                                 search_complete_cb *callback, 
-   *                                 void *userdata) 
+   *                                 int artist_count,
+   *                                 search_complete_cb *callback,
+   *                                 void *userdata)
    */
 
   //FIXME: remove offset 0, limit 30 and comment when you have time
@@ -219,10 +304,16 @@ static PyMethodDef SpamMethods[] = {
 
   {"login", spotifydogvibes_login, METH_VARARGS,
    "Login to spotify."},
+  {"logout", spotifydogvibes_logout, METH_VARARGS,
+   "Logout from spotify."},
   {"search", spotifydogvibes_search, METH_VARARGS,
    "Perform a search on spotify."},
   {"create_track_from_uri", spotifydogvibes_create_track_from_uri, METH_VARARGS,
    "Create track from spotify uri."},
+  {"get_playlists", spotifydogvibes_get_playlists, METH_VARARGS,
+   "Get playlists for user."},
+  {"get_songs", spotifydogvibes_get_songs, METH_VARARGS,
+   "Get songs for playlist."},
   {NULL, NULL, 0, NULL}
 };
 
