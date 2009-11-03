@@ -131,7 +131,7 @@ class API(Thread):
         global dogvibes
         dogvibes = Dogvibes()
 
-        Thread(target=serve_client, args=[8080]).start()
+        #Thread(target=serve_client, args=[8080]).start()
 
         server = BaseHTTPServer.HTTPServer(("", 2000), APIHandler)
         server.serve_forever()
