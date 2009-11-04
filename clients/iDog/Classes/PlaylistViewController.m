@@ -36,18 +36,18 @@
 	[super viewDidLoad];
 	trackItems = [[NSMutableArray alloc] initWithCapacity: 1000];
 	trackURIs = [[NSMutableArray alloc] initWithCapacity: 1000];
-	NSLog(@"OK, someone loaded this nib!");
 	SettingsViewController *svc = [SettingsViewController sharedViewController];
 	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getAllTracksInQueue",ip ? ip : @"83.249.229.59:2000",nil]];
+	//NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getAllTracksInQueue",ip ? ip : @"83.249.229.59:2000",nil]];
+	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/dogvibes/getAllTracksInPlaylist?playlist_id=1",ip ? ip : @"83.249.229.59:2000",nil]];
+	
+	
 	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];	
 	if (jsonData == nil) {
 		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
 		[alert show];
 		[alert release];
 	} else {
-		NSLog(@"GOT JSON DATA! %@ \n", jsonData);
 		NSDictionary *trackDict = [jsonData JSONValue];
 		NSDictionary *result = [trackDict objectForKey:@"result"];
 		for (id key in result) {
@@ -67,7 +67,6 @@
     return (interfaceOrientation == UIInterfaceOrientationPortrait);
 }
 */
-
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
 	NSLog(@"called RowsInSection %d", [trackItems count]);

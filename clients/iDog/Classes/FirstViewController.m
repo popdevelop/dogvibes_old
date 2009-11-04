@@ -29,18 +29,12 @@
 }
 */
 
-
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
     [super viewDidLoad];
 	/* todo, album art should be loaded for each track that is playing, default image else */	
 	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	// setting up the image now
-	NSLog(@"LOADING IMAGE!");
-	
-	
+	NSString *ip = [svc getIPfromTextField];	
 	/* get status from server! */
 	NSLog(@"IP: %@", ip);
 	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getStatus",ip ? ip : @"83.249.229.59:2000", nil]];
@@ -57,48 +51,41 @@
 		NSDictionary *result = [trackDict objectForKey:@"result"];
 		NSString *playState = [NSString stringWithFormat:@"%@",[result objectForKey:@"state"], nil];
 		
-		if (playState && playState == @"playing") {
+		NSLog(@"play state: %@ ", playState);
+		
+		if ([playState compare:@"playing"] == 0) {
 			/* set correct button image */
 			[self setPlayButtonImage:[UIImage imageNamed:@"pause.png"]];
-			
+			NSLog(@"PLAYING, SET PAUSE button");
 			img = [UIImage imageWithData: 
 				   [NSData dataWithContentsOfURL: 
 					[NSURL URLWithString:
 					 [NSString stringWithFormat:
 					  @"http://%@/dogvibes/getAlbumArt?size=159&uri=%@",ip ? ip : @"83.249.229.59:2000", [result objectForKey:@"uri"],nil]]]];
-			
-			label = [NSString stringWithFormat:@"Playing %@ - %@", [result objectForKey:@"title"], [result objectForKey:@"album"]];
-			
 		} else if (playState){
 			/* set play button available */
 			[self setPlayButtonImage:[UIImage imageNamed:@"play.png"]];
-			
+			NSLog(@"STOPPED, SET PLAY button");
 			img = [UIImage imageWithData: 
 				   [NSData dataWithContentsOfURL: 
 					[NSURL URLWithString:
 					 [NSString stringWithFormat:
 					  @"http://%@/dogvibes/getAlbumArt?size=159&uri=%@",ip ? ip : @"83.249.229.59:2000", [result objectForKey:@"uri"],nil]]]];
-		}		
+		}
+		[self updateTrackInfo];
 	
 	}
-	
-	
 	
 	iDogAppDelegate *appDelegate = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
 	[appDelegate getCurTrack];
-#if 0
-	if (appDelegate && [appDelegate getCurTrack] == nil) {
-			/* no track is currently playing, show default dog! */
-		NSLog(@"no track playing!");
-	}
-#endif
 	
 	if (img != nil) {
 		/* diplay default album art */
 		jsonImage.image = img;
 	}	else {
 		jsonImage.image = [UIImage imageNamed:@"dogvibes_logo.png"];
-	}	
+	}
+	
 }
 
 
@@ -113,7 +100,7 @@
 
 - (void)setPlayButtonImage:(UIImage *)image
 {
-	[playButton.layer removeAllAnimations];
+	//[playButton.layer removeAllAnimations];
 	[playButton setImage:image forState:0];
 }
 
@@ -123,8 +110,8 @@
 	SettingsViewController *svc = [SettingsViewController sharedViewController];
 	NSString *ip = [svc getIPfromTextField];
 	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/play",ip ? ip : @"83.249.229.59:2000", nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+	NSURL *jsonURL;
+	NSString *jsonData;
 	/* update button */
 	if (state != 1) {
 		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/play",ip ? ip : @"83.249.229.59:2000", nil]];
@@ -144,6 +131,9 @@
 		[alert show];
 		[alert release];
 	}
+	/* refresh album and track title */
+	[self updateTrackInfo];
+	
 }
 
 - (IBAction)prevButtonPressed:(id)sender
@@ -158,6 +148,7 @@
 		[alert show];
 		[alert release];
 	}
+	[self updateTrackInfo];
 }
 
 - (IBAction)stopButtonPressed:(id)sender
@@ -188,14 +179,33 @@
 		[alert show];
 		[alert release];
 	}
+	
+	[self updateTrackInfo];
 }
 
+- (void) updateTrackInfo {
+	SettingsViewController *svc = [SettingsViewController sharedViewController];
+	NSString *ip = [svc getIPfromTextField];	
+	/* get status from server! */
+	NSLog(@"IP: %@", ip);
+	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getStatus",ip ? ip : @"83.249.229.59:2000", nil]];
+	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+	if (jsonData == nil) {
+		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"No reply from server!" message:@"Either the webservice is down (verify with Statusbutton under setting) or else, there's nothing added in playlist."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
+		[alert show];
+		[alert release];
+	} else {
+		NSDictionary *trackDict = [jsonData JSONValue];
+		NSDictionary *result = [trackDict objectForKey:@"result"];
+		label.text = [NSString stringWithFormat:@"%@ - %@", [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
+		
+	}
+}
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning]; // Releases the view if it doesn't have a superview
     // Release anything that's not essential, such as cached data
 }
-
 
 - (void)dealloc {
     [super dealloc];

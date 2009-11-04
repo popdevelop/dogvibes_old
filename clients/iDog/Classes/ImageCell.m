@@ -8,7 +8,6 @@
 
 #import "ImageCell.h"
 
-
 @implementation ImageCell
 
 // we need to synthesize the two labels
@@ -45,8 +44,7 @@
 		self.urlLabel.textAlignment = UITextAlignmentLeft; // default
 		[myContentView addSubview:self.urlLabel];
 		[self.urlLabel release];		
-	}
-	
+	}	
 	return self;
 }
 

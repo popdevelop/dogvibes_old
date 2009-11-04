@@ -18,18 +18,16 @@
 
 
 - (void)applicationDidFinishLaunching:(UIApplication *)application {
-    
+    NSLog(@"Application launched.!");
     // Add the tab bar controller's current view as a subview of the window
     [window addSubview:tabBarController.view];
 }
 
-
-
 // Optional UITabBarControllerDelegate method
 - (void)tabBarController:(UITabBarController *)tabBarController didSelectViewController:(UIViewController *)viewController {
-	NSLog(@"Some called a new viecontroller!");
+	NSLog(@"Some called a new viewcontroller!");
+	[viewController viewDidLoad];
 }
-
 
 /*
 // Optional UITabBarControllerDelegate method
@@ -44,7 +42,6 @@
 - (void) setCurTrack:(NSString *)uri {
 	self.curTrack = uri;
 }
-
 
 - (void)dealloc {
     [tabBarController release];

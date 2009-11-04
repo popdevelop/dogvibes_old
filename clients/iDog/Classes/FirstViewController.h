@@ -26,5 +26,6 @@
 
 - (void)setPlayButtonImage:(UIImage *)image;
 - (void)setAlbumArt:(NSString *)uri;
+- (void)updateTrackInfo;
 
 @end
