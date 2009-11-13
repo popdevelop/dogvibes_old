@@ -69,7 +69,8 @@ class SpotifySource:
     def search (self, query):
         tracks = []
 
-        url = "http://ws.spotify.com/search/1/track?q=" + query
+        url = "http://ws.spotify.com/search/1/track?q=" + urllib.quote_plus(query)
+
         tree = ET.parse(urllib.urlopen(url))
 
         ns = "http://www.spotify.com/ns/music/1"
