@@ -150,16 +150,16 @@ class Amp():
         else:
             self.change_track(self.active_playlist_position + 1)
 
-    def API_playTrack(self, id, nbr):
-        # id=-1 means play queue
-        if id == -1:
+    def API_playTrack(self, playlistid, nbr):
+        # playlistid=-1 means play queue
+        if playlistid == -1:
             if (nbr > (len(self.playqueue) - 1)):
                 raise DogError, 'Trying to play none existing track from playqueue'
             self.inplayqueue = True
             for i in range(0, nbr):
                 self.playqueue.remove(self.playqueue[0])
         else:
-            self.active_playlist_id = id
+            self.active_playlist_id = playlistid
             self.change_track(nbr)
 
         self.API_play()
