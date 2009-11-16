@@ -105,10 +105,14 @@ class Amp():
         if self.inplayqueue:
             if len(self.playqueue) > 0:
                 track = self.playqueue[0]
+                status['index'] = 0
+                status['playlistid'] = -1
         else:
             playlist = Playlist.get(self.active_playlist_id)
             if self.active_playlist_id != -1 and playlist.length() > 0:
                 track = playlist.get_track_nbr(self.active_playlist_position)
+                status['index'] = self.active_playlist_position
+                status['playlistid'] = self.active_playlist_id
 
         status['uri'] = "dummy"
 
@@ -119,11 +123,6 @@ class Amp():
             status['album'] = track.album
             status['duration'] = int(track.duration)
             status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
-
-        status['index'] = self.active_playlist_position
-        status['playlistid'] = self.active_playlist_id
-
-        print self.active_playlist_position
 
         (pending, state, timeout) = self.pipeline.get_state()
         if state == gst.STATE_PLAYING:
@@ -151,18 +150,21 @@ class Amp():
         else:
             self.change_track(self.active_playlist_position + 1)
 
-    def API_playTrack(self, nbr):
-        self.change_track(nbr)
+    def API_playTrack(self, id, nbr):
+        # id=-1 means play queue
+        if id == -1:
+            if (nbr > (len(self.playqueue) - 1)):
+                raise DogError, 'Trying to play none existing track from playqueue'
+            self.inplayqueue = True
+            for i in range(0, nbr):
+                self.playqueue.remove(self.playqueue[0])
+        else:
+            self.active_playlist_id = id
+            self.change_track(nbr)
+
         self.API_play()
 
     def API_playQueueTrack(self, nbr):
-        if (nbr > (len(self.playqueue) - 1)):
-            raise DogError, 'Trying to remove none existsing track from playqueue'
-        self.inplayqueue = True
-
-        for i in range(0, nbr):
-            self.playqueue.remove(self.playqueue[0])
-
         self.API_play()
 
     def API_previousTrack(self):
@@ -205,10 +207,6 @@ class Amp():
         self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, int(mseconds) * 1000);
         self.src.get_pad("src").push_event(gst.event_new_flush_start())
         self.src.get_pad("src").push_event(gst.event_new_flush_stop())
-
-    def API_setPlayList(self, id, position):
-        self.active_playlist_id = id
-        self.active_playlist_position = position
 
     def API_setPlayQueueMode(self, mode):
         if (mode != "normal" and mode != "random" and mode != "repeat" and mode != "repeattrack"):
