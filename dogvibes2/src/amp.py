@@ -114,10 +114,10 @@ class Amp():
 
         if track != None:
             status['uri'] = track.uri
-            status['title'] = track.title,
-            status['artist'] = track.artist,
-            status['album'] = track.album,
-            status['duration'] = int(track.duration),
+            status['title'] = track.title
+            status['artist'] = track.artist
+            status['album'] = track.album
+            status['duration'] = int(track.duration)
             status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
 
         status['index'] = self.active_playlist_position

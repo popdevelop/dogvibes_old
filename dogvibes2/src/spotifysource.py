@@ -27,7 +27,7 @@ class SpotifySource:
         title = e.find('.//{%s}name' % ns).text
         artist = e.find('.//{%s}artist/{%s}name' % (ns, ns)).text
         album = e.find('.//{%s}album/{%s}name' % (ns, ns)).text
-        duration = int(float(e.find('.//{%s}length' % ns).text))
+        duration = int(float(e.find('.//{%s}length' % ns).text) * 1000)
 
         track = Track(uri)
         track.title = title
@@ -38,18 +38,19 @@ class SpotifySource:
         return track
 
     def create_playlists(self, spot_user, spot_pass):
-        spotifydogvibes.login(spot_user, spot_pass)
-        pl = spotifydogvibes.get_playlists()
+        pass
+        # Use this when connection to spotify works
 
-        for l in pl:
-            print l
-            songs = spotifydogvibes.get_songs(l["index"])
-            print "found " + str(len(songs)) + " songs in playlist " + str(l["index"])
-            # -- spam --
-            #for s in songs:
-                #print s
-
-        spotifydogvibes.logout()
+        # spotifydogvibes.login(spot_user, spot_pass)
+        #pl = spotifydogvibes.get_playlists()
+        #for l in pl:
+        #    print l
+        #    songs = spotifydogvibes.get_songs(l["index"])
+        #    print "found " + str(len(songs)) + " songs in playlist " + str(l["index"])
+        # -- spam --
+        #for s in songs:
+            #print s
+        #spotifydogvibes.logout()
 
 
     def get_src(self):
@@ -80,7 +81,7 @@ class SpotifySource:
             track['title'] = e.find('.//{%s}name' % ns).text
             track['artist'] = e.find('.//{%s}artist/{%s}name' % (ns, ns)).text
             track['album'] = e.find('.//{%s}album/{%s}name' % (ns, ns)).text
-            track['duration'] = int(float(e.find('.//{%s}length' % ns).text)) * 1000
+            track['duration'] = int(float(e.find('.//{%s}length' % ns).text) * 1000)
             track['uri'] = e.items()[0][1]
             tracks.append(track)
 
