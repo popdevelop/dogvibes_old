@@ -107,7 +107,7 @@ function timestamp_to_string(ts)
 	if(!ts) { ts=0; }
    if(ts==0) { return "0:00"; }
 	m = Math.round(ts/60 - 0.5)
-	s = ts - m*60;	
+	s = Math.round(ts - m*60);	
 	s=checkTime(s);
 	return m + ":" + s;
 }
