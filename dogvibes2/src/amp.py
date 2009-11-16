@@ -121,6 +121,7 @@ class Amp():
             status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
 
         status['index'] = self.active_playlist_position
+        status['playlistid'] = self.active_playlist_id
 
         print self.active_playlist_position
 
