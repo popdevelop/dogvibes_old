@@ -152,7 +152,10 @@ class Amp():
 
     def API_playTrack(self, playlistid, nbr):
         # playlistid=-1 means play queue
-        if int(playlistid) == -1:
+        nbr = int(nbr)
+        playlistid = int(playlistid)
+        if playlistid == -1:
+            print (len(self.playqueue) - 1)
             if (nbr > (len(self.playqueue) - 1)):
                 raise DogError, 'Trying to play none existing track from playqueue'
             self.inplayqueue = True
