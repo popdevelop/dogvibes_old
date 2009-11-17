@@ -133,11 +133,19 @@ function requestStatus()
 		});
 	}
 }
+
+function isTheSonglist(page, data)
+{
+	var type = page.substring(0,3);
+	var pl_id = current_playlist == "playqueue" ? -1 : current_playlist;
+	return type == 'pl-' && data.playlistid == pl_id;
+}
+
 function handleStatusResponse(data)
 {
 	/* Check if song has switched */
 	if(current_song.index != data.index){
-      if(current_page == "p-playqueue"){
+      if(isTheSonglist(current_page, data)){
          $("#row_" + current_song.index + " td:first a").removeClass("playing_icon");      
          $("#row_" + current_song.index + " td:first a").addClass("remButton"); 
          $("#row_" + current_song.index + " td").removeClass("playing");  	
@@ -145,7 +153,7 @@ function handleStatusResponse(data)
 		$("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
 	}
    /* Update playqueue if applicable */   
-	if(data.playqueuehash != current_song.playqueuehash && current_page == "p-playqueue"){
+	if(data.playqueuehash != current_song.playqueuehash && isTheSonglist(current_page, data)){
 		getPlayQueue();
 	}
 
@@ -169,7 +177,7 @@ function handleStatusResponse(data)
 	if(data.state != "stopped"){
 		$("#now_playing .artist").text(data.artist);
 		$("#now_playing .title").text(data.title);
-      if(current_page == "p-playqueue"){
+      if(isTheSonglist(current_page, data)){
          $("#row_" + data.index + " td:first a").addClass("playing_icon"); 
          $("#row_" + data.index + " td:first a").removeClass("remButton");       
          $("#row_" + data.index + " td").addClass("playing");       
@@ -243,7 +251,7 @@ function getPlayQueue(){
       removecommand = command.remove;
    } else {
       getcommand = command.getplaylisttracks + current_playlist;
-      addcommand = command.add;
+      addcommand = command.playtrack;
       removecommand = command.removefromplaylist + current_playlist + "&track_id=";
    }
 	$.ajax({
@@ -255,7 +263,7 @@ function getPlayQueue(){
          $("#s-results").empty();
          $.each(data.result, function(i, song) {
             td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-            id = current_playlist == "playqueue" ? i : song.id; 
+            id = i;
             $("#s-results").append("<tr id=\"row_"+ i + "\" class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + id + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + id + "\" name=\""+song.uri+"\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
             item_count++;
          });
@@ -268,9 +276,10 @@ function getPlayQueue(){
                success: function () {clearWait(); getPlayQueue(); } /* TODO: change back this when we have playlisthash */
             });
          });    
-         $(".playButton").dblclick(function () { 
-            var data = current_playlist == "playqueue" ? this.id : $(this).attr("name");
-            $.ajax({ 
+         $(".playButton").dblclick(function () {
+        	var pl_id = current_playlist == "playqueue" ? -1 : current_playlist;
+            var data = this.id + "&playlistid=" + pl_id;
+            $.ajax({
                beforeSend: setWait(),
                type: "GET",
                dataType: 'jsonp',
@@ -391,7 +400,7 @@ function doSearch(save) {
             /* Add click actions */
             $(".addButton").click(function () {
                $("#s-results .selected").effect('highlight');
-               $("#p-playqueue").effect('highlight');
+               $("#pl-playqueue").effect('highlight');
                $.ajax({  
                   beforeSend: setWait(),
                   type: "GET",
@@ -402,7 +411,7 @@ function doSearch(save) {
             }); 
             $(".playButton").dblclick(function () {
                $("#s-results .selected").effect('highlight');
-               $("#p-playqueue").effect('highlight');
+               $("#pl-playqueue").effect('highlight');
                $.ajax({
                   beforeSend: setWait(),
                   type: "GET",
@@ -555,14 +564,14 @@ $("#p-local").click(function () {
 
 /* Play queue management */
 
-$("#p-playqueue").click(function () {
-	setPage("p-playqueue");
+$("#pl-playqueue").click(function () {
+	setPage("pl-playqueue");
    current_playlist = "playqueue";
 	$("#tab-title").text("Play queue");
 	$("#playlist").html(track_list_table);
 	getPlayQueue();
 });
-$("#p-playqueue").droppable({
+$("#pl-playqueue").droppable({
    hoverClass: 'drophover',
    drop: function(event, ui) {
       id = $(this).find("a").attr("name");
