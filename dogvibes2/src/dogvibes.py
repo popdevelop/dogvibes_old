@@ -94,7 +94,7 @@ class Dogvibes():
 
     def API_removeTrackFromPlaylist(self, playlist_id, track_id):
         playlist = Playlist.get(playlist_id)
-        playlist.remove_track(track_id)
+        playlist.remove_track_nbr(int(track_id))
 
     def API_getAllPlaylists(self):
         return [playlist.to_dict() for playlist in Playlist.get_all()]
