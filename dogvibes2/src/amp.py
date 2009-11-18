@@ -140,7 +140,10 @@ class Amp():
             self.play_only_if_null(self.playqueue[0])
             self.pipeline.set_state(state)
         else:
-            self.change_track(self.active_playlist_position + 1)
+            if (self.active_playlist_id != -1):
+                self.change_track(self.active_playlist_position + 1)
+            else:
+                self.API_stop()
 
     def API_playTrack(self, playlistid, nbr):
         # playlistid=-1 means play queue
@@ -152,10 +155,9 @@ class Amp():
             self.inplayqueue = True
             for i in range(0, nbr):
                 self.playqueue.remove(self.playqueue[0])
-            (pending, state, timeout) = self.pipeline.get_state()
             self.pipeline.set_state(gst.STATE_NULL)
             self.play_only_if_null(self.playqueue[0])
-            self.pipeline.set_state(state)
+            self.pipeline.set_state(gst.STATE_PLAYING)
         else:
             self.active_playlist_id = playlistid
             self.change_track(nbr)
@@ -188,7 +190,6 @@ class Amp():
         self.pipeline.set_state(gst.STATE_PAUSED)
 
     def API_queue(self, uri):
-        self.inplayqueue = True
         track = self.dogvibes.create_track_from_uri(uri)
         self.playqueue.append(track)
 
