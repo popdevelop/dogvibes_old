@@ -28,17 +28,9 @@ class Amp():
         self.bus.connect('message', self.pipeline_message)
 
         self.playqueue = []
-        self.inplayqueue = False
+        self.inplayqueue = True
 
-        # create a playlist if there aren't any
-        # TODO: not necessary when playback from search results is permitted
-        playlist_name = "Initial"
-        if (Playlist.get_all() == []):
-            Playlist.create(playlist_name)
-            playlist = Playlist.get_by_name(playlist_name)
-        else:
-            playlist = Playlist.get_all()[0]
-        self.active_playlist_id = playlist.id
+        self.active_playlist_id = -1
         self.active_playlist_position = 0
 
         self.src = None
@@ -160,11 +152,14 @@ class Amp():
             self.inplayqueue = True
             for i in range(0, nbr):
                 self.playqueue.remove(self.playqueue[0])
+            (pending, state, timeout) = self.pipeline.get_state()
+            self.pipeline.set_state(gst.STATE_NULL)
+            self.play_only_if_null(self.playqueue[0])
+            self.pipeline.set_state(state)
         else:
             self.active_playlist_id = playlistid
             self.change_track(nbr)
-
-        self.API_play()
+            self.pipeline.set_state(gst.STATE_PLAYING)
 
     def API_playQueueTrack(self, nbr):
         self.API_play()
@@ -204,8 +199,7 @@ class Amp():
         self.playqueue.remove(self.playqueue[nbr])
 
     def API_seek(self, mseconds):
-        print "Seek simple to " + mseconds + " useconds"
-         # FIXME: this *1000-hack only works for Spotify?
+        # FIXME: this *1000-hack only works for Spotify?
         self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, int(mseconds) * 1000);
         self.src.get_pad("src").push_event(gst.event_new_flush_start())
         self.src.get_pad("src").push_event(gst.event_new_flush_stop())
@@ -257,7 +251,6 @@ class Amp():
 
         (pending, state, timeout) = self.pipeline.get_state()
         self.pipeline.set_state(gst.STATE_NULL)
-
         self.play_only_if_null(playlist.get_track_nbr(self.active_playlist_position))
         self.pipeline.set_state(state)
 
