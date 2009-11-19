@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		047006FA10B1FB8500F4B025 /* DogUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 047006F910B1FB8500F4B025 /* DogUtils.m */; };
 		047115030FCC9E8D00C755A5 /* next.png in Resources */ = {isa = PBXBuildFile; fileRef = 047114FE0FCC9E8D00C755A5 /* next.png */; };
 		047115040FCC9E8D00C755A5 /* prev.png in Resources */ = {isa = PBXBuildFile; fileRef = 047114FF0FCC9E8D00C755A5 /* prev.png */; };
 		047115050FCC9E8D00C755A5 /* play.png in Resources */ = {isa = PBXBuildFile; fileRef = 047115000FCC9E8D00C755A5 /* play.png */; };
@@ -14,7 +15,6 @@
 		047115070FCC9E8D00C755A5 /* oasis.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 047115020FCC9E8D00C755A5 /* oasis.jpg */; };
 		047115F30FCCC00000C755A5 /* TrackViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 047115F20FCCC00000C755A5 /* TrackViewController.m */; };
 		047115F50FCCC02300C755A5 /* TrackView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 047115F40FCCC02300C755A5 /* TrackView.xib */; };
-		047115FA0FCCC26800C755A5 /* ImageCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 047115F90FCCC26800C755A5 /* ImageCell.m */; };
 		047117B00FCF387A00C755A5 /* dogvibes_logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 047117AF0FCF387A00C755A5 /* dogvibes_logo.png */; };
 		0471180E0FCF450A00C755A5 /* Track.m in Sources */ = {isa = PBXBuildFile; fileRef = 0471180D0FCF450A00C755A5 /* Track.m */; };
 		04E8C6881099099E00D5166D /* NSObject+SBJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 04E8C67D1099099E00D5166D /* NSObject+SBJSON.m */; };
@@ -39,6 +39,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		047006F810B1FB8500F4B025 /* DogUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DogUtils.h; sourceTree = "<group>"; };
+		047006F910B1FB8500F4B025 /* DogUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DogUtils.m; sourceTree = "<group>"; };
 		047114FE0FCC9E8D00C755A5 /* next.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = next.png; sourceTree = "<group>"; };
 		047114FF0FCC9E8D00C755A5 /* prev.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = prev.png; sourceTree = "<group>"; };
 		047115000FCC9E8D00C755A5 /* play.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = play.png; sourceTree = "<group>"; };
@@ -47,8 +49,6 @@
 		047115F10FCCC00000C755A5 /* TrackViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TrackViewController.h; sourceTree = "<group>"; };
 		047115F20FCCC00000C755A5 /* TrackViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TrackViewController.m; sourceTree = "<group>"; };
 		047115F40FCCC02300C755A5 /* TrackView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = TrackView.xib; sourceTree = "<group>"; };
-		047115F80FCCC25900C755A5 /* ImageCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageCell.h; sourceTree = "<group>"; };
-		047115F90FCCC26800C755A5 /* ImageCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImageCell.m; sourceTree = "<group>"; };
 		047117AF0FCF387A00C755A5 /* dogvibes_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = dogvibes_logo.png; sourceTree = "<group>"; };
 		0471180C0FCF450A00C755A5 /* Track.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Track.h; sourceTree = "<group>"; };
 		0471180D0FCF450A00C755A5 /* Track.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Track.m; sourceTree = "<group>"; };
@@ -126,8 +126,6 @@
 			isa = PBXGroup;
 			children = (
 				04E8C67A1099099E00D5166D /* JSON */,
-				047115F80FCCC25900C755A5 /* ImageCell.h */,
-				047115F90FCCC26800C755A5 /* ImageCell.m */,
 				28216C950DB411BC00E5133A /* FirstViewController.h */,
 				28216C960DB411BC00E5133A /* FirstViewController.m */,
 				1D3623240D0F684500981E51 /* iDogAppDelegate.h */,
@@ -142,6 +140,8 @@
 				047115F20FCCC00000C755A5 /* TrackViewController.m */,
 				0471180C0FCF450A00C755A5 /* Track.h */,
 				0471180D0FCF450A00C755A5 /* Track.m */,
+				047006F810B1FB8500F4B025 /* DogUtils.h */,
+				047006F910B1FB8500F4B025 /* DogUtils.m */,
 			);
 			path = Classes;
 			sourceTree = "<group>";
@@ -274,7 +274,6 @@
 				04F769F80FCC9057009CABFF /* SettingsViewController.m in Sources */,
 				04F769FB0FCC90AA009CABFF /* PlaylistViewController.m in Sources */,
 				047115F30FCCC00000C755A5 /* TrackViewController.m in Sources */,
-				047115FA0FCCC26800C755A5 /* ImageCell.m in Sources */,
 				0471180E0FCF450A00C755A5 /* Track.m in Sources */,
 				04E8C6881099099E00D5166D /* NSObject+SBJSON.m in Sources */,
 				04E8C6891099099E00D5166D /* NSString+SBJSON.m in Sources */,
@@ -282,6 +281,7 @@
 				04E8C68B1099099E00D5166D /* SBJsonBase.m in Sources */,
 				04E8C68C1099099E00D5166D /* SBJsonParser.m in Sources */,
 				04E8C68D1099099E00D5166D /* SBJsonWriter.m in Sources */,
+				047006FA10B1FB8500F4B025 /* DogUtils.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

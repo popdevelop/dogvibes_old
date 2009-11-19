@@ -9,6 +9,7 @@
 #import "FirstViewController.h"
 #import "SettingsViewController.h"
 #import "iDogAppDelegate.h"
+#import "DogUtils.h"
 #import "JSON.h"
 
 @implementation FirstViewController
@@ -33,47 +34,38 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 	/* todo, album art should be loaded for each track that is playing, default image else */	
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];	
-	/* get status from server! */
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getStatus",ip ? ip : @"83.249.229.59:2000", nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:@"/amp/0/getStatus"];
 	/* load album art */
 	UIImage *img = [UIImage alloc];
 	
 	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"No reply from server!" message:@"Either the webservice is down (verify with Statusbutton under setting) or else, there's nothing added in playlist."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
+		UIAlertView *alert = [[UIAlertView alloc] 
+							  initWithTitle:@"No reply from server!"   \
+							  message:@"Either the webservice is down  \
+							  (verify with Statusbutton under setting) \
+							  or else there's nothing added in playlist."  
+							  delegate:self cancelButtonTitle:@"OK" 
+							  otherButtonTitles: nil];
 		[alert show];
 		[alert release];
 	} else {
 		NSDictionary *trackDict = [jsonData JSONValue];
 		NSDictionary *result = [trackDict objectForKey:@"result"];
 		NSString *playState = [NSString stringWithFormat:@"%@",[result objectForKey:@"state"], nil];
-		
 		NSLog(@"play state: %@ ", playState);
-		
 		if ([playState compare:@"playing"] == 0) {
 			/* set correct button image */
 			[self setPlayButtonImage:[UIImage imageNamed:@"pause.png"]];
 			NSLog(@"PLAYING, SET PAUSE button");
-			img = [UIImage imageWithData: 
-				   [NSData dataWithContentsOfURL: 
-					[NSURL URLWithString:
-					 [NSString stringWithFormat:
-					  @"http://%@/dogvibes/getAlbumArt?size=159&uri=%@",ip ? ip : @"83.249.229.59:2000", [result objectForKey:@"uri"],nil]]]];
 		} else if (playState){
 			/* set play button available */
 			[self setPlayButtonImage:[UIImage imageNamed:@"play.png"]];
 			NSLog(@"STOPPED, SET PLAY button");
-			img = [UIImage imageWithData: 
-				   [NSData dataWithContentsOfURL: 
-					[NSURL URLWithString:
-					 [NSString stringWithFormat:
-					  @"http://%@/dogvibes/getAlbumArt?size=159&uri=%@",ip ? ip : @"83.249.229.59:2000", [result objectForKey:@"uri"],nil]]]];
 		}
+		img = [dog dogGetAlbumArt:[result objectForKey:@"uri"]];
 		[self updateTrackInfo];
-	
 	}
 	
 	iDogAppDelegate *appDelegate = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
@@ -85,9 +77,7 @@
 	}	else {
 		jsonImage.image = [UIImage imageNamed:@"dogvibes_logo.png"];
 	}
-	
 }
-
 
 /*
 // Override to allow orientations other than the default portrait orientation.
@@ -96,7 +86,6 @@
     return (interfaceOrientation == UIInterfaceOrientationPortrait);
 }
 */
-
 
 - (void)setPlayButtonImage:(UIImage *)image
 {
@@ -107,89 +96,51 @@
 
 - (IBAction)playButtonPressed:(id)sender
 {
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL;
-	NSString *jsonData;
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
 	/* update button */
 	if (state != 1) {
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/play",ip ? ip : @"83.249.229.59:2000", nil]];
-		jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+		jsonData = [dog dogRequest:@"/amp/0/play"];
 		state = 1;
 		[self setPlayButtonImage:[UIImage imageNamed:@"pause.png"]];
 		NSLog(@"switching to state %d ", state);
 	} else {
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/pause",ip ? ip : @"83.249.229.59:2000", nil]];
-		jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+		jsonData = [dog dogRequest:@"/amp/0/pause"];		
 		state = 0;
 		[self setPlayButtonImage:[UIImage imageNamed:@"play.png"]];
 		NSLog(@"switching to state %d ", state);
 	}
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"No reply from server!" message:@"Either the webservice is down (verify with Statusbutton under setting) or else, there's nothing added in playlist."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	}
 	/* refresh album and track title */
-	[self updateTrackInfo];
-	
+	[self updateTrackInfo];	
 }
 
 - (IBAction)prevButtonPressed:(id)sender
 {
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/previousTrack",ip ? ip : @"83.249.229.59:2000", nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];	
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	}
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:@"/amp/0/previousTrack"];
 	[self updateTrackInfo];
 }
 
 - (IBAction)stopButtonPressed:(id)sender
-{	
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/stop",ip ? ip : @"83.249.229.59:2000", nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
-	
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	}
+{
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:@"/amp/0/stop"];
 }
 
 - (IBAction)nextButtonPressed:(id)sender
 {
-	
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/nextTrack",ip ? ip : @"83.249.229.59:2000", nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];	
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	}
-	
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:@"/amp/0/nextTrack"];
 	[self updateTrackInfo];
 }
 
 - (void) updateTrackInfo {
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];	
-	/* get status from server! */
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getStatus",ip ? ip : @"83.249.229.59:2000", nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:@"/amp/0/getStatus"];
 	if (jsonData == nil) {
 		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"No reply from server!" message:@"Either the webservice is down (verify with Statusbutton under setting) or else, there's nothing added in playlist."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
 		[alert show];
@@ -198,7 +149,6 @@
 		NSDictionary *trackDict = [jsonData JSONValue];
 		NSDictionary *result = [trackDict objectForKey:@"result"];
 		label.text = [NSString stringWithFormat:@"%@ - %@", [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
-		
 	}
 }
 

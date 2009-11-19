@@ -28,13 +28,10 @@ static SettingsViewController *sharedViewController;
  }
  */
 
-
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
-	NSLog(@"This is called on startup!");
     [super viewDidLoad];
 }
-
 
 /*
  // Override to allow orientations other than the default portrait orientation.
@@ -62,7 +59,6 @@ static SettingsViewController *sharedViewController;
 /* gui handlers */
 - (IBAction)slider0Changed:(id)sender
 {
-	NSLog([self getIPfromTextField]);
 	NSString *jsonData;
 	NSURL *jsonURL;
 	if ( spk0.on )
@@ -80,51 +76,9 @@ static SettingsViewController *sharedViewController;
 	}
 }
 
-- (IBAction)slider1Changed:(id)sender
-{
-	NSString *jsonData;
-	NSURL *jsonURL;
-	if ( spk1.on )
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/connectSpeaker?nbr=2",[self getIPfromTextField], nil]];
-	else
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/disconnectSpeaker?nbr=2",[self getIPfromTextField], nil]];
-	
-	jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	} else {
-		//textView.text = jsonData;
-	}
-	
-}
-
-- (IBAction)slider2Changed:(id)sender
-{
-	NSString *jsonData;
-	NSURL *jsonURL;
-	if ( spk2.on )
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/connectSpeaker?nbr=2",[self getIPfromTextField], nil]];
-	else
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/disconnectSpeaker?nbr=2",[self getIPfromTextField], nil]];
-	
-	jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	}
-	
-	// releasing the vars now
-	[jsonURL release];
-	[jsonData release];
-}
-
 - (IBAction)IPtextFieldChanged:(id)sender
 {
 	[IPtextField resignFirstResponder];
-	printf("Changed IP textfield! ");
 	textView.text = IPtextField.text;
 }
 
@@ -135,9 +89,12 @@ static SettingsViewController *sharedViewController;
 														 (CFStringRef)[IPtextField text],
 														 NULL,
 														 NULL,
-														 kCFStringEncodingUTF8)
-	 autorelease];
-	return escapedIPValue;
+														 kCFStringEncodingUTF8) autorelease];
+	if ([escapedIPValue length] > 0) {
+		return escapedIPValue;
+	} else { 
+		return nil;
+	}
 }
 
 -(void)setIPTextField:(NSString *)text
@@ -154,7 +111,6 @@ static SettingsViewController *sharedViewController;
 	}
     return YES;
 }
-
 
 +(SettingsViewController *)sharedViewController {
 	if (!sharedViewController)

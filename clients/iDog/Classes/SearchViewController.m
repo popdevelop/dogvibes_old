@@ -10,7 +10,7 @@
 #import "SettingsViewController.h"
 #import "TrackViewController.h"
 #import "iDogAppDelegate.h"
-#import "ImageCell.h"
+#import "DogUtils.h"
 
 #import "JSON/JSON.h"
 
@@ -30,12 +30,6 @@
  */
 
 - (void)viewDidLoad {
-	
-	
-	/* show some items from a search on the prinzen! */
-	
-	
-	
     [super viewDidLoad];
 	
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
@@ -92,7 +86,6 @@
 	mySearchBar.showsCancelButton = NO;
 }
 
-
 #pragma mark UIViewController
 
 - (void)viewWillAppear:(BOOL)animated
@@ -146,13 +139,10 @@
 	// show the view
 	
 	NSLog(@"adding %@ to playqueue", [trackURIs objectAtIndex:indexPath.row]);
-	
 	NSLog(@"Play this song title: %@, %@!", [trackItems objectAtIndex:indexPath.row], [trackURIs objectAtIndex:indexPath.row]);
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/queue?uri=%@",ip ? ip : @"83.249.229.59:2000", [trackURIs objectAtIndex:indexPath.row], nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:[NSString stringWithFormat:@"/amp/0/queue?uri=%@",[trackURIs objectAtIndex:indexPath.row], nil]];
 	
 	if (jsonData == nil) {
 		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"No reply from server!" message:@"Either the webservice is down (verify with Statusbutton under setting) or else, there's nothing added in playlist."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
@@ -227,9 +217,6 @@
 	// search the table content for cell titles that match "searchText"
 	// if found add to the mutable array and force the table to reload
 	//
-	NSString *cellTitle;
-	NSString *json_track;
-	
 	/* let's put the search contents in the table */
 	SettingsViewController *svc = [SettingsViewController sharedViewController];
 	NSString *ip = [svc getIPfromTextField];
@@ -249,7 +236,6 @@
 			[trackURIs addObject:(NSString *)[key objectForKey:@"uri"]];
 		}		
 	}
-
 	[myTableView reloadData];
 }
 
@@ -257,16 +243,13 @@
 - (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar
 {
 	NSLog(@"Cancelled search!");
-	
 	// if a valid search was entered but the user wanted to cancel, bring back the saved list content
 	if (searchBar.text.length > 0)
 	{
 		[trackItems removeAllObjects];
 		//[trackItems addObjectsFromArray: savedContent];
 	}
-	
 	[myTableView reloadData];
-	
 	[searchBar resignFirstResponder];
 	searchBar.text = @"";
 }

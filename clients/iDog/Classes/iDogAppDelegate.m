@@ -18,14 +18,12 @@
 
 
 - (void)applicationDidFinishLaunching:(UIApplication *)application {
-    NSLog(@"Application launched.!");
     // Add the tab bar controller's current view as a subview of the window
     [window addSubview:tabBarController.view];
 }
 
 // Optional UITabBarControllerDelegate method
 - (void)tabBarController:(UITabBarController *)tabBarController didSelectViewController:(UIViewController *)viewController {
-	NSLog(@"Some called a new viewcontroller!");
 	[viewController viewDidLoad];
 }
 

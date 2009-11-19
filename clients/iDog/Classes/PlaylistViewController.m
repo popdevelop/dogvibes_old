@@ -41,7 +41,6 @@
 	//NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getAllTracksInQueue",ip ? ip : @"83.249.229.59:2000",nil]];
 	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/dogvibes/getAllTracksInPlaylist?playlist_id=1",ip ? ip : @"83.249.229.59:2000",nil]];
 	
-	
 	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];	
 	if (jsonData == nil) {
 		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
@@ -89,10 +88,8 @@
 	NSLog(@"Play this song title: %@, %@!", [trackItems objectAtIndex:indexPath.row], [trackURIs objectAtIndex:indexPath.row]);
 	SettingsViewController *svc = [SettingsViewController sharedViewController];
 	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
 	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/playTrack?nbr=%d",ip ? ip : @"83.249.229.59:2000", indexPath.row, nil]];
 	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
-	
 	if (jsonData == nil) {
 		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"No reply from server!" message:@"Either the webservice is down (verify with Statusbutton under setting) or else, there's nothing added in playlist."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
 		[alert show];
