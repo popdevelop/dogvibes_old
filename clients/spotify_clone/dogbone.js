@@ -127,6 +127,7 @@ function requestStatus()
             if(data.error != 0){
                connectionBad("Server error! (" + data.error + ")");
             }
+                       
             connectionOK(); /* This will restore timeout aswell */    
             handleStatusResponse(data.result);
          }     
@@ -343,25 +344,88 @@ function getPlayLists(){
    });
 }
 
-/* Searching */
-var searchesArray = new Array();
-function addSearch(keyword){
-   tempArray = new Array();
-   tempArray.unshift(jQuery.trim(keyword));
-   $.each(searchesArray, function(i, entry){
-      if(jQuery.trim(keyword) != entry){
-         tempArray.push(entry);
+var search = {
+   items: new Array(),
+   ui: {
+      list: "#searches-items",
+      section: "#searches",
+      cookie:"dogvibes.searches",
+      len: 6
+   },
+   init: function() {
+      /* Load searches from cookie */
+      for(var i = 0; i < search.ui.len; i++){
+         if((temp = getCookie(search.ui.cookie + i)) != "") {
+            search.items[i] = temp;
+         }
       }
-   });
-   if(tempArray.length > 6){
-      tempArray.pop();
+      search.draw();
+   },
+   add: function(keyword) {
+      var tempArray = new Array();
+      tempArray.unshift(jQuery.trim(keyword));
+      $.each(search.items, function(i, entry){
+         if(jQuery.trim(keyword) != entry){
+            tempArray.push(entry);
+         }
+      });
+      if(tempArray.length > search.ui.len){
+         tempArray.pop();
+      }
+      search.items = tempArray;
+      for(var i = 0; i < tempArray.length; i++) {
+         setCookie(search.ui.cookie + i, tempArray[i]);
+      }
+      search.draw();
+   },
+   draw: function() {
+      $(search.ui.list).empty();
+      if(search.items.length > 0)
+      {
+         $(search.ui.section).show();
+         $.each(search.items, function(i, entry) { 
+            $(search.ui.list).append("<li id=\"s-"+i+"\"><a href=\"#search\\"+entry+"\" class=\"searchClick\">"+entry+"</a>");
+         });
+         $(".searchClick").click(clickHandler);
+      } else {
+         $(search.ui.section).hide();
+      }
    }
-   $("#searches-items").empty();
-   $.each(tempArray, function(i, entry) { 
-      $("#searches-items").append("<li id=\"s-"+i+"\"><a href=\"#\" class=\"searchClick\">"+entry+"</a>");
-   });
-   $(".searchClick").click(function() { doSearchFromLink($(this).text()); });
-   searchesArray = tempArray;
+};
+
+var nav = {
+   getHash: function() {
+     var hash = window.location.hash;
+     return hash.substring(1); // remove #
+   },
+    
+   getLinkTarget: function(link) {
+     return link.href.substring(link.href.indexOf('#')+1);
+   },
+
+   parseHash: function(hash) {
+      /* FIXME: cmd-extraction fails i IE8 */
+      cmd = hash.substring(0, hash.indexOf('/'));
+      prm = hash.substring(hash.indexOf('/')+1);
+      return { command: cmd, param: unescape(prm) };
+   },
+
+   executeAction: function(action) {
+      if(action != null) {
+         switch (action.command) {
+            case "search":
+               doSearchFromLink(action.param);
+               break;
+            default:
+               break;
+         }
+      }
+   }
+};
+
+function clickHandler() {
+   var action = nav.parseHash(nav.getLinkTarget(this));
+   nav.executeAction(action);
 }
 
 function doSearchFromLink(value) {
@@ -370,7 +434,7 @@ function doSearchFromLink(value) {
 }
 
 function doSearch(save) {
-   if(save) {addSearch($("#s-input").val());}
+   if(save) {search.add($("#s-input").val());}
 	setPage("s-0");
 	$("#playlist").html(search_summary + track_list_table);
 	$("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
@@ -470,6 +534,8 @@ function doSearch(save) {
 /* Startup */
 $("document").ready(function() { 
    $("#message .btn").hide();
+   search.init();
+ 
 	connectionBad("No server configured.");
    setPage("p-home");
 	$("#playback_seek").slider();
@@ -484,7 +550,7 @@ $("document").ready(function() {
 	if(server){
       setCookie("dogvibes.server", server, 365);
       connectionInit();
-      getPlayLists(); /* TODO: move this when we have playlisthash */
+      getPlayLists(); /* TODO: move this when we have playlisthash */     
 		return;
 	}
 	connectionBad("No server configured. Press reload to set");
