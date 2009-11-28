@@ -404,7 +404,7 @@ var search = {
       {
          $(search.ui.section).show();
          $.each(search.items, function(i, entry) { 
-            $(search.ui.list).append("<li id=\"s-"+i+"\"><a href=\"#search\\"+entry+"\" class=\"searchClick\">"+entry+"</a>");
+            $(search.ui.list).append("<li id=\"s-"+i+"\"><a href=\"#search/"+entry+"\" class=\"searchClick\">"+entry+"</a>");
          });
          $(".searchClick").click(clickHandler);
       } else {
@@ -414,6 +414,10 @@ var search = {
 };
 
 var nav = {
+   expectedHash: "",
+   init: function() {
+      setInterval(nav.checkHash, 500);
+   },
    getHash: function() {
      var hash = window.location.hash;
      return hash.substring(1); // remove #
@@ -425,31 +429,53 @@ var nav = {
 
    parseHash: function(hash) {
       /* FIXME: cmd-extraction fails i IE8 */
-      cmd = hash.substring(0, hash.indexOf("/"));
-      prm = hash.substring(hash.indexOf("/")+1);
+      ppos = hash.indexOf("/");
+      if(ppos >= 0) {
+         cmd = hash.substring(0, ppos);
+         prm = hash.substring(ppos+1);
+      } else {
+         cmd = hash;
+         prm = "";
+      }
       return { command: cmd, param: unescape(prm) };
    },
 
+   checkHash: function() {
+      theHash = nav.getHash();
+      if(theHash != nav.expectedHash)
+      {
+         nav.expectedHash = theHash;
+         action = nav.parseHash(theHash);
+         nav.executeAction(action);
+      }   
+   },
+   
    executeAction: function(action) {
-      if(action != null) {
+      if(action != null && action.command != "") {
          switch (action.command) {
             case "search":
-               doSearchFromLink(action.param);
+               doSearchFromLink(action.param, true);
                break;
+            case "playqueue":
+               action.param = "playqueue";
+               title = "Playqueue";
             case "playlist":
                playlists.selected = action.param;
                setPage("pl-" + action.param);
-               $("#tab-title").text("Playlist");
+               if(typeof(title) == "undefined") { title = "Playlist"; }
+               $("#tab-title").text(title);
                $("#playlist").html(track_list_table);
                getPlayQueue();
+               break; 
+            case "home":
+               setPage("p-home");
+               $("#tab-title").text("Home");
+               $("#playlist").html(welcome_text);
                break;
-            case "playqueue":
-               setPage("pl-playqueue");
-               playlists.selected = "playqueue";
-               $("#tab-title").text("Play queue");
-               $("#playlist").html(track_list_table);
-               getPlayQueue();            
+            case "local":
+               break;
             default:
+               alert("Unknown command '"+action.command+"'");
                break;
          }
       }
@@ -457,13 +483,16 @@ var nav = {
 };
 
 function clickHandler() {
-   var action = nav.parseHash(nav.getLinkTarget(this));
+   var hash = nav.getLinkTarget(this)
+   nav.expectedHash = hash;
+   var action = nav.parseHash(hash);
    nav.executeAction(action);
 }
 
-function doSearchFromLink(value) {
+function doSearchFromLink(value, save) {
 	$("#s-input").val(value);
-	doSearch(false);
+   if(typeof(save) == "undefined") { save = false; }
+	doSearch(save);
 }
 
 function doSearch(save) {
@@ -568,7 +597,7 @@ function doSearch(save) {
 $("document").ready(function() { 
    $("#message .btn").hide();
    search.init();
- 
+   nav.init();
 	connectionBad("No server configured.");
    setPage("p-home");
 	$("#playback_seek").slider();
@@ -630,11 +659,7 @@ function setPage(name){
    current_page = name;
    $("#"+current_page).addClass("selected");   
 }
-$("#p-home").click(function () {
-	setPage("p-home");
-	$("#tab-title").text("Home");
-	$("#playlist").html(welcome_text);
-});
+$("#link_home").click(clickHandler);
 
 $("#p-local").click(function () {
 	setPage("p-local");
@@ -663,9 +688,7 @@ $("#p-local").click(function () {
 
 /* Play queue management */
 
-$("#pl-playqueue").click(function () {
-   nav.executeAction({ command: "playqueue", param: "" });
-});
+$("#link_playqueue").click(clickHandler);
 $("#pl-playqueue").droppable({
    hoverClass: 'drophover',
    drop: function(event, ui) {
