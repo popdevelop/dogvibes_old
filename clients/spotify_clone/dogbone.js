@@ -23,7 +23,6 @@ var current_song = {
    elapsedmseconds: false
 };
 var current_page = false;
-var current_playlist = false;
 var current_search_results = false;
 var time_count;
 var request_in_progress = false;
@@ -138,7 +137,7 @@ function requestStatus()
 function isTheSonglist(page, data)
 {
 	var type = page.substring(0,3);
-	var pl_id = current_playlist == "playqueue" ? -1 : current_playlist;
+	var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
 	return type == 'pl-' && data.playlistid == pl_id;
 }
 
@@ -246,14 +245,14 @@ function connectionTimeout()
 function getPlayQueue(){
 	setWait();
    var getcommand, addcommand, removecommand;
-   if(current_playlist == "playqueue"){
+   if(playlists.selected == "playqueue"){
       getcommand = command.get;
       addcommand = command.playtrack;
       removecommand = command.remove;
    } else {
-      getcommand = command.getplaylisttracks + current_playlist;
+      getcommand = command.getplaylisttracks + playlists.selected;
       addcommand = command.playtrack;
-      removecommand = command.removefromplaylist + current_playlist + "&track_id=";
+      removecommand = command.removefromplaylist + playlists.selected + "&track_id=";
    }
 	$.ajax({
       url: server + getcommand,
@@ -278,7 +277,7 @@ function getPlayQueue(){
             });
          });    
          $(".playButton").dblclick(function () {
-        	var pl_id = current_playlist == "playqueue" ? -1 : current_playlist;
+        	var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
             var data = this.id + "&playlistid=" + pl_id;
             $.ajax({
                beforeSend: setWait(),
@@ -309,21 +308,46 @@ function getPlayQueue(){
 }
 
 /* Playlists */
-function getPlayLists(){
-   $("#playlists-items").empty();
-   $.ajax({
-      url: server + command.getplaylists,
-      type: "GET",
-      dataType: "jsonp",
-      success: function(data) {
-         $.each(data.result, function(i, list){
-            $("#playlists-items").append("<li id=\"pl-"+list.id+"\"><a href=\"#\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a>");
+var playlists = {
+   items: new Array(),
+   selected: null,
+   ui: {
+      list: "#playlists-items",
+      section: "#playlists"
+   },
+   
+   get: function() {
+      $.ajax({
+         url: server + command.getplaylists,
+         type: "GET",
+         dataType: "jsonp",
+         success: function(data) {
+            playlists.items = data.result;
+            playlists.draw();
+         }
+      });
+   },
+   add: function() {
+      newlist = prompt("Enter new playlist name:", "");
+      if(newlist && newlist!=""){
+         $.ajax({
+            type: "GET",
+            dataType: 'jsonp',
+            url: server + command.playlistadd + newlist,
+            success: function() { playlists.get(); }
+         });
+      }
+   },
+   draw: function() {
+      if(playlists.items.length > 0) {
+         $(playlists.ui.section).show();
+         $.each(playlists.items, function(i, list){
+            $(playlists.ui.list).append("<li id=\"pl-"+list.id+"\"><a href=\"#playlist/"+list.id+"\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a>");
             $("#pl-"+list.id).droppable({
                hoverClass: 'drophover',
                drop: function(event, ui) {
                   id = $(this).find("a").attr("name");
                   uri = ui.draggable.attr("id");
-                  //alert("Dropped " + uri + " into " + id);
                   $.ajax({
                      type: "GET",
                      dataType: "jsonp",
@@ -333,15 +357,11 @@ function getPlayLists(){
                }
             });            
          });
-         $(".playlistClick").click(function() { 
-            current_playlist = this.name;
-            setPage("pl-" + this.name);
-            $("#tab-title").text("Playlist");
-            $("#playlist").html(track_list_table);
-            getPlayQueue();
-         });
+         $(".playlistClick").click(clickHandler);
+      } else {
+         $(playlists.ui.section).hide();
       }
-   });
+   }
 }
 
 var search = {
@@ -405,8 +425,8 @@ var nav = {
 
    parseHash: function(hash) {
       /* FIXME: cmd-extraction fails i IE8 */
-      cmd = hash.substring(0, hash.indexOf('/'));
-      prm = hash.substring(hash.indexOf('/')+1);
+      cmd = hash.substring(0, hash.indexOf("/"));
+      prm = hash.substring(hash.indexOf("/")+1);
       return { command: cmd, param: unescape(prm) };
    },
 
@@ -416,6 +436,19 @@ var nav = {
             case "search":
                doSearchFromLink(action.param);
                break;
+            case "playlist":
+               playlists.selected = action.param;
+               setPage("pl-" + action.param);
+               $("#tab-title").text("Playlist");
+               $("#playlist").html(track_list_table);
+               getPlayQueue();
+               break;
+            case "playqueue":
+               setPage("pl-playqueue");
+               playlists.selected = "playqueue";
+               $("#tab-title").text("Play queue");
+               $("#playlist").html(track_list_table);
+               getPlayQueue();            
             default:
                break;
          }
@@ -550,7 +583,7 @@ $("document").ready(function() {
 	if(server){
       setCookie("dogvibes.server", server, 365);
       connectionInit();
-      getPlayLists(); /* TODO: move this when we have playlisthash */     
+      playlists.get(); /* TODO: move this when we have playlisthash */     
 		return;
 	}
 	connectionBad("No server configured. Press reload to set");
@@ -631,11 +664,7 @@ $("#p-local").click(function () {
 /* Play queue management */
 
 $("#pl-playqueue").click(function () {
-	setPage("pl-playqueue");
-   current_playlist = "playqueue";
-	$("#tab-title").text("Play queue");
-	$("#playlist").html(track_list_table);
-	getPlayQueue();
+   nav.executeAction({ command: "playqueue", param: "" });
 });
 $("#pl-playqueue").droppable({
    hoverClass: 'drophover',
@@ -652,17 +681,7 @@ $("#pl-playqueue").droppable({
 });
 
 
-$("#new_playlist").click(function() {
-   newlist = prompt("Enter new playlist name:", "");
-   if(newlist && newlist!=""){
-      $.ajax({
-         type: "GET",
-         dataType: 'jsonp',
-         url: server + command.playlistadd + newlist,
-         success: function() { getPlayLists(); }
-      });
-   }
-});
+$("#new_playlist").click(playlists.add);
 
 /* Searching */
 $("#s-submit").click(function(){doSearch(true)});
