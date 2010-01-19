@@ -921,11 +921,11 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
             case GST_FORMAT_BYTES:
               /* time to samples */
               dest_val = src_val/1000000 * samplerate * 4;
-              g_print ("dest_val = %lld\n", dest_val);
+              g_print ("dest_val = %li\n", dest_val);
               break;
 
             default:
-              g_print ("default = %lld\n", dest_val);
+              g_print ("default = %li\n", dest_val);
               ret = FALSE;
               break;
           }
