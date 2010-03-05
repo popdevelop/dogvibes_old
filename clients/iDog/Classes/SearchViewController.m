@@ -213,6 +213,7 @@
 - (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText
 {
 	[trackItems removeAllObjects];	// clear the filtered array first
+	[trackURIs removeAllObjects];
 	
 	// search the table content for cell titles that match "searchText"
 	// if found add to the mutable array and force the table to reload
@@ -260,7 +261,6 @@
 	NSLog(@"searchButtonClicked!");
 	[searchBar resignFirstResponder];
 }
-
 
 - (void)dealloc {
 	[myTableView release];
