@@ -54,6 +54,7 @@ typedef struct _GstSpotSrcClass GstSpotSrcClass;
 #define GST_SPOT_SRC_BUFFER_TIME(src) ((src)->buffer_time)
 #define GST_SPOT_SRC_ADAPTER(src) ((src)->adapter)
 #define GST_SPOT_SRC_ADAPTER_MUTEX(src) ((src)->adapter_mutex)
+#define GST_SPOT_SRC_ADAPTER_COND(src) ((src)->adapter_cond)
 #define GST_SPOT_SRC_FORMAT(src) ((src)->format)
 //remove this?
 #define GST_SPOT_SRC_BUFFER_INTERNAL_BYTES(src) ((src)->buffer_internal_bytes)
@@ -74,6 +75,7 @@ struct _GstSpotSrc {
   guint64 buffer_time;
   GstAdapter *adapter;
   GMutex *adapter_mutex;
+  GCond *adapter_cond;
   sp_audioformat *format;
 };
 
