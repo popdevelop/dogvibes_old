@@ -2,6 +2,7 @@ import gst
 import hashlib
 import random
 import config
+import time
 
 from track import Track
 from playlist import Playlist
@@ -67,11 +68,11 @@ class Amp():
 
         if self.pipeline.get_by_name(speaker.name) != None:
             (pending, state, timeout) = self.pipeline.get_state()
-            self.pipeline.set_state(gst.STATE_NULL)
+            self.set_state(gst.STATE_NULL)
             rm = self.pipeline.get_by_name(speaker.name)
             self.pipeline.remove(rm)
             self.tee.unlink(rm)
-            self.pipeline.set_state(state)
+            self.set_state(state)
         else:
             print "Speaker not connected"
 
@@ -82,7 +83,10 @@ class Amp():
         (pending, state, timeout) = self.pipeline.get_state ()
         if (state == gst.STATE_NULL):
             return 0
-        (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
+        try:
+            pos = (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
+        except:
+            pos = 0
         return pos / 1000 # / gst.MSECOND # FIXME: something fishy here...
 
     def API_getStatus(self):
@@ -136,9 +140,8 @@ class Amp():
         if (len(self.playqueue) > 0):
             self.inplayqueue = True
             (pending, state, timeout) = self.pipeline.get_state()
-            self.pipeline.set_state(gst.STATE_NULL)
+            self.set_state(gst.STATE_NULL)
             self.play_only_if_null(self.playqueue[0])
-            self.pipeline.set_state(state)
         else:
             if (self.active_playlist_id != -1):
                 self.change_track(self.active_playlist_position + 1)
@@ -155,13 +158,12 @@ class Amp():
             self.inplayqueue = True
             for i in range(0, nbr):
                 self.playqueue.remove(self.playqueue[0])
-            self.pipeline.set_state(gst.STATE_NULL)
+            self.set_state(gst.STATE_NULL)
             self.play_only_if_null(self.playqueue[0])
-            self.pipeline.set_state(gst.STATE_PLAYING)
         else:
             self.active_playlist_id = playlistid
             self.change_track(nbr)
-            self.pipeline.set_state(gst.STATE_PLAYING)
+            self.set_state(gst.STATE_PLAYING)
 
     def API_playQueueTrack(self, nbr):
         self.API_play()
@@ -187,7 +189,7 @@ class Amp():
                 self.play_only_if_null(playlist.get_track_nbr(self.active_playlist_position))
 
     def API_pause(self):
-        self.pipeline.set_state(gst.STATE_PAUSED)
+        self.set_state(gst.STATE_PAUSED)
 
     def API_queue(self, uri):
         track = self.dogvibes.create_track_from_uri(uri)
@@ -217,7 +219,7 @@ class Amp():
         self.dogvibes.speakers[0].set_volume(level)
 
     def API_stop(self):
-        self.pipeline.set_state(gst.STATE_NULL)
+        self.set_state(gst.STATE_NULL)
 
     # Internal functions
 
@@ -233,7 +235,7 @@ class Amp():
         playlist = Playlist.get(self.active_playlist_id)
 
         if playlist == None:
-            self.pipeline.set_state(gst.STATE_NULL)
+            self.set_state(gst.STATE_NULL)
             return
         elif (self.playlist_mode == "random"):
             self.active_playlist_position = random.randint(0, playlist.length() - 1)
@@ -247,13 +249,12 @@ class Amp():
             self.active_playlist_position = 0
         else:
             self.active_playlist_position = (playlist.length() - 1)
-            self.pipeline.set_state(gst.STATE_NULL)
+            self.set_state(gst.STATE_NULL)
             return
 
         (pending, state, timeout) = self.pipeline.get_state()
-        self.pipeline.set_state(gst.STATE_NULL)
+        self.set_state(gst.STATE_NULL)
         self.play_only_if_null(playlist.get_track_nbr(self.active_playlist_position))
-        self.pipeline.set_state(state)
 
     def get_hash_from_play_queue(self):
         ret = "dummy"
@@ -263,14 +264,14 @@ class Amp():
 
     def pipeline_message(self, bus, message):
         t = message.type
+        print t
         if t == gst.MESSAGE_EOS:
             self.API_nextTrack()
 
     def play_only_if_null(self, track):
         (pending, state, timeout) = self.pipeline.get_state()
         if state != gst.STATE_NULL:
-            self.pipeline.set_state(gst.STATE_PLAYING)
-            return
+            self.set_state(gst.STATE_PLAYING)
 
         if self.src:
             self.pipeline.remove(self.src)
@@ -292,9 +293,19 @@ class Amp():
             self.pipeline.add(self.src)
             self.pipeline.add(self.decodebin)
             self.src.link(self.decodebin)
-            self.spotify_in_use = False
-
-        self.pipeline.set_state(gst.STATE_PLAYING)
+            self.spotify_in_use = False       
+        self.set_state(gst.STATE_PLAYING)
 
     def play_token_lost(self, data):
         self.API_pause()
+
+    def set_state(self, state):
+        print "Start set state"
+        res = self.pipeline.set_state(state)
+        (pending, res, timeout) = self.pipeline.get_state()
+        while (res != state):
+            print res
+            time.sleep(0.1)
+            (pending, res, timeout) = self.pipeline.get_state()
+        print "End set state"
+

@@ -1,5 +1,4 @@
 import gst
-import spotifydogvibes
 
 import urllib
 import xml.etree.ElementTree as ET
