@@ -36,6 +36,8 @@ class Amp():
 
         self.src = None
 
+        self.needs_push_update = False
+
         # set playlist mode to normal
         self.playlist_mode = "normal"
         if("ENABLE_SPOTIFY_SOURCE" in cfg):
@@ -206,6 +208,7 @@ class Amp():
         self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_NONE, int(mseconds) * 1000);
         self.src.get_pad("src").push_event(gst.event_new_flush_start())
         self.src.get_pad("src").push_event(gst.event_new_flush_stop())
+        self.needs_push_update = True
 
     def API_setPlayQueueMode(self, mode):
         if (mode != "normal" and mode != "random" and mode != "repeat" and mode != "repeattrack"):
@@ -217,9 +220,11 @@ class Amp():
         if (level > 1.0 or level < 0.0):
             raise DogError, 'Volume must be between 0.0 and 1.0'
         self.dogvibes.speakers[0].set_volume(level)
+        self.needs_push_update = True
 
     def API_stop(self):
         self.set_state(gst.STATE_NULL)
+        self.needs_push_update = True
 
     # Internal functions
 
