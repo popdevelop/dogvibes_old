@@ -409,7 +409,7 @@ spotify_thread_func (void *ptr)
 	}
 
 	sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
-	sp_link_release (link);
+	sp_link_add_ref (link);
 
 	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
 	while (sp_track_is_loaded (SPOT_OBJ_CURRENT_TRACK (spot_instance)) == 0) {
@@ -419,7 +419,9 @@ spotify_thread_func (void *ptr)
 	GST_DEBUG_OBJECT (spot, "Now playing \"%s\"...\n", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
 
 	sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
+	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
 	sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), 1);
+	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
       } else if (spot_work->cmd == SPOT_CMD_PROCESS) {
 	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
       } else if (spot_work->cmd == SPOT_CMD_PLAY) {
@@ -427,11 +429,11 @@ spotify_thread_func (void *ptr)
       } else if (spot_work->cmd == SPOT_CMD_DURATION && SPOT_OBJ_LOGGED_IN (spot_instance)) {
 	spot_work->ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
       } else if (spot_work->cmd == SPOT_CMD_STOP && SPOT_OBJ_LOGGED_IN (spot_instance)) {
-	sp_track_release (SPOT_OBJ_CURRENT_TRACK (spot_instance));
-	sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
+	sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), 0);
       } else if (spot_work->cmd == SPOT_CMD_SEEK && SPOT_OBJ_LOGGED_IN (spot_instance)) {
 	spot_work->ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
       }
+      sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
       spot_works = g_list_remove (spot_works, spot_works->data);
       g_mutex_unlock (spot_work->spot_mutex);
       g_cond_signal (spot_work->spot_cond);      
@@ -1090,8 +1092,13 @@ gst_spot_src_start (GstBaseSrc * basesrc)
 static gboolean
 gst_spot_src_stop (GstBaseSrc * basesrc)
 {
+  GstSpotSrc *src;
+
+  src = GST_SPOT_SRC (basesrc);
+
   GST_DEBUG_OBJECT (basesrc, "STOP\n");
   run_spot_cmd (SPOT_CMD_STOP, 0);
+  src->read_position = 0;
   /* clear adapter (we are stopped and do not continue from same place) */
   g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));            /* lock adapter */
   gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
