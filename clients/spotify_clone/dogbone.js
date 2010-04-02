@@ -637,10 +637,6 @@ $("document").ready(function() {
 });
 
 function init() {
-    if (use_websocket) {
-	poll_interval = 50;
-    }
-
     if(server){
 	setCookie("dogvibes.server", server, 365);
 	connectionInit();
