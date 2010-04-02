@@ -110,9 +110,16 @@ class ClientConnection(threading.Thread):
 
     def handshake(self):
         shake = self.client.recv(512) # FIXME: if smaller than header size, we risk missing some initial commands!!
-        a = re.search("(Host: )([a-zA-Z])*:+([0-9])*", shake)
+        print shake
+
+#Upgrade: WebSocket
+#Connection: Upgrade
+#Host: 192.168.1.6:9999
+#Origin: http://localhost:8887
+
+        a = re.search("(Host: )([a-zA-Z0-9\.])*:+([0-9])*", shake)
         location = "ws://" + a.group().split()[1]
-        a = re.search("(Origin: )([a-zA-Z/:])*:+([0-9])*", shake)
+        a = re.search("(Origin: )([a-zA-Z0-9\./:])*:+([0-9])*", shake)
         origin = a.group().split()[1]
         new_handshake = server_handshake % (origin, location)
         print new_handshake
