@@ -610,6 +610,10 @@ $("document").ready(function() {
 	};
     }
 
+    if (use_websocket) {
+	poll_interval = 50;
+    }
+
     $("#message .btn").hide();
     search.init();
     nav.init();
@@ -717,6 +721,11 @@ $('#playback_volume').slider({
     stop: function(e, ui) { vol_in_progress = false; },
     change: function(event, ui) { 
 	sendCmd(server + command.volume + ui.value/100, "requestStatus");
+    },
+    slide: function(event, ui) {
+	if (use_websocket) {
+	    sendCmd(server + command.volume + ui.value/100, '');
+	}
     }
 });
 
