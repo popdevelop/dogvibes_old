@@ -3,6 +3,7 @@ var default_server = "http://dogvibes.com:2000";
 var server = false;
 var poll_interval = 2000 /* ms */
 var connection_timeout = 5000; /* ms */
+var time_interval = 2000 /* ms */
 /* Misc variables */
 var wait_req = 0;
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
@@ -29,6 +30,7 @@ var seek_in_progress = false; /* FIXME: */
 var vol_in_progress = false; /* FIXME: */
 var use_websocket = 0;
 var ws;
+var synced = 0;
 
 /* These are all the commands available to the server */
 var command = {
@@ -51,7 +53,9 @@ var command = {
     seek: "/amp/0/seek?mseconds=",
     volume: "/amp/0/setVolume?level=", 
     /* other */
+    
     status: "/amp/0/getStatus",
+    getmseconds: "/amp/0/getPlayedMilliSeconds",
     search: "/dogvibes/search?query=",
     albumart: "/dogvibes/getAlbumArt?size=159&uri=",
     list: "/dogvibes/list?type="
@@ -61,7 +65,7 @@ var command = {
  * Misc. Handy functions 
  */
 
-function  setWait(){
+function setWait(){
     if(wait_req == 0){
 	$("#wait_req").html(loading_small);
     }
@@ -82,9 +86,30 @@ function checkTime(i){
     return i;
 }
 
+var successGetMSeconds = function(data){
+    if(data.error != 0){
+        connectionBad("Server error! (" + data.error + ")");
+    }
+
+    // this is different from the normal case
+    current_song.elapsedmseconds = data.result;
+
+    new_time = Math.round(data.result / 1000 -0.5);
+    percent = (current_song.elapsedmseconds/current_song.duration)*100;
+    $("#playback_time").html(timestamp_to_string(new_time));
+    if(!seek_in_progress) {
+	$('#playback_seek').slider('option', 'value', percent);
+    }
+};
+
 /* Increase playback time counter */
 function increaseCount(){
-    current_song.elapsedmseconds += 1000;
+    // websocket is fast enough to get this from the server
+    if (use_websocket)
+	sendCmd(command.getmseconds, "successGetMSeconds");
+    else
+	current_song.elapsedmseconds += 1000;
+
     updateTimes();
 }
 /* playbacktime, seekbar */
@@ -134,7 +159,8 @@ var successGetStatus = function(data){
     if(data.error != 0){
         connectionBad("Server error! (" + data.error + ")");
     }
-        
+
+    synced = 1;
     connectionOK(); /* This will restore timeout aswell */    
     handleStatusResponse(data.result);
 };
@@ -144,6 +170,11 @@ var successGetStatus = function(data){
  */
 function requestStatus()
 {
+    if (use_websocket && synced) {
+	// we don't poll status in websocket mode
+	return;
+    }
+
     if(!request_in_progress){
 	connectionRequest();
 	sendCmd(command.status, "successGetStatus");
@@ -168,13 +199,15 @@ function handleStatusResponse(data)
 	}
 	$("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
     }
-    /* Update playqueue if applicable */   
+    /* Update playqueue if applicable */
+    
     if(data.playqueuehash != current_song.playqueuehash && isTheSonglist(current_page, data)){
 	getPlayQueue();
     }
 
     current_song = data;   
     /* Update volume */
+
     if(!vol_in_progress && data.volume){
 	$('#playback_volume').slider('option', 'value', data.volume*100);
     }
@@ -183,7 +216,7 @@ function handleStatusResponse(data)
 	$("#pb-play > a").addClass("playing");
 	increaseCount();
 	clearInterval(time_count);
-	time_count = setInterval(increaseCount, 1000);
+	time_count = setInterval(increaseCount, time_interval);
     }
     else{
 	$("#pb-play > a").removeClass("playing");
@@ -620,6 +653,7 @@ $("document").ready(function() {
 	    }
             ws.onopen = function(){
 		use_websocket = 1;
+		time_interval /= 8; // fetch timeupdates faster
 		init();
             };
             ws.onmessage = function(e){
@@ -733,6 +767,7 @@ $('#playback_volume').slider({
     },
     slide: function(event, ui) {
 	if (use_websocket) {
+	    // update other clients in realtime
 	    sendCmd(command.volume + ui.value/100, '');
 	}
     }
