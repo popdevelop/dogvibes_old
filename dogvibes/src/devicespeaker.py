@@ -1,5 +1,5 @@
 import gst
-
+import platform
 class DeviceSpeaker:
     def __init__(self, name):
         self.created = False
@@ -9,18 +9,28 @@ class DeviceSpeaker:
     def get_speaker(self):
         if self.created == False:
             self.bin = gst.Bin(self.name)
-            self.audioconvert = gst.element_factory_make("audioconvert", "audioconvert")
-            self.devicesink = gst.element_factory_make("osxaudiosink", "osxaudiosink")
+            if platform.system() == "Linux":
+                print "Linux!"
+                self.devicesink = gst.element_factory_make("alsasink", "alsasink")
+            elif platform.system() == "Darwin":
+                self.audioconvert = gst.element_factory_make("audioconvert", "audioconvert")
+                self.devicesink = gst.element_factory_make("osxaudiosink", "osxaudiosink")
+                print "Darwin!"
+
             self.queue2 = gst.element_factory_make("queue2", "queue2")
             self.volume = gst.element_factory_make("volume", "volume")
             self.devicesink.set_property("sync", False)
             self.bin.add(self.queue2)
             self.bin.add(self.volume)
-            self.bin.add(self.audioconvert)
+            if platform.system() == "Darwin":
+                self.bin.add(self.audioconvert)
             self.bin.add(self.devicesink)
             self.queue2.link(self.volume)
-            self.volume.link(self.audioconvert)
-            self.audioconvert.link(self.devicesink)
+            if platform.system() == "Darwin":
+                self.volume.link(self.audioconvert)
+                self.audioconvert.link(self.devicesink)
+            elif platform.system() == "Linux":
+                self.volume.link(self.devicesink)
             gpad = gst.GhostPad("sink", self.queue2.get_static_pad("sink"))
             self.bin.add_pad(gpad)
             print "Created device speaker"
