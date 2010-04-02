@@ -121,7 +121,7 @@ function sendCmd(url, successFunc) {
 	} 
     } else {
 	$.ajax({
-            url: url,
+            url: server + url,
             type: "GET",
             dataType: 'jsonp',
             success: eval(successFunc)
@@ -146,7 +146,7 @@ function requestStatus()
 {
     if(!request_in_progress){
 	connectionRequest();
-	sendCmd(server + command.status, "successGetStatus");
+	sendCmd(command.status, "successGetStatus");
     }
 }
 
@@ -280,14 +280,14 @@ var successGetCommand = function(data) {
     });
     $(".remButton").click(function () {
 	setWait();
-	sendCmd(server + removecommand + this.id, "successRemove");
+	sendCmd(removecommand + this.id, "successRemove");
     });    
     $(".playButton").dblclick(function () {
 	var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
 	var data = this.id + "&playlistid=" + pl_id;
 	
 	setWait();
-	sendCmd(server + addcommand + data, "successPlayButton");
+	sendCmd(addcommand + data, "successPlayButton");
     });
     if(item_count == 0){
 	$("#s-results").html("<tr><td colspan=6><i>No tracks in this list</i>");
@@ -320,7 +320,7 @@ function getPlayQueue(){
 	addcommand = command.playtrack;
 	removecommand = command.removefromplaylist + playlists.selected + "&track_id=";
     }
-    sendCmd(server + getcommand, "successGetCommand");
+    sendCmd(getcommand, "successGetCommand");
 }
 
 var successGetPlaylists = function(data) {
@@ -338,12 +338,12 @@ var playlists = {
     },
     
     get: function() {
-	sendCmd(server + command.getplaylists, "successGetPlaylists");
+	sendCmd(command.getplaylists, "successGetPlaylists");
     },
     add: function() {
 	newlist = prompt("Enter new playlist name:", "");
 	if(newlist && newlist!=""){
-	    sendCmd(server + command.playlistadd + newlist, "playlists.get");
+	    sendCmd(command.playlistadd + newlist, "playlists.get");
 	}
     },
     draw: function() {
@@ -356,7 +356,7 @@ var playlists = {
 		    drop: function(event, ui) {
 			id = $(this).find("a").attr("name");
 			uri = ui.draggable.attr("id");
-			sendCmd(server + command.addtoplaylist + id + "&uri=" + uri, '');
+			sendCmd(command.addtoplaylist + id + "&uri=" + uri, '');
 			$(this).effect("highlight");
 		    }
 		});            
@@ -526,13 +526,13 @@ var successSearch = function(data) {
         $("#s-results .selected").effect('highlight');
         $("#pl-playqueue").effect('highlight');
 	setWait();
-	sendCmd(server + command.add + this.id, "clearWait");
+	sendCmd(command.add + this.id, "clearWait");
     }); 
     $(".playButton").dblclick(function () {
         $("#s-results .selected").effect('highlight');
         $("#pl-playqueue").effect('highlight');
 	setWait();
-	sendCmd(server + command.add + this.id, "successPlay");
+	sendCmd(command.add + this.id, "successPlay");
     });   
     $(".searchArtistButton").click(function () {
         doSearchFromLink("artist:"+current_search_results[this.id].artist);
@@ -585,7 +585,7 @@ function doSearch(save) {
     $("#s-keyword").text($("#s-input").val());
     $("#tab-title").text("Search");
 
-    sendCmd(server + command.search + $("#s-input").val(), "successSearch");
+    sendCmd(command.search + $("#s-input").val(), "successSearch");
 }
 
 
@@ -595,24 +595,6 @@ function doSearch(save) {
 
 /* Startup */
 $("document").ready(function() {
-
-    if ("WebSocket" in window) {
-        ws = new WebSocket("ws://localhost:9999/");
-        ws.onopen = function(){
-	    use_websocket = 1;
-        };
-        ws.onmessage = function(e){
-            eval(e.data);
-        };
-        ws.onclose = function(){
-	    connectionBad("Server (Websocket) stopped responding");
-	    use_websocket = 0; // try to fallback to Ajax
-	};
-    }
-
-    if (use_websocket) {
-	poll_interval = 50;
-    }
 
     $("#message .btn").hide();
     search.init();
@@ -628,6 +610,37 @@ $("document").ready(function() {
     if(!server){
 	server = prompt("Enter Dogvibes server URL:", default_server);
     }
+
+    if (server.substring(0, 2) == 'ws') {
+	if ("WebSocket" in window) {
+	    if (server) {
+		ws = new WebSocket(server);
+	    } else {
+		ws = new WebSocket("ws://localhost:9999/");
+	    }
+            ws.onopen = function(){
+		use_websocket = 1;
+		init();
+            };
+            ws.onmessage = function(e){
+		eval(e.data);
+            };
+            ws.onclose = function(){
+		connectionBad("Server (Websocket) stopped responding");
+		use_websocket = 0;
+		init();
+	    };
+	}
+    } else {
+	init();
+    }
+});
+
+function init() {
+    if (use_websocket) {
+	poll_interval = 50;
+    }
+
     if(server){
 	setCookie("dogvibes.server", server, 365);
 	connectionInit();
@@ -635,22 +648,22 @@ $("document").ready(function() {
 	return;
     }
     connectionBad("No server configured. Press reload to set");
-});
+}
 
 /* Playback control */
 /* Play button */
 $("#pb-play").click(function() {
     var action = $("#pb-play > a").hasClass("playing") ? command.pause : command.play;
-    sendCmd(server + action, "requestStatus");
+    sendCmd(action, "requestStatus");
 });
 /* Next button */
 $("#pb-next").click(function() {
-    sendCmd(server + command.next, "requestStatus");
+    sendCmd(command.next, "requestStatus");
 });
 
 /* Prev button */
 $("#pb-prev").click(function() {
-    sendCmd(server + command.prev, "requestStatus");
+    sendCmd(command.prev, "requestStatus");
 });
 
 $("#message .btn").click(function() {
@@ -685,7 +698,7 @@ $("#p-local").click(function () {
     $("#tab-title").text("Local media");
     $("#playlist").html("<h1>Local music:</h1><table id=\"s-results\"></table>");
 
-    sendCmd(server + command.list + "album", "successLocal");
+    sendCmd(command.list + "album", "successLocal");
 });
 
 /* Play queue management */
@@ -696,7 +709,7 @@ $("#pl-playqueue").droppable({
     drop: function(event, ui) {
 	id = $(this).find("a").attr("name");
 	uri = ui.draggable.attr("id");
-	sendCmd(server + command.add + uri, '');
+	sendCmd(command.add + uri, '');
 	$(this).effect("highlight");
     }
 });
@@ -720,11 +733,11 @@ $('#playback_volume').slider({
     start: function(e, ui) { vol_in_progress = true; },
     stop: function(e, ui) { vol_in_progress = false; },
     change: function(event, ui) { 
-	sendCmd(server + command.volume + ui.value/100, "requestStatus");
+	sendCmd(command.volume + ui.value/100, "requestStatus");
     },
     slide: function(event, ui) {
 	if (use_websocket) {
-	    sendCmd(server + command.volume + ui.value/100, '');
+	    sendCmd(command.volume + ui.value/100, '');
 	}
     }
 });
@@ -733,6 +746,6 @@ $('#playback_seek').slider({
     start: function(e, ui) { seek_in_progress = true; },
     stop: function(e, ui) { seek_in_progress = false; },
     change: function(event, ui) {
-	sendCmd(server + command.seek + Math.round((ui.value*current_song.duration)/100), "requestStatus");
+	sendCmd(command.seek + Math.round((ui.value*current_song.duration)/100), "requestStatus");
     }
 });
