@@ -46,7 +46,6 @@ class Amp():
             self.spotify.get_by_name("spot").connect('play-token-lost', self.play_token_lost)
 
     # API
-
     def API_connectSpeaker(self, nbr):
         nbr = int(nbr)
         if nbr > len(self.dogvibes.speakers) - 1:
@@ -60,6 +59,7 @@ class Amp():
             self.tee.link(self.sink)
         else:
             print "Speaker %d already connected" % nbr
+        self.needs_push_update = True
 
     def API_disconnectSpeaker(self, nbr):
         nbr = int(nbr)
@@ -77,6 +77,7 @@ class Amp():
             self.set_state(state)
         else:
             print "Speaker not connected"
+        self.needs_push_update = True
 
     def API_getAllTracksInQueue(self):
         return [track.__dict__ for track in self.playqueue]
@@ -149,6 +150,7 @@ class Amp():
                 self.change_track(self.active_playlist_position + 1)
             else:
                 self.API_stop()
+        self.needs_push_update = True
 
     def API_playTrack(self, playlistid, nbr):
         # playlistid=-1 means play queue
@@ -166,9 +168,11 @@ class Amp():
             self.active_playlist_id = playlistid
             self.change_track(nbr)
             self.set_state(gst.STATE_PLAYING)
+        self.needs_push_update = True
 
     def API_playQueueTrack(self, nbr):
         self.API_play()
+        self.needs_push_update = True
 
     def API_previousTrack(self):
         # TODO: stay on same place if in play queue?
@@ -176,6 +180,7 @@ class Amp():
             self.change_track(self.active_playlist_position)
         else:
             self.change_track(self.active_playlist_position - 1)
+        self.needs_push_update = True
 
     def API_play(self):
         if (len(self.playqueue) > 0 and (self.inplayqueue or self.active_playlist_id == -1)):
@@ -189,19 +194,23 @@ class Amp():
                 raise DogError, 'Trying to play an empty playqueue'
             else:
                 self.play_only_if_null(playlist.get_track_nbr(self.active_playlist_position))
+        self.needs_push_update = True
 
     def API_pause(self):
         self.set_state(gst.STATE_PAUSED)
+        self.needs_push_update = True
 
     def API_queue(self, uri):
         track = self.dogvibes.create_track_from_uri(uri)
         self.playqueue.append(track)
+        self.needs_push_update = True
 
     def API_removeTrack(self, nbr):
         nbr = int(nbr)
         if nbr > len(self.playqueue):
             raise DogError, 'Track not removed, playqueue is not that big'
         self.playqueue.remove(self.playqueue[nbr])
+        self.needs_push_update = True
 
     def API_seek(self, mseconds):
         # FIXME: this *1000-hack only works for Spotify?
@@ -214,6 +223,7 @@ class Amp():
         if (mode != "normal" and mode != "random" and mode != "repeat" and mode != "repeattrack"):
             raise DogError, "Unknown playqueue mode:" + mode
         self.playlist_mode = mode
+        self.needs_push_update = True
 
     def API_setVolume(self, level):
         level = float(level)
@@ -269,9 +279,11 @@ class Amp():
 
     def pipeline_message(self, bus, message):
         t = message.type
-        print t
         if t == gst.MESSAGE_EOS:
             self.API_nextTrack()
+            self.needs_push_update = True
+            # TODO: is this enough? An update is pushed to the clients
+            # but will the info be correct?
 
     def play_only_if_null(self, track):
         (pending, state, timeout) = self.pipeline.get_state()
