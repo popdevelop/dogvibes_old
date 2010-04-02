@@ -58,6 +58,14 @@ amp "queue?uri=spotify:track:2ycZ6jD05mCUWYJZHF6Rml"
 amp "queue?uri=spotify:track:2ycZ6jD05mCUWYJZHF6Rml"
 amp "queue?uri=spotify:track:2ycZ6jD05mCUWYJZHF6Rml"
 amp "queue?uri=spotify:track:2ycZ6jD05mCUWYJZHF6Rml"
+# add three short clips and let them play..
+amp "queue?uri=spotify:track:7wdjURh0JytWduFjO00UQk"
+amp "queue?uri=spotify:track:7wdjURh0JytWduFjO00UQk"
+amp "queue?uri=spotify:track:7wdjURh0JytWduFjO00UQk"
+
+amp "queue?uri=spotify:track:6xg3JlGpWrnHXZnTHT3UCt"
+amp "queue?uri=spotify:track:2ycZ6jD05mCUWYJZHF6Rml"
+amp "queue?uri=spotify:track:7wdjURh0JytWduFjO00UQk"
 
 amp "play"
 
@@ -104,6 +112,13 @@ amp "nextTrack"
 dogsleep 0
 amp "nextTrack"
 dogsleep 0
+amp "nextTrack"
+
+dogsleep 30
+#let the tree songs playu
+dogsleep 3
+amp "nextTrack"
+dogsleep 3
 amp "nextTrack"
 
 echo "Done"
