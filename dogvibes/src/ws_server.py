@@ -75,7 +75,7 @@ class Server:
             for s in inputready:
                 if s == self.server: 
                     # handle the server socket
-                    c = ClientConnection(self.server.accept()) 
+                    c = ClientConnection(self.server.accept(),self) 
                     c.start()
                     self.threads.append(c) 
 
@@ -85,14 +85,28 @@ class Server:
         for c in self.threads: 
             c.join()
 
+    def pushStatus(self):
+        # loop through all amps and look for status updates
+        amp = dogvibes.amps[0]
+        if amp.needs_push_update:
+            data = dict(error = 0, result = amp.API_getStatus())
+            data = cjson.encode(data)
+            data = 'successGetStatus' + '(' + data + ')'
+            amp.needs_push_update = False
+
+            for c in self.threads: 
+                c.client.send('\x00' + data + '\xff')
+
+
 
 class ClientConnection(threading.Thread): 
-    def __init__(self,(client,address)): 
-        threading.Thread.__init__(self) 
-        self.client = client 
-        self.address = address 
+    def __init__(self,(client,address),parent):
+        threading.Thread.__init__(self)
+        self.client = client
+        self.address = address
         self.size = 1024
         self.data = ''
+        self.parent = parent
 
     def handshake(self):
         shake = self.client.recv(512) # FIXME: if smaller than header size, we risk missing some initial commands!!
@@ -104,9 +118,14 @@ class ClientConnection(threading.Thread):
         print new_handshake
         print shake
         self.client.send(new_handshake)
-
+    
     def interact(self):
-        tmp = self.client.recv(256)
+        self.parent.pushStatus()
+
+        try:
+            tmp = self.client.recv(256)
+        except: return
+
         self.data += tmp;
 
         cmds = []
@@ -119,7 +138,7 @@ class ClientConnection(threading.Thread):
                 cmds.append(msg[1:])
 
         for cmd in cmds:
-            print cmd
+            print "%s(%s): %s" % (self.address[0], self.address[1], cmd)
 
             # path can be like dogvibes/method or amp/0/method
             u = urlparse(cmd)
@@ -148,8 +167,6 @@ class ClientConnection(threading.Thread):
                 callback = params.pop('callback')
                 if '_' in params:
                     params.pop('_')                
-
-            print c
 
             try:
                 # strip params from paramters not in the method definition
@@ -190,6 +207,7 @@ class ClientConnection(threading.Thread):
             print 'connection!' 
             self.handshake()
             print 'handshaken'
+            self.client.setblocking(0)
             while True:
                 self.interact()
 
