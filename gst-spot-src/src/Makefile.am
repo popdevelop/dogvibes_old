@@ -14,7 +14,7 @@ plugin_LTLIBRARIES = libgstspot.la
 ##############################################################################
 
 # sources used to compile this plug-in
-libgstspot_la_SOURCES = gstspot.c gstspotsrc.c commandsource.c
+libgstspot_la_SOURCES = gstspot.c gstspotsrc.c
 
 # flags used to compile this plugin
 # add other _CFLAGS and _LIBS as needed
