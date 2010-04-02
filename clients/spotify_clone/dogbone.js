@@ -27,6 +27,8 @@ var time_count;
 var request_in_progress = false;
 var seek_in_progress = false; /* FIXME: */
 var vol_in_progress = false; /* FIXME: */
+var use_websocket = 0;
+var ws;
 
 /* These are all the commands available to the server */
 var command = {
@@ -111,31 +113,40 @@ function timestamp_to_string(ts)
 }
 
 function sendCmd(url, successFunc) {
-    $.ajax({
-        url: url,
-        type: "GET",
-        dataType: 'jsonp',
-        success: successFunc     
-    });
+    if (use_websocket) {
+	if (url.indexOf('?') == -1) {
+	    ws.send(url + "?callback=" + successFunc);
+	} else {
+	    ws.send(url + "&callback=" + successFunc);
+	} 
+    } else {
+	$.ajax({
+            url: url,
+            type: "GET",
+            dataType: 'jsonp',
+            success: eval(successFunc)
+	});
+    }
 }
+
+
+var successGetStatus = function(data){
+    if(data.error != 0){
+        connectionBad("Server error! (" + data.error + ")");
+    }
+        
+    connectionOK(); /* This will restore timeout aswell */    
+    handleStatusResponse(data.result);
+};
 
 /* 
  * Status request loop and its handler 
  */
 function requestStatus()
 {
-    var successFunc = function(data){
-        if(data.error != 0){
-            connectionBad("Server error! (" + data.error + ")");
-        }
-        
-        connectionOK(); /* This will restore timeout aswell */    
-        handleStatusResponse(data.result);
-    };
-
     if(!request_in_progress){
 	connectionRequest();
-	sendCmd(server + command.status, successFunc);
+	sendCmd(server + command.status, "successGetStatus");
     }
 }
 
@@ -246,6 +257,56 @@ function connectionTimeout()
     $("#message .text").html("Connection timed out! Check server and reload page to try again.");
 }
 
+
+var successRemove = function(data) {
+    clearWait();
+    /* TODO: change back this when we have playlisthash */
+    getPlayQueue();
+};
+
+var successPlayButton = function(data) {
+    clearWait();
+    requestStatus();
+};
+
+var successGetCommand = function(data) {
+    item_count = 0;
+    $("#s-results").empty();
+    $.each(data.result, function(i, song) {
+	td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+	id = i;
+	$("#s-results").append("<tr id=\"row_"+ i + "\" class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + id + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + id + "\" name=\""+song.uri+"\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
+	item_count++;
+    });
+    $(".remButton").click(function () {
+	setWait();
+	sendCmd(server + removecommand + this.id, "successRemove");
+    });    
+    $(".playButton").dblclick(function () {
+	var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
+	var data = this.id + "&playlistid=" + pl_id;
+	
+	setWait();
+	sendCmd(server + addcommand + data, "successPlayButton");
+    });
+    if(item_count == 0){
+	$("#s-results").html("<tr><td colspan=6><i>No tracks in this list</i>");
+    }
+    else{
+	$(".pl_row").click(function(){
+	    $(".pl_row").find("td").removeClass("selected");
+	    $(this).find("td").addClass("selected");
+	});         
+	/* TODO: Make things sortable. Just dummy for now */
+	$(function() {
+	    $("#s-results").sortable({appendTo: "body", scroll: false });
+	    $("#s-results").disableSelection();
+	});
+    }
+    clearWait();
+    requestStatus();
+};
+
 /* Get playqueue or playlist */
 function getPlayQueue(){
     setWait();
@@ -259,54 +320,13 @@ function getPlayQueue(){
 	addcommand = command.playtrack;
 	removecommand = command.removefromplaylist + playlists.selected + "&track_id=";
     }
-    var successFunc = function(data) {
-        item_count = 0;
-        $("#s-results").empty();
-        $.each(data.result, function(i, song) {
-	    td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-	    id = i;
-	    $("#s-results").append("<tr id=\"row_"+ i + "\" class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + id + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + id + "\" name=\""+song.uri+"\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
-	    item_count++;
-        });
-        $(".remButton").click(function () {
-	    var successFunc = function(data) {
-		clearWait();
-		/* TODO: change back this when we have playlisthash */
-		getPlayQueue();
-	    };
-	    setWait();
-	    sendCmd(server + removecommand + this.id, successFunc);
-        });    
-        $(".playButton").dblclick(function () {
-	    var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
-	    var data = this.id + "&playlistid=" + pl_id;
-	    
-	    var successFunc = function(data) {
-		clearWait();
-		requestStatus();
-	    };
-	    setWait();
-	    sendCmd(server + addcommand + data, successFunc);
-        });
-        if(item_count == 0){
-	    $("#s-results").html("<tr><td colspan=6><i>No tracks in this list</i>");
-        }
-        else{
-	    $(".pl_row").click(function(){
-		$(".pl_row").find("td").removeClass("selected");
-		$(this).find("td").addClass("selected");
-	    });         
-	    /* TODO: Make things sortable. Just dummy for now */
-	    $(function() {
-		$("#s-results").sortable({appendTo: "body", scroll: false });
-		$("#s-results").disableSelection();
-	    });
-        }
-        clearWait();
-        requestStatus();
-    };
-    sendCmd(server + getcommand, successFunc);
+    sendCmd(server + getcommand, "successGetCommand");
 }
+
+var successGetPlaylists = function(data) {
+    playlists.items = data.result;
+    playlists.draw();
+};
 
 /* Playlists */
 var playlists = {
@@ -318,16 +338,12 @@ var playlists = {
     },
     
     get: function() {
-	var successFunc = function(data) {
-            playlists.items = data.result;
-            playlists.draw();
-	};
-	sendCmd(server + command.getplaylists, successFunc);
+	sendCmd(server + command.getplaylists, "successGetPlaylists");
     },
     add: function() {
 	newlist = prompt("Enter new playlist name:", "");
 	if(newlist && newlist!=""){
-	    sendCmd(server + command.playlistadd + newlist, playlists.get);
+	    sendCmd(server + command.playlistadd + newlist, "playlists.get");
 	}
     },
     draw: function() {
@@ -483,6 +499,82 @@ function doSearchFromLink(value, save) {
     doSearch(save);
 }
 
+var successPlay = function(data) {
+    clearWait();
+    requestStatus();
+};
+
+var successSearch = function(data) {
+    var artists = {};
+    var albums  = {};
+    current_search_results = {};
+    item_count = 0;
+    artist_count = 0;
+    album_count = 0;
+    $("#s-results").empty();
+    $.each(data.result, function(i, song) {
+        td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+        $("#s-results").append("<tr class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"searchAlbumButton\">" + song.album);
+        current_search_results[song.uri] = { artist:song.artist, album:song.album };
+        item_count++;
+        if(!artists[song.artist]) { artists[song.artist]=0; artist_count++; }
+        artists[song.artist]++;
+        if(!albums[song.album]) { albums[song.album]=song.artist; album_count++; }
+    });
+    /* Add click actions */
+    $(".addButton").click(function () {
+        $("#s-results .selected").effect('highlight');
+        $("#pl-playqueue").effect('highlight');
+	setWait();
+	sendCmd(server + command.add + this.id, "clearWait");
+    }); 
+    $(".playButton").dblclick(function () {
+        $("#s-results .selected").effect('highlight');
+        $("#pl-playqueue").effect('highlight');
+	setWait();
+	sendCmd(server + command.add + this.id, "successPlay");
+    });   
+    $(".searchArtistButton").click(function () {
+        doSearchFromLink("artist:"+current_search_results[this.id].artist);
+    });
+    $(".searchAlbumButton").click(function () {
+        doSearchFromLink("artist:"+current_search_results[this.id].artist + " album:"+current_search_results[this.id].album);
+    });            
+    if(item_count == 0){
+        $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
+    } else {
+        $(".pl_row").click(function(){
+            $(".pl_row").find("td").removeClass("selected");
+            $(this).find("td").addClass("selected");
+        });   
+        /* TODO: Make things sortable. Just dummy for now */
+        $(function() {
+            $(".playButton").draggable({ revert: 'invalid', scroll: false, revertDuration: 100, helper: 'clone', appendTo: "body" });
+        });
+    }
+    /* Print summaries */
+    $("#s-tracks").html("<span>Tracks</span> <span class=\"count\">(" + item_count + ")</span>");
+    $("#s-artists").html("<span>Artists: </span><span class=\"count\">(" + artist_count + ")</span> ");
+    count = 0;         
+    jQuery.each(artists, function(i, artist){
+	$("#s-artists").append(i + " <em>&diams;</em> ");
+	if(count++ == 18){
+	    $("#s-artists").append("<span class=\"warn\"> and "+(artist_count-18)+" more... </span>");
+	    return false;
+	}            
+    });
+    $("#s-albums").html("<span>Albums: </span><span class=\"count\">(" + album_count + ") ");
+    count = 0;
+    jQuery.each(albums, function(i, album){
+	$("#s-albums").append(i + " <em>by "+album+" &diams;</em> ");
+	if(count++ == 8){
+	    $("#s-albums").append("<span class=\"warn\"> and "+(album_count-8)+" more...  </span>");
+	    return false;
+	}
+    });			
+}
+
+
 function doSearch(save) {
     if(save) {
 	search.add($("#s-input").val());
@@ -492,81 +584,8 @@ function doSearch(save) {
     $("#s-results").html("<tr><td colspan=6>" + loading_small + " <i>Searching...</i>");
     $("#s-keyword").text($("#s-input").val());
     $("#tab-title").text("Search");
-    var successFunc = function(data) {
-        var artists = {};
-        var albums  = {};
-        current_search_results = {};
-      	item_count = 0;
-        artist_count = 0;
-        album_count = 0;
-        $("#s-results").empty();
-        $.each(data.result, function(i, song) {
-            td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-            $("#s-results").append("<tr class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"addButton\" title=\"Add to play queue\">+</a>" + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"playButton\">" + song.title + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"searchArtistButton\">" + song.artist + td + timestamp_to_string(song.duration/1000) + td + "<a href=\"#\" id=\"" + song.uri + "\" class=\"searchAlbumButton\">" + song.album);
-            current_search_results[song.uri] = { artist:song.artist, album:song.album };
-            item_count++;
-            if(!artists[song.artist]) { artists[song.artist]=0; artist_count++; }
-            artists[song.artist]++;
-            if(!albums[song.album]) { albums[song.album]=song.artist; album_count++; }
-        });
-        /* Add click actions */
-        $(".addButton").click(function () {
-            $("#s-results .selected").effect('highlight');
-            $("#pl-playqueue").effect('highlight');
-	    setWait();
-	    sendCmd(server + command.add + this.id, clearWait);
-        }); 
-        $(".playButton").dblclick(function () {
-            $("#s-results .selected").effect('highlight');
-            $("#pl-playqueue").effect('highlight');
-	    var successFunc = function(data) {
-		clearWait();
-		requestStatus();
-	    };
-	    setWait();
-	    sendCmd(server + command.add + this.id, successFunc);
-        });   
-        $(".searchArtistButton").click(function () {
-            doSearchFromLink("artist:"+current_search_results[this.id].artist);
-        });
-        $(".searchAlbumButton").click(function () {
-            doSearchFromLink("artist:"+current_search_results[this.id].artist + " album:"+current_search_results[this.id].album);
-        });            
-        if(item_count == 0){
-            $("#s-results").html("<tr><td colspan=6><i>No results for '" + $("#s-input").val() + "'</i>");
-        } else {
-            $(".pl_row").click(function(){
-                $(".pl_row").find("td").removeClass("selected");
-                $(this).find("td").addClass("selected");
-            });   
-            /* TODO: Make things sortable. Just dummy for now */
-            $(function() {
-                $(".playButton").draggable({ revert: 'invalid', scroll: false, revertDuration: 100, helper: 'clone', appendTo: "body" });
-            });
-        }
-        /* Print summaries */
-	$("#s-tracks").html("<span>Tracks</span> <span class=\"count\">(" + item_count + ")</span>");
-	$("#s-artists").html("<span>Artists: </span><span class=\"count\">(" + artist_count + ")</span> ");
-	count = 0;         
-	jQuery.each(artists, function(i, artist){
-	    $("#s-artists").append(i + " <em>&diams;</em> ");
-	    if(count++ == 18){
-		$("#s-artists").append("<span class=\"warn\"> and "+(artist_count-18)+" more... </span>");
-		return false;
-	    }            
-	});
-	$("#s-albums").html("<span>Albums: </span><span class=\"count\">(" + album_count + ") ");
-	count = 0;
-	jQuery.each(albums, function(i, album){
-	    $("#s-albums").append(i + " <em>by "+album+" &diams;</em> ");
-	    if(count++ == 8){
-		$("#s-albums").append("<span class=\"warn\"> and "+(album_count-8)+" more...  </span>");
-		return false;
-	    }
-	});			
-    }
 
-    sendCmd(server + command.search + $("#s-input").val(), successFunc);
+    sendCmd(server + command.search + $("#s-input").val(), "successSearch");
 }
 
 
@@ -575,7 +594,22 @@ function doSearch(save) {
  */
 
 /* Startup */
-$("document").ready(function() { 
+$("document").ready(function() {
+
+    if ("WebSocket" in window) {
+        ws = new WebSocket("ws://localhost:9999/");
+        ws.onopen = function(){
+	    use_websocket = 1;
+        };
+        ws.onmessage = function(e){
+            eval(e.data);
+        };
+        ws.onclose = function(){
+	    connectionBad("Server (Websocket) stopped responding");
+	    use_websocket = 0; // try to fallback to Ajax
+	};
+    }
+
     $("#message .btn").hide();
     search.init();
     nav.init();
@@ -603,16 +637,16 @@ $("document").ready(function() {
 /* Play button */
 $("#pb-play").click(function() {
     var action = $("#pb-play > a").hasClass("playing") ? command.pause : command.play;
-    sendCmd(server + action, requestStatus);
+    sendCmd(server + action, "requestStatus");
 });
 /* Next button */
 $("#pb-next").click(function() {
-    sendCmd(server + command.next, requestStatus);
+    sendCmd(server + command.next, "requestStatus");
 });
 
 /* Prev button */
 $("#pb-prev").click(function() {
-    sendCmd(server + command.prev, requestStatus);
+    sendCmd(server + command.prev, "requestStatus");
 });
 
 $("#message .btn").click(function() {
@@ -627,26 +661,27 @@ function setPage(name){
 }
 $("#link_home").click(clickHandler);
 
+var successLocal = function(data) {
+    obj = $("#s-results");
+    obj.append("<thead><th id=\"indicator\">&nbsp;<th><a href=\"#\">Artist</a><th><a href=\"#\">Album</a></thead>");
+    var prev_artist = false;
+    $.each(data.result, function(i, song){
+        td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+        current_artist = "";
+        if(song.artist != prev_artist){
+            current_artist = song.artist;
+            prev_artist    = song.artist;
+        }               
+        obj.append("<tr>"+ td + td + current_artist + td + song.album);
+    });
+};
+
 $("#p-local").click(function () {
     setPage("p-local");
     $("#tab-title").text("Local media");
     $("#playlist").html("<h1>Local music:</h1><table id=\"s-results\"></table>");
 
-    var successFunc = function(data) {
-        obj = $("#s-results");
-        obj.append("<thead><th id=\"indicator\">&nbsp;<th><a href=\"#\">Artist</a><th><a href=\"#\">Album</a></thead>");
-        var prev_artist = false;
-        $.each(data.result, function(i, song){
-            td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-            current_artist = "";
-            if(song.artist != prev_artist){
-                current_artist = song.artist;
-                prev_artist    = song.artist;
-            }               
-            obj.append("<tr>"+ td + td + current_artist + td + song.album);
-        });
-    };
-    sendCmd(server + command.list + "album", successFunc);
+    sendCmd(server + command.list + "album", "successLocal");
 });
 
 /* Play queue management */
@@ -681,7 +716,7 @@ $('#playback_volume').slider({
     start: function(e, ui) { vol_in_progress = true; },
     stop: function(e, ui) { vol_in_progress = false; },
     change: function(event, ui) { 
-	sendCmd(server + command.volume + ui.value/100, requestStatus());
+	sendCmd(server + command.volume + ui.value/100, "requestStatus");
     }
 });
 
@@ -689,6 +724,6 @@ $('#playback_seek').slider({
     start: function(e, ui) { seek_in_progress = true; },
     stop: function(e, ui) { seek_in_progress = false; },
     change: function(event, ui) {
-	sendCmd(server + command.seek + Math.round((ui.value*current_song.duration)/100), requestStatus());
+	sendCmd(server + command.seek + Math.round((ui.value*current_song.duration)/100), "requestStatus");
     }
 });
