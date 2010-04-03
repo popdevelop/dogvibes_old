@@ -391,10 +391,13 @@ var playlists = {
         }
     },
     remove: function(id) {
-        sendCmd(command.playlistremove + id, "playlists.get");
+        if(confirm("Are you sure you want to delete this playlist?")) {
+            sendCmd(command.playlistremove + id, "playlists.get");
+        }
     },
     draw: function() {
         playlists.listIds = new Array();
+        $(playlists.ui.list).empty();
         if(playlists.items.length > 0) {
             $(playlists.ui.section).show();
             $.each(playlists.items, function(i, list){
