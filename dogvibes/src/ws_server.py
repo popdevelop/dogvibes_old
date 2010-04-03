@@ -135,10 +135,11 @@ class ClientConnection(threading.Thread):
         except socket.error as (errno, string):
             if errno == 32:
                 # client is not longer present
-                print "Client %s(%s) has disconnected" % (self.address[0], self.address[1])
-                self.parent.threads.remove(self)
-                self.running = 0
-                return
+                print "Client %s(%s) should disconnect?" % (self.address[0], self.address[1])
+                #print "Client %s(%s) has disconnected" % (self.address[0], self.address[1])
+                #self.parent.threads.remove(self)
+                #self.running = 0
+                #return
             else:
                 print "ERROR: unknown socket response %s(%d)" % (string, errno)
 
