@@ -44,6 +44,8 @@ class Dogvibes():
         # add all speakers
         self.speakers = [DeviceSpeaker("devicesink")]
 
+        self.needs_push_update = False
+
         # add all amps
         amp0 = Amp(self, "0")
         amp0.API_connectSpeaker(0)
@@ -86,15 +88,18 @@ class Dogvibes():
 
     def API_removePlaylist(self, id):
         Playlist.remove(id)
+        self.needs_push_update = True
 
     def API_addTrackToPlaylist(self, playlist_id, uri):
         track = self.create_track_from_uri(uri)
         playlist = Playlist.get(playlist_id)
         return playlist.add_track(track)
+        self.needs_push_update = True
 
     def API_removeTrackFromPlaylist(self, playlist_id, track_id):
         playlist = Playlist.get(playlist_id)
         playlist.remove_track_nbr(int(track_id))
+        self.needs_push_update = True
 
     def API_getAllPlaylists(self):
         return [playlist.to_dict() for playlist in Playlist.get_all()]

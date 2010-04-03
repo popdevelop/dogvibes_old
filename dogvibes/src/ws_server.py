@@ -43,63 +43,64 @@ WebSocket-Origin: %s\r\n\
 WebSocket-Location: %s/\r\n\r\n\
 '
 
-class Server: 
-    def __init__(self): 
-        self.host = '' 
+class Server:
+    def __init__(self):
+        self.host = ''
         self.port = 9999
-        self.nbr_connections = 5 
-        self.size = 1024 
-        self.server = None 
-        self.threads = [] 
+        self.nbr_connections = 5
+        self.size = 1024
+        self.server = None
+        self.threads = []
 
     def open_socket(self):
-        try: 
-            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+        try:
+            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server.bind((self.host,self.port)) 
-            self.server.listen(self.nbr_connections) 
-        except socket.error, (value,message): 
+            self.server.bind((self.host,self.port))
+            self.server.listen(self.nbr_connections)
+        except socket.error, (value,message):
             if self.server:
                 self.server.close()
-            print "Could not open socket: " + message 
+            print "Could not open socket: " + message
             sys.exit(1)
 
-    def run(self): 
-        self.open_socket() 
+    def run(self):
+        self.open_socket()
         input = [self.server]
-        running = 1 
-        while running:
+
+        while True:
             # TODO: we could wait for other connections like HTTP on port 80
-            inputready,outputready,exceptready = select.select(input,[],[]) 
+            inputready,outputready,exceptready = select.select(input,[],[])
 
             for s in inputready:
-                if s == self.server: 
+                if s == self.server:
                     # handle the server socket
-                    c = ClientConnection(self.server.accept(),self) 
+                    c = ClientConnection(self.server.accept(),self)
                     c.start()
-                    self.threads.append(c) 
 
-        # close all threads 
+        # close all threads
 
-        self.server.close() 
-        for c in self.threads: 
+        self.server.close()
+        for c in self.threads:
             c.join()
 
     def pushStatus(self):
         # loop through all amps and look for status updates
         amp = dogvibes.amps[0]
-        if amp.needs_push_update:
+        if amp.needs_push_update or dogvibes.needs_push_update:
             data = dict(error = 0, result = amp.API_getStatus())
             data = cjson.encode(data)
             data = 'successGetStatus' + '(' + data + ')'
+
             amp.needs_push_update = False
+            dogvibes.needs_push_update = False
 
-            for c in self.threads: 
-                c.client.send('\x00' + data + '\xff')
+            for c in self.threads:
+                c.sendWS('\x00' + data + '\xff')
 
 
 
-class ClientConnection(threading.Thread): 
+class ClientConnection(threading.Thread):
     def __init__(self,(client,address),parent):
         threading.Thread.__init__(self)
         self.client = client
@@ -107,6 +108,7 @@ class ClientConnection(threading.Thread):
         self.size = 1024
         self.data = ''
         self.parent = parent
+        self.running = 0
 
     def handshake(self):
         # FIXME: if smaller than header size, we risk missing some initial commands!!
@@ -124,7 +126,23 @@ class ClientConnection(threading.Thread):
         # compile an answer and send back to the client
         new_handshake = server_handshake % (origin[0], "ws://" + host[0])
         self.client.send(new_handshake)
-    
+
+    def sendWS(self, data):
+        try:
+            # TODO: make sure data is utf-8
+            # TEST: swedish letters
+            print "Sending: %s" % data
+            self.client.send('\x00' + data + '\xff')
+        except socket.error as (errno, string):
+            if errno == 32:
+                # client is not longer present
+                print "Client %s(%s) has disconnected" % (self.address[0], self.address[1])
+                self.parent.threads.remove(self)
+                self.running = 0
+                return
+            else:
+                print "ERROR: unknown socket response %s(%d)" % (string, errno)
+
     def interact(self):
         self.parent.pushStatus()
 
@@ -170,12 +188,12 @@ class ClientConnection(threading.Thread):
             if 'callback' in params:
                 callback = params.pop('callback')
                 if '_' in params:
-                    params.pop('_')                
+                    params.pop('_')
 
             try:
                 # strip params from paramters not in the method definition
                 args = inspect.getargspec(getattr(klass, method))[0]
-                params = dict(filter(lambda k: k[0] in args, params.items()))        
+                params = dict(filter(lambda k: k[0] in args, params.items()))
                 # call the method
                 data = getattr(klass, method).__call__(**params)
             except AttributeError:
@@ -198,15 +216,12 @@ class ClientConnection(threading.Thread):
             if callback != None:
                 data = callback + '(' + data + ')'
 
-            # TODO: make sure data is utf-8
-            # TEST: swedish letters
-            self.client.send('\x00' + data + '\xff')
+            self.sendWS(data);
 
 
     def run(self):
-        print "Running thread"
-        running = 1 
-        while running:
+        self.running = 1
+        while self.running:
             if self.handshake() == False:
                 self.client.close()
                 return
@@ -215,9 +230,12 @@ class ClientConnection(threading.Thread):
             # Reads can't block since we must always react when other messages
             # arrive from e.g. the amp
             self.client.setblocking(0)
-            while True:
+            self.parent.threads.append(self)
+
+            while self.running:
                 # TODO: is this too intense?
                 self.interact()
+        print "Thread is dying..."
 
 
 class API(Thread):
@@ -228,7 +246,7 @@ class API(Thread):
         global dogvibes
         dogvibes = Dogvibes()
 
-        s = Server() 
+        s = Server()
         s.run()
 
 
