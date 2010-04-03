@@ -186,7 +186,7 @@ function isTheSonglist(page, data)
 {
     var type = page.substring(0,3);
     var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
-    return type == 'pl-' && data.playlistid == pl_id;
+    return type == 'pl-' && data.playlist_id == pl_id;
 }
 
 function handleStatusResponse(data)
@@ -205,7 +205,9 @@ function handleStatusResponse(data)
     if(data.playqueuehash != current_song.playqueuehash && isTheSonglist(current_page, data)){
         getPlayQueue();
     }
-
+    if(playlists.activeList != data.playlist_id) {
+        playlists.setActive(data.playlist_id);
+    }
     current_song = data;   
     /* Update volume */
 
@@ -318,7 +320,7 @@ var successGetCommand = function(data) {
     });    
     $(".playButton").dblclick(function () {
         var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
-        var data = this.id + "&playlistid=" + pl_id;
+        var data = this.id + "&playlist_id=" + pl_id;
 
         setWait();
         sendCmd(addcommand + data, "successPlayButton");
@@ -364,13 +366,21 @@ var successGetPlaylists = function(data) {
 
 /* Playlists */
 var playlists = {
+    activeList: 0,
+    listIds: new Array(),
     items: new Array(),
     selected: null,
     ui: {
         list: "#playlists-items",
         section: "#playlists"
     },
-   
+    setActive: function(id) {
+        playlists.activeList = id;
+        for(var i in playlists.listIds) {
+            $("#pl-"+playlists.listIds[i]).removeClass("active");
+        }
+        $("#pl-"+id).addClass("active");
+    },
     get: function() {
         sendCmd(command.getplaylists, "successGetPlaylists");
     },
@@ -384,9 +394,11 @@ var playlists = {
         sendCmd(command.playlistremove + id, "playlists.get");
     },
     draw: function() {
+        playlists.listIds = new Array();
         if(playlists.items.length > 0) {
             $(playlists.ui.section).show();
             $.each(playlists.items, function(i, list){
+                playlists.listIds.push(list.id);
                 $(playlists.ui.list).append("<li id=\"pl-"+list.id+"\"><a href=\"#playlist/"+list.id+"\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a> <span onclick=\"playlists.remove("+list.id+")\">x</span>");
                 $("#pl-"+list.id).droppable({
                     hoverClass: 'drophover',
@@ -400,8 +412,9 @@ var playlists = {
             });
             $(".playlistClick").click(clickHandler);
             $(".playlistClick").dblclick(function() {
-                sendCmd(command.playtrack + "0"+"&playlistid="+ this.name);
+                sendCmd(command.playtrack + "0"+"&playlist_id="+ this.name);
             });
+          playlists.setActive(playlists.activeList);  
         } else {
             $(playlists.ui.section).hide();
         }
