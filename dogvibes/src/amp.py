@@ -59,7 +59,8 @@ class Amp():
             self.tee.link(self.sink)
         else:
             print "Speaker %d already connected" % nbr
-        self.needs_push_update = True
+        #self.needs_push_update = True
+        # FIXME: activate when client connection has been fixed!
 
     def API_disconnectSpeaker(self, nbr):
         nbr = int(nbr)
@@ -105,13 +106,13 @@ class Amp():
             if len(self.playqueue) > 0:
                 track = self.playqueue[0]
                 status['index'] = 0
-                status['playlistid'] = -1
+                status['playlist_id'] = -1
         else:
             playlist = Playlist.get(self.active_playlist_id)
             if self.active_playlist_id != -1 and playlist.length() > 0:
                 track = playlist.get_track_nbr(self.active_playlist_position)
                 status['index'] = self.active_playlist_position
-                status['playlistid'] = self.active_playlist_id
+                status['playlist_id'] = self.active_playlist_id
 
         status['uri'] = "dummy"
 
@@ -152,11 +153,11 @@ class Amp():
                 self.API_stop()
         self.needs_push_update = True
 
-    def API_playTrack(self, playlistid, nbr):
-        # playlistid=-1 means play queue
+    def API_playTrack(self, playlist_id, nbr):
+        # playlist_id=-1 means play queue
         nbr = int(nbr)
-        playlistid = int(playlistid)
-        if playlistid == -1:
+        playlist_id = int(playlist_id)
+        if playlist_id == -1:
             if (nbr > (len(self.playqueue) - 1)):
                 raise DogError, 'Trying to play none existing track from playqueue'
             self.inplayqueue = True
@@ -165,7 +166,7 @@ class Amp():
             self.set_state(gst.STATE_NULL)
             self.play_only_if_null(self.playqueue[0])
         else:
-            self.active_playlist_id = playlistid
+            self.active_playlist_id = playlist_id
             self.change_track(nbr)
             self.set_state(gst.STATE_PLAYING)
         self.needs_push_update = True
