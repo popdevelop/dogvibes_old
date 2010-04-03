@@ -109,21 +109,20 @@ class ClientConnection(threading.Thread):
         self.parent = parent
 
     def handshake(self):
-        shake = self.client.recv(512) # FIXME: if smaller than header size, we risk missing some initial commands!!
-        print shake
+        # FIXME: if smaller than header size, we risk missing some initial commands!!
+        shake = self.client.recv(512)
 
-#Upgrade: WebSocket
-#Connection: Upgrade
-#Host: 192.168.1.6:9999
-#Origin: http://localhost:8887
+        # extract info to send back to client according to the websocket proto
+        host = re.findall("Host: ([a-zA-Z0-9\.:/]*)", shake)
+        origin = re.findall("Origin: ([a-zA-Z0-9\.:/]*)", shake)
 
-        a = re.search("(Host: )([a-zA-Z0-9\.])*:+([0-9])*", shake)
-        location = "ws://" + a.group().split()[1]
-        a = re.search("(Origin: )([a-zA-Z0-9\./:])*:+([0-9])*", shake)
-        origin = a.group().split()[1]
-        new_handshake = server_handshake % (origin, location)
-        print new_handshake
-        print shake
+        # re.findall always return an array
+        if host == [] or origin == []:
+            print "Websocket handshake is wrong. Check incoming request"
+            return False
+
+        # compile an answer and send back to the client
+        new_handshake = server_handshake % (origin[0], "ws://" + host[0])
         self.client.send(new_handshake)
     
     def interact(self):
@@ -150,12 +149,10 @@ class ClientConnection(threading.Thread):
             # path can be like dogvibes/method or amp/0/method
             u = urlparse(cmd)
             c = u.path.split('/')
-            method = 'API_' + c[-1] # last is always method
-             # TODO: this should be determined on API function return:
-            raw = method == 'API_getAlbumArt'
 
+            method = 'API_' + c[-1] # last is always method
             obj = c[1] # first is always object
-            id = c[2] # this will not work...
+            id = c[2] # TODO: must check len of array for this to work
             id = 0 # TODO: remove when more amps are supported
 
             if obj == 'dogvibes':
@@ -188,9 +185,7 @@ class ClientConnection(threading.Thread):
             except DogError:
                 error = 3 # Internal error, e.g. could not find specified uri
 
-            #self.send_response(400 if error else 200) # Bad request or OK
-
-            # Add results from method call only if there is any
+            # Add results from method call only if there are any
             if data == None or error != 0:
                 data = dict(error = error)
             else:
@@ -204,6 +199,7 @@ class ClientConnection(threading.Thread):
                 data = callback + '(' + data + ')'
 
             # TODO: make sure data is utf-8
+            # TEST: swedish letters
             self.client.send('\x00' + data + '\xff')
 
 
@@ -211,11 +207,16 @@ class ClientConnection(threading.Thread):
         print "Running thread"
         running = 1 
         while running:
-            print 'connection!' 
-            self.handshake()
-            print 'handshaken'
+            if self.handshake() == False:
+                self.client.close()
+                return
+                # FIXME: remove thread
+
+            # Reads can't block since we must always react when other messages
+            # arrive from e.g. the amp
             self.client.setblocking(0)
             while True:
+                # TODO: is this too intense?
                 self.interact()
 
 
@@ -232,11 +233,8 @@ class API(Thread):
 
 
 if __name__ == '__main__':
-    #if os.path.exists('dogvibes.db'):
-    #    os.remove('dogvibes.db')
-    #    print "REMOVING DATABASE! DON'T DO THIS IF YOU WANNA KEEP YOUR PLAYLISTS"
 
-    print "Running Dogvibes."
+    print "Running Dogvibes (Websocket edition)"
     print "   ->Vibe the dog!"
     print "                 .--.    "
     print "                / \\aa\_  "
