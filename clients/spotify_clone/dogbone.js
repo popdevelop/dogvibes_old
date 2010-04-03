@@ -1,9 +1,9 @@
 /* Config */
 var default_server = "http://dogvibes.com:2000";
 var server = false;
-var poll_interval = 2000 /* ms */
+var poll_interval = 2000; /* ms */
 var connection_timeout = 5000; /* ms */
-var time_interval = 2000 /* ms */
+var time_interval = 2000; /* ms */
 /* Misc variables */
 var wait_req = 0;
 var track_list_table = "<table cellspacing=\"0\" cellpadding=\"0\"><thead><tr><th id=\"indicator\">&nbsp;<th id=\"track\"><a href=\"#\">Track</a><th id=\"artist\"><a href=\"#\">Artist</a><th id=\"time\"><a href=\"#\">Time</a><th id=\"album\"><a href=\"#\">Album</a></thead><tbody id=\"s-results\"></tbody></table>";
@@ -34,33 +34,33 @@ var synced = 0;
 
 /* These are all the commands available to the server */
 var command = {
-    /* playqueue */
-    add: "/amp/0/queue?uri=",
-    get: "/amp/0/getAllTracksInQueue",
-    remove: "/amp/0/removeTrack?nbr=",
-    /* Playlists */
-    getplaylists: "/dogvibes/getAllPlaylists",
-    getplaylisttracks: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
-    playlistadd: "/dogvibes/createPlaylist?name=",
-    playlistremove: "/dogvibes/removePlaylist?id=",
-    addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",
-    removefromplaylist: "/dogvibes/removeTrackFromPlaylist?playlist_id=",
-    /* playback control */
-    next: "/amp/0/nextTrack",
-    play: "/amp/0/play",
-    playtrack: "/amp/0/playTrack?nbr=",
-    pause: "/amp/0/pause",
-    prev: "/amp/0/previousTrack",
-    seek: "/amp/0/seek?mseconds=",
-    volume: "/amp/0/setVolume?level=", 
-    /* other */
-    
-    status: "/amp/0/getStatus",
-    getmseconds: "/amp/0/getPlayedMilliSeconds",
-    search: "/dogvibes/search?query=",
-    albumart: "/dogvibes/getAlbumArt?size=159&uri=",
-    list: "/dogvibes/list?type="
-}
+        /* playqueue */
+        add: "/amp/0/queue?uri=",
+        get: "/amp/0/getAllTracksInQueue",
+        remove: "/amp/0/removeTrack?nbr=",
+        /* Playlists */
+        getplaylists: "/dogvibes/getAllPlaylists",
+        getplaylisttracks: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
+        playlistadd: "/dogvibes/createPlaylist?name=",
+        playlistremove: "/dogvibes/removePlaylist?id=",
+        addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",
+        removefromplaylist: "/dogvibes/removeTrackFromPlaylist?playlist_id=",
+        /* playback control */
+        next: "/amp/0/nextTrack",
+        play: "/amp/0/play",
+        playtrack: "/amp/0/playTrack?nbr=",
+        pause: "/amp/0/pause",
+        prev: "/amp/0/previousTrack",
+        seek: "/amp/0/seek?mseconds=",
+        volume: "/amp/0/setVolume?level=", 
+        /* other */
+
+        status: "/amp/0/getStatus",
+        getmseconds: "/amp/0/getPlayedMilliSeconds",
+        search: "/dogvibes/search?query=",
+        albumart: "/dogvibes/getAlbumArt?size=159&uri=",
+        list: "/dogvibes/list?type="
+};
 
 /*
  * Misc. Handy functions 
@@ -68,21 +68,21 @@ var command = {
 
 function setWait(){
     if(wait_req == 0){
-	$("#wait_req").html(loading_small);
+        $("#wait_req").html(loading_small);
     }
     wait_req++;	
 };
 function clearWait(){
-    wait_req--
+    wait_req--;
     if(wait_req == 0){
-	$("#wait_req").empty();
+        $("#wait_req").empty();
     }
 };
 
 /* Pad time with zeros */
 function checkTime(i){
     if (i<10 && i>=0){
-	i="0" + i;
+        i="0" + i;
     }
     return i;
 }
@@ -99,7 +99,7 @@ var successGetMSeconds = function(data){
     percent = (current_song.elapsedmseconds/current_song.duration)*100;
     $("#playback_time").html(timestamp_to_string(new_time));
     if(!seek_in_progress) {
-	$('#playback_seek').slider('option', 'value', percent);
+        $('#playback_seek').slider('option', 'value', percent);
     }
 };
 
@@ -107,9 +107,9 @@ var successGetMSeconds = function(data){
 function increaseCount(){
     // websocket is fast enough to get this from the server
     if (use_websocket)
-	sendCmd(command.getmseconds, "successGetMSeconds");
+        sendCmd(command.getmseconds, "successGetMSeconds");
     else
-	current_song.elapsedmseconds += 1000;
+        current_song.elapsedmseconds += 1000;
 
     updateTimes();
 }
@@ -119,11 +119,11 @@ function updateTimes(){
     percent = (current_song.elapsedmseconds/current_song.duration) *100;
     $("#playback_time").html(timestamp_to_string(new_time));
     if(!seek_in_progress) {
-	$('#playback_seek').slider('option', 'value', percent);
+        $('#playback_seek').slider('option', 'value', percent);
     }
     $("#playback_total").html(timestamp_to_string(Math.round(current_song.duration/1000 - 0.5)));
     if(current_song.elapsedmseconds >= current_song.duration){
-	clearInterval(time_count);
+        clearInterval(time_count);
     }
 }
 
@@ -132,7 +132,7 @@ function timestamp_to_string(ts)
 {
     if(!ts) { ts=0; }
     if(ts==0) { return "0:00"; }
-    m = Math.round(ts/60 - 0.5)
+    m = Math.round(ts/60 - 0.5);
     s = Math.round(ts - m*60);
     s=checkTime(s);
     return m + ":" + s;
@@ -140,18 +140,18 @@ function timestamp_to_string(ts)
 
 function sendCmd(url, successFunc) {
     if (use_websocket) {
-	if (url.indexOf('?') == -1) {
-	    ws.send(url + "?callback=" + successFunc);
-	} else {
-	    ws.send(url + "&callback=" + successFunc);
-	} 
+        if (url.indexOf('?') == -1) {
+            ws.send(url + "?callback=" + successFunc);
+        } else {
+            ws.send(url + "&callback=" + successFunc);
+        } 
     } else {
-	$.ajax({
+        $.ajax({
             url: server + url,
             type: "GET",
             dataType: 'jsonp',
             success: eval(successFunc)
-	});
+        });
     }
 }
 
@@ -172,13 +172,13 @@ var successGetStatus = function(data){
 function requestStatus()
 {
     if (use_websocket && synced) {
-	// we don't poll status in websocket mode
-	return;
+        // we don't poll status in websocket mode
+        return;
     }
 
     if(!request_in_progress){
-	connectionRequest();
-	sendCmd(command.status, "successGetStatus");
+        connectionRequest();
+        sendCmd(command.status, "successGetStatus");
     }
 }
 
@@ -193,53 +193,53 @@ function handleStatusResponse(data)
 {
     /* Check if song has switched */
     if(current_song.index != data.index){
-	if(isTheSonglist(current_page, data)){
+        if(isTheSonglist(current_page, data)){
             $("#row_" + current_song.index + " td:first a").removeClass("playing_icon");      
             $("#row_" + current_song.index + " td:first a").addClass("remButton"); 
             $("#row_" + current_song.index + " td").removeClass("playing");  	
-	}
-	$("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
+        }
+        $("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
     }
     /* Update playqueue if applicable */
-    
+
     if(data.playqueuehash != current_song.playqueuehash && isTheSonglist(current_page, data)){
-	getPlayQueue();
+        getPlayQueue();
     }
 
     current_song = data;   
     /* Update volume */
 
     if(!vol_in_progress && data.volume){
-	$('#playback_volume').slider('option', 'value', data.volume*100);
+        $('#playback_volume').slider('option', 'value', data.volume*100);
     }
     /* Update play status */
     if(data.state == "playing"){
-	$("#pb-play > a").addClass("playing");
-	increaseCount();
-	clearInterval(time_count);
-	time_count = setInterval(increaseCount, time_interval);
+        $("#pb-play > a").addClass("playing");
+        increaseCount();
+        clearInterval(time_count);
+        time_count = setInterval(increaseCount, time_interval);
     }
     else{
-	$("#pb-play > a").removeClass("playing");
-	clearInterval(time_count);
+        $("#pb-play > a").removeClass("playing");
+        clearInterval(time_count);
     }
     /* Update now playing field */
     if(data.state != "stopped"){
-	$("#now_playing .artist").text(data.artist);
-	$("#now_playing .title").text(data.title);
-	if(isTheSonglist(current_page, data)){
+        $("#now_playing .artist").text(data.artist);
+        $("#now_playing .title").text(data.title);
+        if(isTheSonglist(current_page, data)){
             $("#row_" + data.index + " td:first a").addClass("playing_icon"); 
             $("#row_" + data.index + " td:first a").removeClass("remButton");       
             $("#row_" + data.index + " td").addClass("playing");       
-	}
-	updateTimes();
+        }
+        updateTimes();
     }
     else {
-	$("#now_playing .title").html("Nothing playing right now");
-	$("#now_playing .artist").empty();
-	$("#album_art").empty();
-	$("#playback_time").empty();
-	$("#playback_total").empty();
+        $("#now_playing .title").html("Nothing playing right now");
+        $("#now_playing .artist").empty();
+        $("#album_art").empty();
+        $("#playback_time").empty();
+        $("#playback_total").empty();
     }
 }
 
@@ -307,52 +307,52 @@ var successGetCommand = function(data) {
     item_count = 0;
     $("#s-results").empty();
     $.each(data.result, function(i, song) {
-	td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
-	id = i;
-	$("#s-results").append("<tr id=\"row_"+ i + "\" class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + id + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + id + "\" name=\""+song.uri+"\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
-	item_count++;
+        td = (i % 2 == 0) ? "<td class=\"odd\">" : "<td>";
+        id = i;
+        $("#s-results").append("<tr id=\"row_"+ i + "\" class=\"pl_row\">" + td + "<a href=\"#\" id=\"" + id + "\" class=\"remButton\" title=\"Remove from queue\">-</a>" + td + "<a href=\"#\" id=\"" + id + "\" name=\""+song.uri+"\" class=\"playButton\">" + song.title + "</a>" + td + song.artist + td + timestamp_to_string(song.duration/1000) + td + song.album);
+        item_count++;
     });
     $(".remButton").click(function () {
-	setWait();
-	sendCmd(removecommand + this.id, "successRemove");
+        setWait();
+        sendCmd(removecommand + this.id, "successRemove");
     });    
     $(".playButton").dblclick(function () {
-	var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
-	var data = this.id + "&playlistid=" + pl_id;
-	
-	setWait();
-	sendCmd(addcommand + data, "successPlayButton");
+        var pl_id = playlists.selected == "playqueue" ? -1 : playlists.selected;
+        var data = this.id + "&playlistid=" + pl_id;
+
+        setWait();
+        sendCmd(addcommand + data, "successPlayButton");
     });
     if(item_count == 0){
-	$("#s-results").html("<tr><td colspan=6><i>No tracks in this list</i>");
+        $("#s-results").html("<tr><td colspan=6><i>No tracks in this list</i>");
     }
     else{
-	$(".pl_row").click(function(){
-	    $(".pl_row").find("td").removeClass("selected");
-	    $(this).find("td").addClass("selected");
-	});         
-	/* TODO: Make things sortable. Just dummy for now */
-	$(function() {
-	    $("#s-results").sortable({appendTo: "body", scroll: false });
-	    $("#s-results").disableSelection();
-	});
+        $(".pl_row").click(function(){
+            $(".pl_row").find("td").removeClass("selected");
+            $(this).find("td").addClass("selected");
+        });         
+        /* TODO: Make things sortable. Just dummy for now */
+        $(function() {
+            $("#s-results").sortable({appendTo: "body", scroll: false });
+            $("#s-results").disableSelection();
+        });
     }
     clearWait();
     requestStatus();
 };
 
+var getcommand, addcommand, removecommand;
 /* Get playqueue or playlist */
 function getPlayQueue(){
     setWait();
-    var getcommand, addcommand, removecommand;
     if(playlists.selected == "playqueue"){
-	getcommand = command.get;
-	addcommand = command.playtrack;
-	removecommand = command.remove;
+        getcommand = command.get;
+        addcommand = command.playtrack;
+        removecommand = command.remove;
     } else {
-	getcommand = command.getplaylisttracks + playlists.selected;
-	addcommand = command.playtrack;
-	removecommand = command.removefromplaylist + playlists.selected + "&track_id=";
+        getcommand = command.getplaylisttracks + playlists.selected;
+        addcommand = command.playtrack;
+        removecommand = command.removefromplaylist + playlists.selected + "&track_id=";
     }
     sendCmd(getcommand, "successGetCommand");
 }
@@ -367,164 +367,164 @@ var playlists = {
     items: new Array(),
     selected: null,
     ui: {
-	list: "#playlists-items",
-	section: "#playlists"
+        list: "#playlists-items",
+        section: "#playlists"
     },
-    
+   
     get: function() {
-	sendCmd(command.getplaylists, "successGetPlaylists");
+        sendCmd(command.getplaylists, "successGetPlaylists");
     },
     add: function() {
-	newlist = prompt("Enter new playlist name:", "");
-	if(newlist && newlist!=""){
-	    sendCmd(command.playlistadd + newlist, "playlists.get");
-	}
+        newlist = prompt("Enter new playlist name:", "");
+        if(newlist && newlist!=""){
+            sendCmd(command.playlistadd + newlist, "playlists.get");
+        }
     },
     remove: function(id) {
-       sendCmd(command.playlistremove + id, "playlists.get");
+        sendCmd(command.playlistremove + id, "playlists.get");
     },
     draw: function() {
-	if(playlists.items.length > 0) {
+        if(playlists.items.length > 0) {
             $(playlists.ui.section).show();
             $.each(playlists.items, function(i, list){
-		$(playlists.ui.list).append("<li id=\"pl-"+list.id+"\"><a href=\"#playlist/"+list.id+"\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a> <span onclick=\"playlists.remove("+list.id+")\">x</span>");
-		$("#pl-"+list.id).droppable({
-		    hoverClass: 'drophover',
-		    drop: function(event, ui) {
-			id = $(this).find("a").attr("name");
-			uri = ui.draggable.attr("id");
-			sendCmd(command.addtoplaylist + id + "&uri=" + uri, '');
-			$(this).effect("highlight");
-		    }
-		});            
+                $(playlists.ui.list).append("<li id=\"pl-"+list.id+"\"><a href=\"#playlist/"+list.id+"\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a> <span onclick=\"playlists.remove("+list.id+")\">x</span>");
+                $("#pl-"+list.id).droppable({
+                    hoverClass: 'drophover',
+                    drop: function(event, ui) {
+                    id = $(this).find("a").attr("name");
+                    uri = ui.draggable.attr("id");
+                    sendCmd(command.addtoplaylist + id + "&uri=" + uri, '');
+                    $(this).effect("highlight");
+                }
+                });            
             });
             $(".playlistClick").click(clickHandler);
-	} else {
+        } else {
             $(playlists.ui.section).hide();
-	}
+        }
     }
-}
+};
 
 var search = {
-    items: new Array(),
-    ui: {
-	list: "#searches-items",
-	section: "#searches",
-	cookie:"dogvibes.searches",
-	len: 6
-    },
-    init: function() {
-	/* Load searches from cookie */
-	for(var i = 0; i < search.ui.len; i++){
-            if((temp = getCookie(search.ui.cookie + i)) != "") {
-		search.items[i] = temp;
-            }
-	}
-	search.draw();
-    },
-    add: function(keyword) {
-	var tempArray = new Array();
-	tempArray.unshift(jQuery.trim(keyword));
-	$.each(search.items, function(i, entry){
-            if(jQuery.trim(keyword) != entry){
-		tempArray.push(entry);
-            }
-	});
-	if(tempArray.length > search.ui.len){
-            tempArray.pop();
-	}
-	search.items = tempArray;
-	for(var i = 0; i < tempArray.length; i++) {
-            setCookie(search.ui.cookie + i, tempArray[i]);
-	}
-	search.draw();
-    },
-    draw: function() {
-	$(search.ui.list).empty();
-	if(search.items.length > 0)
-	{
-            $(search.ui.section).show();
-            $.each(search.items, function(i, entry) { 
-		$(search.ui.list).append("<li id=\"s-"+i+"\"><a href=\"#search/"+entry+"\" class=\"searchClick\">"+entry+"</a>");
-            });
-            $(".searchClick").click(clickHandler);
-	} else {
-            $(search.ui.section).hide();
-	}
+items: new Array(),
+ui: {
+    list: "#searches-items",
+    section: "#searches",
+    cookie:"dogvibes.searches",
+    len: 6
+},
+init: function() {
+    /* Load searches from cookie */
+    for(var i = 0; i < search.ui.len; i++){
+        if((temp = getCookie(search.ui.cookie + i)) != "") {
+            search.items[i] = temp;
+        }
     }
+    search.draw();
+},
+add: function(keyword) {
+    var tempArray = new Array();
+    tempArray.unshift(jQuery.trim(keyword));
+    $.each(search.items, function(i, entry){
+        if(jQuery.trim(keyword) != entry){
+            tempArray.push(entry);
+        }
+    });
+    if(tempArray.length > search.ui.len){
+        tempArray.pop();
+    }
+    search.items = tempArray;
+    for(var i = 0; i < tempArray.length; i++) {
+        setCookie(search.ui.cookie + i, tempArray[i]);
+    }
+    search.draw();
+},
+draw: function() {
+    $(search.ui.list).empty();
+    if(search.items.length > 0)
+    {
+        $(search.ui.section).show();
+        $.each(search.items, function(i, entry) { 
+            $(search.ui.list).append("<li id=\"s-"+i+"\"><a href=\"#search/"+entry+"\" class=\"searchClick\">"+entry+"</a>");
+        });
+        $(".searchClick").click(clickHandler);
+    } else {
+        $(search.ui.section).hide();
+    }
+}
 };
 
 var nav = {
-    expectedHash: "",
-    init: function() {
-	setInterval(nav.checkHash, 500);
-    },
-    getHash: function() {
-	var hash = window.location.hash;
-	return hash.substring(1); // remove #
-    },
-    
-    getLinkTarget: function(link) {
-	return link.href.substring(link.href.indexOf('#')+1);
-    },
+expectedHash: "",
+init: function() {
+    setInterval(nav.checkHash, 500);
+},
+getHash: function() {
+    var hash = window.location.hash;
+    return hash.substring(1); // remove #
+},
 
-    parseHash: function(hash) {
-	/* FIXME: cmd-extraction fails i IE8 */
-	ppos = hash.indexOf("/");
-	if(ppos >= 0) {
-            cmd = hash.substring(0, ppos);
-            prm = hash.substring(ppos+1);
-	} else {
-            cmd = hash;
-            prm = "";
-	}
-	return { command: cmd, param: unescape(prm) };
-    },
+getLinkTarget: function(link) {
+    return link.href.substring(link.href.indexOf('#')+1);
+},
 
-    checkHash: function() {
-	theHash = nav.getHash();
-	if(theHash != nav.expectedHash)
-	{
-            nav.expectedHash = theHash;
-            action = nav.parseHash(theHash);
-            nav.executeAction(action);
-	}   
-    },
-    
-    executeAction: function(action) {
-	if(action != null && action.command != "") {
-            switch (action.command) {
-            case "search":
-		doSearchFromLink(action.param, true);
-		break;
-            case "playqueue":
-		action.param = "playqueue";
-		title = "Playqueue";
-            case "playlist":
-		playlists.selected = action.param;
-		setPage("pl-" + action.param);
-		if(typeof(title) == "undefined") { title = "Playlist"; }
-		$("#tab-title").text(title);
-		$("#playlist").html(track_list_table);
-		getPlayQueue();
-		break; 
-            case "home":
-		setPage("p-home");
-		$("#tab-title").text("Home");
-		$("#playlist").html(welcome_text);
-		break;
-            case "local":
-		break;
-            default:
-		alert("Unknown command '"+action.command+"'");
-		break;
-            }
-	}
+parseHash: function(hash) {
+    /* FIXME: cmd-extraction fails i IE8 */
+    ppos = hash.indexOf("/");
+    if(ppos >= 0) {
+        cmd = hash.substring(0, ppos);
+        prm = hash.substring(ppos+1);
+    } else {
+        cmd = hash;
+        prm = "";
     }
+    return { command: cmd, param: unescape(prm) };
+},
+
+checkHash: function() {
+    theHash = nav.getHash();
+    if(theHash != nav.expectedHash)
+    {
+        nav.expectedHash = theHash;
+        action = nav.parseHash(theHash);
+        nav.executeAction(action);
+    }   
+},
+
+executeAction: function(action) {
+    if(action != null && action.command != "") {
+        switch (action.command) {
+        case "search":
+            doSearchFromLink(action.param, true);
+            break;
+        case "playqueue":
+            action.param = "playqueue";
+            title = "Playqueue";
+        case "playlist":
+            playlists.selected = action.param;
+            setPage("pl-" + action.param);
+            if(typeof(title) == "undefined") { title = "Playlist"; }
+            $("#tab-title").text(title);
+            $("#playlist").html(track_list_table);
+            getPlayQueue();
+            break; 
+        case "home":
+            setPage("p-home");
+            $("#tab-title").text("Home");
+            $("#playlist").html(welcome_text);
+            break;
+        case "local":
+            break;
+        default:
+            alert("Unknown command '"+action.command+"'");
+        break;
+        }
+    }
+}
 };
 
 function clickHandler() {
-    var hash = nav.getLinkTarget(this)
+    var hash = nav.getLinkTarget(this);
     nav.expectedHash = hash;
     var action = nav.parseHash(hash);
     nav.executeAction(action);
@@ -562,14 +562,14 @@ var successSearch = function(data) {
     $(".addButton").click(function () {
         $("#s-results .selected").effect('highlight');
         $("#pl-playqueue").effect('highlight');
-	setWait();
-	sendCmd(command.add + this.id, "clearWait");
+        setWait();
+        sendCmd(command.add + this.id, "clearWait");
     }); 
     $(".playButton").dblclick(function () {
         $("#s-results .selected").effect('highlight');
         $("#pl-playqueue").effect('highlight');
-	setWait();
-	sendCmd(command.add + this.id, "successPlay");
+        setWait();
+        sendCmd(command.add + this.id, "successPlay");
     });   
     $(".searchArtistButton").click(function () {
         doSearchFromLink("artist:"+current_search_results[this.id].artist);
@@ -594,27 +594,27 @@ var successSearch = function(data) {
     $("#s-artists").html("<span>Artists: </span><span class=\"count\">(" + artist_count + ")</span> ");
     count = 0;         
     jQuery.each(artists, function(i, artist){
-	$("#s-artists").append(i + " <em>&diams;</em> ");
-	if(count++ == 18){
-	    $("#s-artists").append("<span class=\"warn\"> and "+(artist_count-18)+" more... </span>");
-	    return false;
-	}            
+        $("#s-artists").append(i + " <em>&diams;</em> ");
+        if(count++ == 18){
+            $("#s-artists").append("<span class=\"warn\"> and "+(artist_count-18)+" more... </span>");
+            return false;
+        }            
     });
     $("#s-albums").html("<span>Albums: </span><span class=\"count\">(" + album_count + ") ");
     count = 0;
     jQuery.each(albums, function(i, album){
-	$("#s-albums").append(i + " <em>by "+album+" &diams;</em> ");
-	if(count++ == 8){
-	    $("#s-albums").append("<span class=\"warn\"> and "+(album_count-8)+" more...  </span>");
-	    return false;
-	}
+        $("#s-albums").append(i + " <em>by "+album+" &diams;</em> ");
+        if(count++ == 8){
+            $("#s-albums").append("<span class=\"warn\"> and "+(album_count-8)+" more...  </span>");
+            return false;
+        }
     });			
-}
+};
 
 
 function doSearch(save) {
     if(save) {
-	search.add($("#s-input").val());
+        search.add($("#s-input").val());
     }
     setPage("s-0");
     $("#playlist").html(search_summary + track_list_table);
@@ -642,44 +642,44 @@ $("document").ready(function() {
     $("#playback_volume").slider();
     /* Do we have a server? otherwise prompt */
     if((temp = getCookie("dogvibes.server")) != ""){
-	default_server = temp;
+        default_server = temp;
     }
     if(!server){
-	server = prompt("Enter Dogvibes server URL:", default_server);
+        server = prompt("Enter Dogvibes server URL:", default_server);
     }
 
     if (server.substring(0, 2) == 'ws') {
-	if ("WebSocket" in window) {
-	    if (server) {
-		ws = new WebSocket(server);
-	    } else {
-		ws = new WebSocket("ws://localhost:9999/");
-	    }
+        if ("WebSocket" in window) {
+            if (server) {
+                ws = new WebSocket(server);
+            } else {
+                ws = new WebSocket("ws://localhost:9999/");
+            }
             ws.onopen = function(){
-		use_websocket = 1;
-		time_interval /= 8; // fetch timeupdates faster
-		init();
+                use_websocket = 1;
+                time_interval /= 8; // fetch timeupdates faster
+                init();
             };
             ws.onmessage = function(e){
-		eval(e.data);
+                eval(e.data);
             };
             ws.onclose = function(){
-		connectionBad("Server (Websocket) stopped responding");
-		use_websocket = 0;
-		init();
-	    };
-	}
+                connectionBad("Server (Websocket) stopped responding");
+                use_websocket = 0;
+                init();
+            };
+        }
     } else {
-	init();
+        init();
     }
 });
 
 function init() {
     if(server){
-	setCookie("dogvibes.server", server, 365);
-	connectionInit();
-	playlists.get(); /* TODO: move this when we have playlisthash */     
-	return;
+        setCookie("dogvibes.server", server, 365);
+        connectionInit();
+        playlists.get(); /* TODO: move this when we have playlisthash */     
+        return;
     }
     connectionBad("No server configured. Press reload to set");
 }
@@ -741,21 +741,21 @@ $("#link_playqueue").click(clickHandler);
 $("#pl-playqueue").droppable({
     hoverClass: 'drophover',
     drop: function(event, ui) {
-	id = $(this).find("a").attr("name");
-	uri = ui.draggable.attr("id");
-	sendCmd(command.add + uri, '');
-	$(this).effect("highlight");
-    }
+    id = $(this).find("a").attr("name");
+    uri = ui.draggable.attr("id");
+    sendCmd(command.add + uri, '');
+    $(this).effect("highlight");
+}
 });
 
 
 $("#new_playlist").click(playlists.add);
 
 /* Searching */
-$("#s-submit").click(function(){doSearch(true)});
+$("#s-submit").click(function(){ doSearch(true); });
 $("#s-input").keypress(function (e) {
     if (e.which == 13)
-	doSearch(true);
+        doSearch(true);
 });
 
 /* Clear search keyword field if nav links are clicked*/
@@ -767,13 +767,13 @@ $('#playback_volume').slider({
     start: function(e, ui) { vol_in_progress = true; },
     stop: function(e, ui) { vol_in_progress = false; },
     change: function(event, ui) { 
-	sendCmd(command.volume + ui.value/100, "requestStatus");
+        sendCmd(command.volume + ui.value/100, "requestStatus");
     },
     slide: function(event, ui) {
-	if (use_websocket) {
-	    // update other clients in realtime
-	    sendCmd(command.volume + ui.value/100, '');
-	}
+        if (use_websocket) {
+            // update other clients in realtime
+            sendCmd(command.volume + ui.value/100, '');
+        }
     }
 });
 
@@ -781,6 +781,6 @@ $('#playback_seek').slider({
     start: function(e, ui) { seek_in_progress = true; },
     stop: function(e, ui) { seek_in_progress = false; },
     change: function(event, ui) {
-	sendCmd(command.seek + Math.round((ui.value*current_song.duration)/100), "requestStatus");
+        sendCmd(command.seek + Math.round((ui.value*current_song.duration)/100), "requestStatus");
     }
 });
