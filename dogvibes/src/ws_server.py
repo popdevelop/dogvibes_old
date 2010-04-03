@@ -131,7 +131,6 @@ class ClientConnection(threading.Thread):
         try:
             # TODO: make sure data is utf-8
             # TEST: swedish letters
-            print "Sending: %s" % data
             self.client.send('\x00' + data + '\xff')
         except socket.error as (errno, string):
             if errno == 32:
