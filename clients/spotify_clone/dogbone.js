@@ -399,6 +399,9 @@ var playlists = {
                 });            
             });
             $(".playlistClick").click(clickHandler);
+            $(".playlistClick").dblclick(function() {
+                sendCmd(command.playtrack + "0"+"&playlistid="+ this.name);
+            });
         } else {
             $(playlists.ui.section).hide();
         }
