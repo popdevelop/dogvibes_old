@@ -42,6 +42,7 @@ var command = {
     getplaylists: "/dogvibes/getAllPlaylists",
     getplaylisttracks: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
     playlistadd: "/dogvibes/createPlaylist?name=",
+    playlistremove: "/dogvibes/removePlaylist?id=",
     addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",
     removefromplaylist: "/dogvibes/removeTrackFromPlaylist?playlist_id=",
     /* playback control */
@@ -379,11 +380,14 @@ var playlists = {
 	    sendCmd(command.playlistadd + newlist, "playlists.get");
 	}
     },
+    remove: function(id) {
+       sendCmd(command.playlistremove + id, "playlists.get");
+    },
     draw: function() {
 	if(playlists.items.length > 0) {
             $(playlists.ui.section).show();
             $.each(playlists.items, function(i, list){
-		$(playlists.ui.list).append("<li id=\"pl-"+list.id+"\"><a href=\"#playlist/"+list.id+"\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a>");
+		$(playlists.ui.list).append("<li id=\"pl-"+list.id+"\"><a href=\"#playlist/"+list.id+"\" class=\"playlistClick\" name=\""+list.id+"\">"+list.name+"</a> <span onclick=\"playlists.remove("+list.id+")\">x</span>");
 		$("#pl-"+list.id).droppable({
 		    hoverClass: 'drophover',
 		    drop: function(event, ui) {
