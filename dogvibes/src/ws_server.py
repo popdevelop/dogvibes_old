@@ -6,6 +6,7 @@ import gobject
 import gst
 
 import threading
+
 from threading import Thread
 import socket
 import select
@@ -28,12 +29,22 @@ import urllib
 
 import signal
 
+import logging
+import optparse
+
+LOG_LEVELS = {'0': logging.CRITICAL,
+              '1': logging.ERROR,
+              '2': logging.WARNING,
+              '3': logging.INFO,
+              '4': logging.DEBUG}
+
 class DogError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
+lock = threading.Lock()
 
 server_handshake = '\
 HTTP/1.1 101 Web Socket Protocol Handshake\r\n\
@@ -81,8 +92,8 @@ class Server:
         # close all threads
 
         self.server.close()
-        for c in self.threads:
-            c.join()
+#        for c in self.threads:
+#            c.join()
 
     def pushStatus(self):
         # loop through all amps and look for status updates
@@ -90,13 +101,15 @@ class Server:
         if amp.needs_push_update or dogvibes.needs_push_update:
             data = dict(error = 0, result = amp.API_getStatus())
             data = cjson.encode(data)
-            data = 'successGetStatus' + '(' + data + ')'
+            data = 'pushHandler' + '(' + data + ')'
 
             amp.needs_push_update = False
             dogvibes.needs_push_update = False
 
+            lock.acquire()
             for c in self.threads:
-                c.sendWS('\x00' + data + '\xff')
+                c.sendWS(data)
+            lock.release()
 
 
 
@@ -121,6 +134,7 @@ class ClientConnection(threading.Thread):
         # re.findall always return an array
         if host == [] or origin == []:
             print "Websocket handshake is wrong. Check incoming request"
+            print shake
             return False
 
         # compile an answer and send back to the client
@@ -131,15 +145,14 @@ class ClientConnection(threading.Thread):
         try:
             # TODO: make sure data is utf-8
             # TEST: swedish letters
-            self.client.send('\x00' + data + '\xff')
+            logging.debug("sending to %d: %s" % (self.address[1], data))
+            self.client.send('\x00' + data.encode('utf-8') + '\xff')
         except socket.error as (errno, string):
             if errno == 32:
                 # client is not longer present
-                print "Client %s(%s) should disconnect?" % (self.address[0], self.address[1])
-                #print "Client %s(%s) has disconnected" % (self.address[0], self.address[1])
-                #self.parent.threads.remove(self)
-                #self.running = 0
-                #return
+                logging.debug("Client %s(%s) has disconnected." % (self.address[0], self.address[1]))
+                self.running = 0
+                return
             else:
                 print "ERROR: unknown socket response %s(%d)" % (string, errno)
 
@@ -162,7 +175,7 @@ class ClientConnection(threading.Thread):
                 cmds.append(msg[1:])
 
         for cmd in cmds:
-            print "%s(%s): %s" % (self.address[0], self.address[1], cmd)
+            logging.info("%s(%s): %s" % (self.address[0], self.address[1], cmd))
 
             # path can be like dogvibes/method or amp/0/method
             u = urlparse(cmd)
@@ -181,14 +194,23 @@ class ClientConnection(threading.Thread):
             callback = None
             data = None
             error = 0
+            msg_id = None
 
             params = cgi.parse_qs(u.query)
             # use only the first value for each key (feel free to clean up):
             params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
             if 'callback' in params:
                 callback = params.pop('callback')
-                if '_' in params:
+                # FIXME: should be allowed to send more parameters
+                # than specified. But strip them
+                if '_' in params: # TODO: this applies when not using callback as well?
                     params.pop('_')
+
+            if 'callback' in params:
+                callback = params.pop('callback')
+
+            if 'msg_id' in params:
+                msg_id = params.pop('msg_id')
 
             try:
                 # strip params from paramters not in the method definition
@@ -209,12 +231,17 @@ class ClientConnection(threading.Thread):
             else:
                 data = dict(error = error, result = data)
 
+            # TODO: use '_' instead of 'msg_id'?
+            if msg_id != None:
+                data['msg_id'] = msg_id
+
             # Different JSON syntax in different versions of python
             data = cjson.encode(data)
 
             # Wrap result in a Javascript function if a callback was submitted
             if callback != None:
-                data = callback + '(' + data + ')'
+                #data = callback + '(' + data + ')'
+                data = "%s(%s)" % (callback, data)
 
             self.sendWS(data);
 
@@ -230,12 +257,22 @@ class ClientConnection(threading.Thread):
             # Reads can't block since we must always react when other messages
             # arrive from e.g. the amp
             self.client.setblocking(0)
+
+            lock.acquire()
             self.parent.threads.append(self)
+            logging.debug(str([a.address[1] for a in self.parent.threads]) + " are now running since latest addition")
+            lock.release()
 
             while self.running:
                 # TODO: is this too intense?
                 self.interact()
-        print "Thread is dying..."
+
+        lock.acquire()
+        self.parent.threads.remove(self)
+        logging.debug(str([a.address[1] for a in self.parent.threads]) + " are now left in thread pool")
+        lock.release()
+
+        logging.debug(str(self.address[1]) + " leaving run()")
 
 
 class API(Thread):
@@ -265,6 +302,16 @@ if __name__ == '__main__':
 
     # Enable Ctrl-C
     signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    # Setup log
+    parser = optparse.OptionParser()
+    parser.add_option('-l', help='Log level', dest='log_level', default=3)
+    parser.add_option('-f', help='Log file name', dest='log_file', default='/dev/stdout') # TODO: Windows will feel dizzy
+    (options, args) = parser.parse_args()
+    log_level = LOG_LEVELS.get(options.log_level, logging.NOTSET)
+    logging.basicConfig(level=log_level, filename=options.log_file,
+                        format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
 
     gobject.threads_init()
 
