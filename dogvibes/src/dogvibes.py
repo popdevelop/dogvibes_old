@@ -111,3 +111,10 @@ class Dogvibes():
         except ValueError as e:
             raise
         return [track.__dict__ for track in playlist.get_all_tracks()]
+
+    def API_renamePlaylist(self, playlist_id, name):
+        try:
+            Playlist.rename(playlist_id, name)
+        except ValueError as e:
+            raise
+        self.needs_push_update = True

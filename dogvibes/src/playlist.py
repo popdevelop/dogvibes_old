@@ -68,6 +68,17 @@ class Playlist():
         db.add_statement('''delete from playlists where id = ?''', [int(id)])
         db.commit()
 
+    @classmethod
+    def rename(self, playlist_id, name):
+        db = Database()
+        db.commit_statement('''select * from playlists where id = ?''', [int(playlist_id)])
+        row = db.fetchone()
+        if row == None:
+            raise ValueError('Could not get playlist with id=' + playlist_id)
+
+        db.add_statement('''update playlists set name = ? where id = ?''', [name, int(playlist_id)])
+        db.commit()
+
     # returns: the id so client don't have to look it up right after add
     def add_track(self, track):
         track_id = track.store()
