@@ -155,6 +155,9 @@ function sendCmd(url, successFunc) {
     }
 }
 
+var pushHandler = function(data){
+    handleStatusResponse(data.result);
+}
 
 var successGetStatus = function(data){
     if(data.error != 0){
