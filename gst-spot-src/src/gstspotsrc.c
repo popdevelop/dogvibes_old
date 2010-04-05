@@ -90,6 +90,7 @@ enum spot_cmd
 static guint gst_spot_signals[LAST_SIGNAL] = { 0 };
 
 /* thread safe functions */
+static int spotify_thread_initiated = FALSE;
 static int run_spot_cmd (enum spot_cmd cmd, gint64 opt);
 
 /* libspotify */
@@ -280,7 +281,8 @@ static void
 spotify_cb_notify_main_thread (sp_session *spotify_session)
 {
   GST_DEBUG_OBJECT (spot, "broadcast cond");
-  /* signal thread to process events */
+  /* broadcast thread to process events */
+
   g_cond_broadcast (process_events_cond);
 }
 
@@ -293,6 +295,8 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   guint bufsize = num_frames * sizeof (int16_t) * channels;
   guint availible;
 
+  g_print ("New data exiting!!!\n");
+
   /*FIXME: can this change? when? */
   if (G_UNLIKELY (GST_SPOT_SRC_FORMAT (spot) == NULL)) {
     GST_SPOT_SRC_FORMAT (spot) = g_malloc0 (sizeof (sp_audioformat));
@@ -303,6 +307,7 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
 
   if (num_frames == 0) {
     /* we have a seek */
+    g_print ("We have a seek\n");
     return 0;
   }
 
@@ -311,27 +316,33 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   memcpy (GST_BUFFER_DATA (buffer), (guint8*)frames, bufsize);
 
   /* see if we have buffertime us of audio */
+  g_print ("Trying delivery lock\n");
   g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));            /* lock adapter */
+  g_print ("Got delivery lock\n");
   availible = gst_adapter_available (GST_SPOT_SRC_ADAPTER (spot));
   GST_DEBUG_OBJECT (spot,"%s - availiable before push = %d\n", __FUNCTION__, availible);
+  g_print ("Buffer time is %" G_GINT64_FORMAT " ", GST_SPOT_SRC_BUFFER_TIME (spot));
   if (availible >= (GST_SPOT_SRC_BUFFER_TIME (spot)/1000000) * sample_rate * 4) {
     GST_DEBUG_OBJECT (spot,"%s - return 0, adapter is full = %d\n", __FUNCTION__, availible);
     gst_buffer_unref (buffer);
-    g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));        /* unlock adapter */
-    /* data is availble signal read thread */
+    /* data is availble broadcast read thread */
     g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (spot));
+    g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));        /* unlock adapter */
+    g_print ("Adapter is full\n");
     return 0;
   }
 
   gst_adapter_push (GST_SPOT_SRC_ADAPTER (spot), buffer);
   availible = gst_adapter_available (GST_SPOT_SRC_ADAPTER (spot));
   GST_DEBUG_OBJECT (spot,"%s - availiable after push = %d\n", __FUNCTION__, availible);
+  g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (spot));
   g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));          /* unlock adapter */
 
-  /* data is availble signal read thread */
-  g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (spot));
+  /* data is availble broadcast read thread */
+  
 
   GST_DEBUG_OBJECT (spot,"%s - return %d\n",__FUNCTION__, num_frames);
+  g_print ("Pushed %d frames\n", num_frames);
   return num_frames;
 }
 
@@ -350,15 +361,21 @@ run_spot_cmd (enum spot_cmd cmd, gint64 opt)
   spot_work->opt = opt;
 
   /* add work struct to list of works */
+  g_print ("Trying run process lock\n");
   g_mutex_lock (process_events_mutex);
+  g_print ("Got run process lock\n");
   spot_works = g_list_append (spot_works, spot_work);
   g_mutex_unlock (process_events_mutex);
 
   /* wait for processing */
+  g_print ("Trying my own lock %p\n", spot_work->spot_mutex);
   g_mutex_lock (spot_work->spot_mutex);
+  g_print ("Got my own lock %p\n", spot_work->spot_mutex);
   g_cond_broadcast (process_events_cond);
+  g_print ("wait on %p\n", spot_work);
   g_cond_wait (spot_work->spot_cond, spot_work->spot_mutex);
   g_mutex_unlock (spot_work->spot_mutex);
+  g_print ("clear on %p\n", spot_work);
 
   /* save return value */
   ret = spot_work->ret;
@@ -377,33 +394,47 @@ static void*
 spotify_thread_func (void *ptr)
 {
   int timeout = -1;
+  GTimeVal t;
 
   if (!spot_obj_create_session (spot_instance))
     g_print ("session error\n");
 
+  g_print ("Starting main thread!!\n");
+
   while (keep_spotify_thread) {
     sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-    g_cond_wait (process_events_cond, process_events_mutex);
+    g_get_current_time (&t);
+    g_time_val_add (&t, timeout * 1000);
+    g_cond_timed_wait (process_events_cond, process_events_mutex, &t);
+    spotify_thread_initiated = TRUE;
     sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+    printf ("%d\n", timeout);
     while (spot_works) {
       struct spot_work *spot_work;
+      int ret;
       spot_work = (struct spot_work *)spot_works->data;
+      g_print ("Run %d take lock %p\n", spot_work->cmd, spot_work);
       g_mutex_lock (spot_work->spot_mutex);
+      g_print ("Run %d lock taken %p\n", spot_work->cmd, spot_work);
       if (spot_work->cmd == SPOT_CMD_START) {
 	GST_DEBUG_OBJECT (spot, "uri = %s\n", SPOT_OBJ_SPOTIFY_URI (spot_instance));
 	if (!spot_obj_login (spot_instance)) {
 	  g_print ("login error\n");
 	}
 
+	g_print ("Starting\n");
+
 	sp_link *link = sp_link_create_from_string (SPOT_OBJ_SPOTIFY_URI (spot_instance));
 
 	if (!link) {
+	  g_print ("Incorrect track\n");
 	  GST_ERROR_OBJECT (spot, "Incorrect track ID:%s\n", SPOT_OBJ_SPOTIFY_URI (spot_instance));
 	  return FALSE;
 	}
 
 	SPOT_OBJ_CURRENT_TRACK (spot_instance) = sp_link_as_track (link);
 	if (!SPOT_OBJ_CURRENT_TRACK (spot_instance)) {
+	  g_print ("Not supported track\n");
 	  GST_DEBUG_OBJECT (spot, "Only track ID:s are currently supported");
 	  return FALSE;
 	}
@@ -414,29 +445,39 @@ spotify_thread_func (void *ptr)
 	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
 	while (sp_track_is_loaded (SPOT_OBJ_CURRENT_TRACK (spot_instance)) == 0) {
 	  sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+	  g_print ("Cirkus go round!!\n");
 	  usleep (10000);
 	}
-	GST_DEBUG_OBJECT (spot, "Now playing \"%s\"...\n", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
+	g_print ("Now playing \"%s\"...\n", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
 
-	sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
+	ret = sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
+	if (ret != SP_ERROR_OK) {
+	  g_print ("A shame its an error!!!!\n");
+	} else {
+	  g_print ("Track is loaded!\n");
+	}
 	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-	sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), 1);
-	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+	ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+	g_print ("START\n");
       } else if (spot_work->cmd == SPOT_CMD_PROCESS) {
 	sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
       } else if (spot_work->cmd == SPOT_CMD_PLAY) {
-	sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), 1);
+	sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+	g_print ("PLAY\n");
       } else if (spot_work->cmd == SPOT_CMD_DURATION && SPOT_OBJ_LOGGED_IN (spot_instance)) {
 	spot_work->ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
+	g_print ("DURATION\n");
       } else if (spot_work->cmd == SPOT_CMD_STOP && SPOT_OBJ_LOGGED_IN (spot_instance)) {
-	sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), 0);
+	sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), FALSE);
+	g_print ("STOP\n");
       } else if (spot_work->cmd == SPOT_CMD_SEEK && SPOT_OBJ_LOGGED_IN (spot_instance)) {
 	spot_work->ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
+	g_print ("SEEK\n");
       }
       sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
       spot_works = g_list_remove (spot_works, spot_works->data);
       g_mutex_unlock (spot_work->spot_mutex);
-      g_cond_signal (spot_work->spot_cond);      
+      g_cond_broadcast (spot_work->spot_cond);      
     }
   }
 
@@ -754,12 +795,6 @@ gst_spot_src_class_init (GstSpotSrcClass * klass)
       g_signal_new ("play-token-lost", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_FIRST,
       0, NULL, NULL,
       g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
-
-
-   process_events_cond = g_cond_new ();
-   process_events_mutex = g_mutex_new ();
-
-   spot_instance = g_object_new (SPOT_OBJ_TYPE, NULL);
 }
 
 static void
@@ -781,9 +816,22 @@ gst_spot_src_init (GstSpotSrc * src, GstSpotSrcClass * g_class)
 
   GST_SPOT_SRC_FORMAT (spot) = NULL;
 
+  process_events_cond = g_cond_new ();
+  process_events_mutex = g_mutex_new ();
+
+  spot_instance = g_object_new (SPOT_OBJ_TYPE, NULL);
+
   if ((process_events_thread = g_thread_create ((GThreadFunc)spotify_thread_func, (void *)NULL, TRUE, &err)) == NULL) {
      GST_DEBUG_OBJECT (spot,"g_thread_create failed: %s!!\n", err->message );
      g_error_free (err) ;
+  }
+
+  /* make sure spotify thread is up and running, before continuing. */
+  g_cond_broadcast (process_events_cond);
+  while (!spotify_thread_initiated) {
+    /* ugly but hey it yields right. */
+    usleep (40);
+    g_cond_broadcast (process_events_cond);
   }
 }
 
@@ -804,6 +852,8 @@ gst_spot_src_finalize (GObject * object)
   g_free (GST_SPOT_SRC_URI (src));
 
   g_free (GST_SPOT_SRC_FORMAT (spot));
+
+  g_print ("##################################eeeeeeeeeeeeeeeending!!\n");
 
   g_cond_free (process_events_cond);
   g_mutex_free (process_events_mutex);
@@ -895,11 +945,17 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
       GST_DEBUG_OBJECT (spot, "seek_usec = (%" G_GINT64_FORMAT ") = frames (%" G_GINT64_FORMAT ") /  sample_rate (%d/1000)\n", seek_usec, frames, sample_rate);
       GST_DEBUG_OBJECT (spot, "perform seek to %" G_GINT64_FORMAT " bytes and %" G_GINT64_FORMAT " usec\n", offset, seek_usec);
 
-      error = run_spot_cmd (SPOT_CMD_SEEK, seek_usec);
-      run_spot_cmd (SPOT_CMD_PLAY, 0);
+      g_print ("take in search\n");
       g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
+      g_print ("taken in search\n");
       gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
       g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
+      g_print ("unlocked in search\n");
+      error = run_spot_cmd (SPOT_CMD_SEEK, seek_usec);
+      run_spot_cmd (SPOT_CMD_PLAY, 0);
+      g_print ("Trying serch lock\n");
+
+      g_print ("Got serch lock\n");
       if (error != SP_ERROR_OK) {
 	g_print ("seek error!!\n");
 	goto create_seek_failed;
@@ -911,7 +967,10 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
     GST_DEBUG_OBJECT (spot, "%s - length=%u offset=%" G_GINT64_FORMAT " end=%" G_GINT64_FORMAT " read_position=%" G_GINT64_FORMAT "\n", __FUNCTION__,
         length, offset, offset+length, src->read_position);
 
+
+    g_print ("Trying round lock!\n");
     g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
+    g_print ("Got round lock!\n");
     while (1) {
       *buffer = gst_adapter_take_buffer (GST_SPOT_SRC_ADAPTER (spot), length);
       if (*buffer) {
@@ -928,7 +987,9 @@ gst_spot_src_create_read (GstSpotSrc * src, guint64 offset, guint length, GstBuf
 	g_print ("end od track oh yeah???\n");
 	return GST_FLOW_WRONG_STATE;
       }
+      g_print ("Waiting in cond on round lock!\n");
       g_cond_wait (GST_SPOT_SRC_ADAPTER_COND (spot), GST_SPOT_SRC_ADAPTER_MUTEX (spot));
+      g_print ("Got cond on round lock!\n");
     }
 
  create_seek_failed:
@@ -1100,9 +1161,9 @@ gst_spot_src_stop (GstBaseSrc * basesrc)
   run_spot_cmd (SPOT_CMD_STOP, 0);
   src->read_position = 0;
   /* clear adapter (we are stopped and do not continue from same place) */
-  g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));            /* lock adapter */
+  g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
   gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
-  g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));            /* lock adapter */
+  g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
   return TRUE;
 }
 
