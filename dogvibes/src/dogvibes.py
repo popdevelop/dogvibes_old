@@ -2,6 +2,7 @@ import gobject
 import gst
 import os
 import config
+import sys
 
 from amp import Amp
 
