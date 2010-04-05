@@ -41,6 +41,8 @@ class Dogvibes():
 
         self.needs_push_update = False
 
+        self.search_history = []
+
         # add all amps
         amp0 = Amp(self, "0")
         amp0.API_connectSpeaker(0)
@@ -58,7 +60,14 @@ class Dogvibes():
     # API
 
     def API_search(self, query):
+        # FIXME: need to lock this section
+        self.search_history.append(query)
+        # Save 20 searches. You can then limit this in your API call
+        if len(self.search_history) > 20:
+            self.search_history.pop(0)
         ret = []
+        self.needs_push_update = True
+
         for source in self.sources:
             if source:
                 ret += source.search(query)
@@ -118,3 +127,6 @@ class Dogvibes():
         except ValueError as e:
             raise
         self.needs_push_update = True
+
+    def API_getSearchHistory(self, nbr):
+        return self.search_history[-int(nbr):]
