@@ -59,7 +59,7 @@ class Playlist():
     @classmethod
     def remove(self, id):
         db = Database()
-        db.commit_statement('''select * from playlist_tracks where id = ?''', [int(id)])
+        db.commit_statement('''select * from playlists where id = ?''', [int(id)])
         row = db.fetchone()
         if row == None:
             raise ValueError('Could not get playlist with id=' + id)
