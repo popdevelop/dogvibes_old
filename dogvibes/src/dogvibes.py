@@ -16,12 +16,6 @@ from devicespeaker import DeviceSpeaker
 from track import Track
 from playlist import Playlist
 
-class DogError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
 class Dogvibes():
     def __init__(self):
         try: cfg = config.load("dogvibes.conf")
@@ -58,7 +52,7 @@ class Dogvibes():
                 track = source.create_track_from_uri(uri);
                 if track != None:
                     return track
-        raise DogError, 'Could not create track from URI'
+        raise ValueError('Could not create track from URI')
 
     # API
 
@@ -80,7 +74,7 @@ class Dogvibes():
         try:
             track = self.create_track_from_uri(uri)
             return AlbumArt.get_image(track.artist, track.album, size)
-        except DogError:
+        except ValueError:
             return AlbumArt.get_standard_image(size)
 
     def API_createPlaylist(self, name):
@@ -92,18 +86,27 @@ class Dogvibes():
 
     def API_addTrackToPlaylist(self, playlist_id, uri):
         track = self.create_track_from_uri(uri)
-        playlist = Playlist.get(playlist_id)
+        try:
+            playlist = Playlist.get(playlist_id)
+        except ValueError as e:
+            raise
         return playlist.add_track(track)
         self.needs_push_update = True
 
     def API_removeTrackFromPlaylist(self, playlist_id, track_id):
-        playlist = Playlist.get(playlist_id)
-        playlist.remove_track_nbr(int(track_id))
+        try:
+            playlist = Playlist.get(playlist_id)
+            playlist.remove_track_nbr(int(track_id))
+        except ValueError as e:
+            raise
         self.needs_push_update = True
 
     def API_getAllPlaylists(self):
         return [playlist.to_dict() for playlist in Playlist.get_all()]
 
     def API_getAllTracksInPlaylist(self, playlist_id):
-        playlist = Playlist.get(playlist_id)
+        try:
+            playlist = Playlist.get(playlist_id)
+        except ValueError as e:
+            raise
         return [track.__dict__ for track in playlist.get_all_tracks()]

@@ -1,12 +1,6 @@
 from database import Database
 from track import Track
 
-class DogError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
 class Playlist():
     def __init__(self, id, name, db):
         self.id = str(id)
@@ -22,7 +16,7 @@ class Playlist():
         db.commit_statement('''select * from playlists where id = ?''', [int(id)])
         row = db.fetchone()
         if row == None:
-            raise DogError, 'Could not get playlist with id=' + id
+            raise ValueError('Could not get playlist with id=' + id)
         return Playlist(id, row['name'], db)
 
     @classmethod
@@ -31,7 +25,7 @@ class Playlist():
         db.commit_statement('''select * from playlists where name = ?''', [name])
         row = db.fetchone()
         if row == None:
-            raise DogError, 'Could not get playlist with id=' + id
+            raise ValueError('Could not get playlist with id=' + id)
         return Playlist(row['id'], row['name'], db)
 
     @classmethod
@@ -65,6 +59,11 @@ class Playlist():
     @classmethod
     def remove(self, id):
         db = Database()
+        db.commit_statement('''select * from playlist_tracks where id = ?''', [int(id)])
+        row = db.fetchone()
+        if row == None:
+            raise ValueError('Could not get playlist with id=' + id)
+
         db.add_statement('''delete from playlist_tracks where playlist_id = ?''', [int(id)])
         db.add_statement('''delete from playlists where id = ?''', [int(id)])
         db.commit()
@@ -76,7 +75,11 @@ class Playlist():
         return self.db.inserted_id()
 
     def remove_track(self, id):
-        # There'll be no notification if the track doesn't exists
+        self.db.commit_statement('''select * from tracks where id = ?''', [int(id)])
+        row = self.db.fetchone()
+        if row == None:
+            raise ValueError('Could not find track with id=' + id)
+
         self.db.commit_statement('''delete from playlist_tracks where id = ?''', [int(id)])
 
     # returns: an array of Track objects
@@ -121,17 +124,13 @@ class Playlist():
         return t
 
     def remove_track_nbr(self, nbr):
-        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? limit ?,1''', [int(self.id), int(nbr)-1])
 
         row = self.db.fetchone()
+        if row == None:
+            raise ValueError('Could not find track with id=%s in playlist with id=%d' % (int(nbr), int(self.id)))
 
-        # There is probably a much smarter way to fetch a specific row number
-        i = 0
-        while i < nbr:
-            row = self.db.fetchone()
-            i = i + 1
-
-        # There'll be no notification if the track doesn't exists
+        id = row['id']
         self.db.commit_statement('''delete from playlist_tracks where id = ?''', [row['id']])
 
     def length(self):
@@ -158,7 +157,7 @@ if __name__ == '__main__':
     print p.get_all_tracks()
     try:
         p = Playlist.get('1000') # should not crash
-    except DogError: pass
+    except ValueError: pass
     p = Playlist.get('2')
     print p.name
     ps = Playlist.get_all()

@@ -24,12 +24,6 @@ import urllib
 
 import signal
 
-class DogError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
 # web server
 from SocketServer import ThreadingMixIn
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
@@ -85,7 +79,7 @@ class APIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except TypeError as e:
             print e
             error = 2 # Missing parameter
-        except DogError as e:
+        except ValueError as e:
             print e
             error = 3 # Internal error, e.g. could not find specified uri
 

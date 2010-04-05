@@ -38,12 +38,6 @@ LOG_LEVELS = {'0': logging.CRITICAL,
               '3': logging.INFO,
               '4': logging.DEBUG}
 
-class DogError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
 lock = threading.Lock()
 
 server_handshake = '\
@@ -218,12 +212,15 @@ class ClientConnection(threading.Thread):
                 params = dict(filter(lambda k: k[0] in args, params.items()))
                 # call the method
                 data = getattr(klass, method).__call__(**params)
-            except AttributeError:
+            except AttributeError as e:
                 error = 1 # No such method
-            except TypeError:
+                logging.info(e)
+            except TypeError as e:
                 error = 2 # Missing parameter
-            except DogError:
+                logging.info(e)
+            except ValueError as e:
                 error = 3 # Internal error, e.g. could not find specified uri
+                logging.info(e)
 
             # Add results from method call only if there are any
             if data == None or error != 0:
