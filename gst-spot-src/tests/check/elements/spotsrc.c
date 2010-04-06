@@ -38,6 +38,8 @@ static GstPad *mysinkpad;
     "signed = (bool) TRUE"
 
 #define SPOTIFY_URI "spotify:track:0E4rbyLYVCGLu75H3W6O67"
+#define SPOTIFY_URI_2 "spotify:track:13GSFj7uIxqL9eNItNob3p"
+#define SPOTIFY_URI_ERROR "spotify:track:deadbeefdeadbeefdeadbeef"
 #define SPOTIFY_USER "user"
 #define SPOTIFY_PASS "pass"
 
@@ -52,7 +54,6 @@ setup_spot (void)
 {
   GstElement *spot;
 
-  g_print ("setup_spot\n");
   spot = gst_check_setup_element ("spot");
   g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI, NULL);
   g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
@@ -66,8 +67,6 @@ setup_spot (void)
 static void
 cleanup_spot (GstElement * spot)
 {
-  GST_DEBUG ("cleanup_spot");
-
   g_list_foreach (buffers, (GFunc) gst_mini_object_unref, NULL);
   g_list_free (buffers);
   buffers = NULL;
@@ -77,32 +76,85 @@ cleanup_spot (GstElement * spot)
   gst_check_teardown_element (spot);
 }
 
-GST_START_TEST (test_login_and_play)
+static void
+play_and_verify_buffers (GstElement *spot, int num_buffs)
 {
-  GstElement *spot;
-
-  g_print ("I am here to start with\n");
-  spot = setup_spot();
   fail_unless (gst_element_set_state (spot,
 				      GST_STATE_PLAYING) == GST_STATE_CHANGE_SUCCESS,
 	       "could not set to playing");
 
   g_mutex_lock (check_mutex);
-  while (g_list_length (buffers) < 10) {
+  while (g_list_length (buffers) < num_buffs) {
     g_cond_wait (check_cond, check_mutex);
   }
   g_mutex_unlock (check_mutex);
 
-  gst_element_set_state (spot, GST_STATE_READY);
-
   g_list_foreach (buffers, (GFunc) gst_mini_object_unref, NULL);
   g_list_free (buffers);
   buffers = NULL;
+}
+
+GST_START_TEST (test_login_and_play_pause)
+{
+  GstElement *spot;
+
+  g_print ("STARTING TEST LOGIN PLAY PAUSE\n");
+  spot = setup_spot();
+
+  g_print ("PLAY\n");
+  play_and_verify_buffers (spot, 10);
+  g_print ("PAUSE\n");
+  fail_unless (gst_element_set_state (spot,
+				      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+	       "could not pause element");
+  g_print ("PLAY\n");
+  play_and_verify_buffers (spot, 10);
+  g_print ("PAUSE\n");
+  fail_unless (gst_element_set_state (spot,
+				      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+	       "could not pause element");
+  g_print ("PLAY\n");
+  play_and_verify_buffers (spot, 10);
+  g_print ("PAUSE\n");
+  fail_unless (gst_element_set_state (spot,
+				      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+	       "could not pause element");
+  g_print ("PLAY\n");
+  play_and_verify_buffers (spot, 10);
+  g_print ("STOP\n");
+  fail_unless (gst_element_set_state (spot,
+				      GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
+	       "could not pause element");
+  g_print ("STOPPED\n");
 
   /* cleanup */
   cleanup_spot (spot);
+  g_print ("SUCCESS TEST LOGIN PLAY PAUSE\n");
 }
+GST_END_TEST;
 
+GST_START_TEST (test_change_track)
+{
+  GstElement *spot;
+
+  spot = setup_spot();
+
+  g_print ("STARTING CHANGE TRACK\n");
+  g_print ("PLAY\n");
+  play_and_verify_buffers (spot, 10);
+  g_print ("STOP\n");
+  fail_unless (gst_element_set_state (spot,
+				      GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
+	       "could not pause element");
+  g_print ("STOPPED\n");
+  g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_2, NULL);
+  g_print ("PLAY WITH NEW TRACK\n");
+  play_and_verify_buffers (spot, 10);
+
+  /* cleanup */
+  cleanup_spot (spot);
+  g_print ("SUCCESS CHANGE TRACK\n");
+}
 GST_END_TEST;
 
 static Suite *
@@ -113,7 +165,8 @@ spot_suite (void)
 
   suite_add_tcase (s, tc_chain);
   tcase_set_timeout (tc_chain, 90);
-  tcase_add_test (tc_chain, test_login_and_play);
+  tcase_add_test (tc_chain, test_login_and_play_pause);
+  tcase_add_test (tc_chain, test_change_track);
 
   return s;
 }
