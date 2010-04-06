@@ -1,6 +1,7 @@
 /* Config */
 var default_server = "http://dogvibes.com:2000";
 var server = false;
+var art_server = false;
 var poll_interval = 2000; /* ms */
 var connection_timeout = 5000; /* ms */
 var time_interval = 2000; /* ms */
@@ -201,7 +202,7 @@ function handleStatusResponse(data)
             $("#row_" + current_song.index + " td:first a").addClass("remButton"); 
             $("#row_" + current_song.index + " td").removeClass("playing");     
         }
-        $("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
+        $("#album_art").html("<img src=\"" + art_server + command.albumart + data.uri + "\">");
     }
     /* Update playqueue if applicable */
 
@@ -670,6 +671,11 @@ $("document").ready(function() {
     if(!server){
         server = prompt("Enter Dogvibes server URL:", default_server);
     }
+
+    /* Urk! */
+    var a = server.split('/')
+    a = a[2].split(':')
+    art_server = 'http://' + a[0] + ':9998/'
 
     if (server.substring(0, 2) == 'ws') {
         // We use Flash WebSocket for those who can't handle the native one
