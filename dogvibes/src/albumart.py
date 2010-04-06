@@ -18,7 +18,7 @@ class AlbumArt():
             os.mkdir(art_dir)
 
         img_hash = hashlib.sha224(artist + album).hexdigest()
-        img_path = art_dir + '/' + img_hash
+        img_path = art_dir + '/' + img_hash + '.jpg'
 
         if os.path.exists(img_path):
             # open a previously cached cover
@@ -26,8 +26,7 @@ class AlbumArt():
             img_data = f.read()
             f.close()
         else:
-            img_data = self.cache_image(artist, album)
-            print "standard cover"
+            img_data = self.get_image_data(artist, album)
             if img_data == None:
                 # open standard cover
                 return self.get_standard_image()
@@ -54,45 +53,26 @@ class AlbumArt():
         return img_data
 
     @classmethod
-    def cache_image(self, artist, album):
-        url = self._GetResultURL(self._search(artist, album))
-        if not url:
+    def get_image_data(self, artist, album):
+        url_template = "http://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=%s&artist=%s&album=%s"
+        api_key = "791d5539710d7aa73df0273149ac8761"
+        secret_key = "71c595cf3ebae6ccfaebc364c65646a0" # kept for later
+        artist = re.sub(' ', '+', artist)
+        album = re.sub(' ', '+', album)
+
+        url = url_template % (api_key, artist, album)
+        fd = urllib.urlopen(url)
+        xml = fd.read()
+
+        sizes = re.findall('<image size="(small|medium|large|extralarge)">(.*)</image>', xml)
+        if sizes == []:
             return None
-        img_re = re.compile(r'''registerImage\("original_image", "([^"]+)"''')
-        prod_data = urllib.urlopen(url).read()
-        m = img_re.search(prod_data)
-        if not m:
-            return None
-        img_url = m.group(1)
-        return urllib.urlopen(img_url).read()
 
-    @classmethod
-    def _search(self, artist, album):
-        data = {
-            "Service": "AWSECommerceService",
-            "Version": "2005-03-23",
-            "Operation": "ItemSearch",
-            "ContentType": "text/xml",
-            "SubscriptionId": "AKIAIQ74I7SUW5COGZCQ",
-            "SearchIndex": "Music",
-            "ResponseGroup": "Small",
-            }
-
-        data["Artist"] = artist
-        data["Keywords"] = album
-
-        fd = urllib.urlopen("%s?%s" % (awsurl, urllib.urlencode(data)))
-
-        return fd.read()
-
-    @classmethod
-    def _GetResultURL(self, xmldata):
-        url_re = re.compile(r"<DetailPageURL>([^<]+)</DetailPageURL>")
-        m = url_re.search(xmldata)
-        return m and m.group(1)
+        # last item is extralarge, then large etc
+        return urllib.urlopen(sizes[-1][1]).read()
 
 if __name__ == '__main__':
-    img_data = AlbumArt.get_image('metallica', 'kill em all', 80)
+    img_data = AlbumArt.get_image('oasis', 'stop the clocks', 80)
     im = cStringIO.StringIO(img_data)
     img = Image.open(im)
     img.save('image.jpg')

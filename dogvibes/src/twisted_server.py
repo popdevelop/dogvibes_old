@@ -1,6 +1,7 @@
 from twisted.internet.protocol import Protocol, Factory
 from twisted.internet import glib2reactor
 glib2reactor.install()
+from twisted.web import server, resource
 from twisted.internet import reactor
 import SocketServer
 import socket
@@ -37,7 +38,23 @@ WebSocket-Location: %s/\r\n\r\n\
 
 clients = []
 
-class QOTD(Protocol):
+class AlbumArtServer(resource.Resource):
+    isLeaf = True
+    def render_GET(self, request):
+        if request.uri.find('/dogvibes/getAlbumArt') == -1:
+            return False
+
+        u = urlparse(request.uri)
+        c = u.path.split('/')
+        method = 'API_' + c[-1]
+        params = cgi.parse_qs(u.query)
+
+        uri = params.get('uri', 'dummy')[0]
+
+        request.setHeader("Content-type", "image/jpeg")
+        return dogvibes.API_getAlbumArt(uri)
+
+class WebSocket(Protocol):
 
     handshaken = False # Indicates if initial setup has been done
     buf = '' # Save unprocessed data between reads
@@ -227,6 +244,10 @@ if __name__ == "__main__":
     dogvibes = Dogvibes()
 
     factory = Factory()
-    factory.protocol = QOTD
+    factory.protocol = WebSocket
     reactor.listenTCP(9999, factory)
+
+    site = server.Site(AlbumArtServer())
+    reactor.listenTCP(9998, site)
+
     reactor.run()
