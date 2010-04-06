@@ -63,14 +63,14 @@ var command = {
 };
 
 /*
- * Misc. Handy functions 
+ * Misc. Handy functions
  */
 
 function setWait(){
     if(wait_req == 0){
         $("#wait_req").html(loading_small);
     }
-    wait_req++;	
+    wait_req++;
 };
 function clearWait(){
     wait_req--;
@@ -174,10 +174,10 @@ var successGetStatus = function(data){
  */
 function requestStatus()
 {
-    if (use_websocket && synced) {
-        // we don't poll status in websocket mode
-        return;
-    }
+//    if (use_websocket && synced) {
+//        // we don't poll status in websocket mode
+//        return;
+//    }
 
     if(!request_in_progress){
         connectionRequest();
@@ -199,7 +199,7 @@ function handleStatusResponse(data)
         if(isTheSonglist(current_page, data)){
             $("#row_" + current_song.index + " td:first a").removeClass("playing_icon");      
             $("#row_" + current_song.index + " td:first a").addClass("remButton"); 
-            $("#row_" + current_song.index + " td").removeClass("playing");  	
+            $("#row_" + current_song.index + " td").removeClass("playing");     
         }
         $("#album_art").html("<img src=\"" + server + command.albumart + data.uri + "\">");
     }
@@ -258,7 +258,7 @@ function connectionInit()
     $("#message .text").addClass("loading");
     clearTimeout(connection_timer);      
     connectionBad("Connecting to server '" + server + "'...");
-    poll_handle = setInterval(requestStatus,poll_interval);
+    //poll_handle = setInterval(requestStatus,poll_interval);
     requestStatus(); 
 }
 
@@ -270,7 +270,7 @@ function connectionRequest()
 
 function connectionOK()
 {
-    request_in_progress = false;	
+    request_in_progress = false;        
     $("#shade").hide();
     $("#message").hide();
     clearTimeout(connection_timer);
@@ -510,7 +510,7 @@ checkHash: function() {
         nav.expectedHash = theHash;
         action = nav.parseHash(theHash);
         nav.executeAction(action);
-    }   
+    }
 },
 
 executeAction: function(action) {
@@ -522,6 +522,7 @@ executeAction: function(action) {
         case "playqueue":
             action.param = "playqueue";
             title = "Playqueue";
+            /* Fall-through */
         case "playlist":
             playlists.selected = action.param;
             setPage("pl-" + action.param);
@@ -529,7 +530,7 @@ executeAction: function(action) {
             $("#tab-title").text(title);
             $("#playlist").html(track_list_table);
             getPlayQueue();
-            break; 
+            break;
         case "home":
             setPage("p-home");
             $("#tab-title").text("Home");
@@ -630,7 +631,7 @@ var successSearch = function(data) {
             $("#s-albums").append("<span class=\"warn\"> and "+(album_count-8)+" more...  </span>");
             return false;
         }
-    });			
+    });                 
 };
 
 
@@ -671,7 +672,9 @@ $("document").ready(function() {
     }
 
     if (server.substring(0, 2) == 'ws') {
-        if ("WebSocket" in window) {
+        // We use Flash WebSocket for those who can't handle the native one
+        // I.e. skip this check for now
+        if (1 || "WebSocket" in window) {
             if (server) {
                 ws = new WebSocket(server);
             } else {
