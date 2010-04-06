@@ -1,4 +1,6 @@
 from twisted.internet.protocol import Protocol, Factory
+from twisted.internet import glib2reactor
+glib2reactor.install()
 from twisted.internet import reactor
 import SocketServer
 import socket
@@ -50,6 +52,9 @@ class QOTD(Protocol):
 
     def handshake(self, data):
         # FIXME: if smaller than header size, we risk missing some initial commands!!
+#for (var i = 0, l = origins.length; i < l; i++){
+#this.socket.send('  <allow-access-from domain="' + origins[i] + '" to-ports="' + this.server.options.port + '"/>\n');
+
         shake, self.buf = data.split('\r\n\r\n')
 
         # extract info to send back to client according to the websocket proto
@@ -65,8 +70,6 @@ class QOTD(Protocol):
         # compile an answer and send back to the client
         new_handshake = server_handshake % (origin[0], "ws://" + host[0])
 
-        print shake
-        print new_handshake
         self.transport.write(new_handshake)
 
         self.handshaken = True
@@ -79,25 +82,36 @@ class QOTD(Protocol):
         # loop through all amps and look for status updates
         amp = dogvibes.amps[0]
         if amp.needs_push_update or dogvibes.needs_push_update:
-            print "HEHEHEH"
             data = dict(error = 0, result = amp.API_getStatus())
             data = cjson.encode(data)
             data = 'pushHandler' + '(' + data + ')'
 
             amp.needs_push_update = False
             dogvibes.needs_push_update = False
-            lock.acquire()
 
+            # TODO: maybe use lock from Twisted
+            lock.acquire()
             for client in clients:
                 client.sendWS(data)
             lock.release()
 
     def dataReceived(self, data):
+        # Handle Flash plugin
+        if data.find("<policy-file-request/>") != -1:
+            self.transport.write('<?xml version="1.0"?>\n')
+            self.transport.write('<!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">\n')
+            self.transport.write('<cross-domain-policy>\n')
+            self.transport.write('  <allow-access-from domain="*" to-ports="*"/>\n')
+            self.transport.write('</cross-domain-policy>')
+            self.transport.loseConnection()
+            return
+
         self.buf += data.strip();
 
         if self.handshaken == False:
             self.handshake(data)
 
+        # FIXME: This won't trigger a push on track change
         self.pushStatus()
 
         cmds = []
@@ -209,8 +223,6 @@ if __name__ == "__main__":
                         format='%(asctime)s %(levelname)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
 
-    gobject.threads_init()
-
     global dogvibes
     dogvibes = Dogvibes()
 
@@ -218,6 +230,3 @@ if __name__ == "__main__":
     factory.protocol = QOTD
     reactor.listenTCP(9999, factory)
     reactor.run()
-
-    loop = gobject.MainLoop()
-    loop.run()
