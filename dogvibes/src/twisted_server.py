@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.6
 from twisted.internet.protocol import Protocol, Factory
 from twisted.internet import glib2reactor
 glib2reactor.install()
@@ -19,6 +20,7 @@ import gobject
 import gst
 import cgi
 import inspect
+
 
 LOG_LEVELS = {'0': logging.CRITICAL,
               '1': logging.ERROR,
