@@ -46,40 +46,66 @@ function Tester(name, uri)
 
     this.commands = []
     this.replies = []
+
+    this.replyCallbacks = []
+
     this.firstTime = 0;
 
 //    function getAllPlaylists(json) {
 //        //document.getElementById('log').innerHTML += json['result'][0]['name'] + '<br>';
 //    }
+
+    this.replyParamsFromMsgId = function(msg_id) {
+        for (var i = 0; i < this.replyCallbacks.length; ++i) {
+            if (msg_id == this.replyCallbacks[i].msg_id) {
+                return this.replyCallbacks[i].params;
+            }
+        }
+    }
+
     this.ws.onopen = function() {};
     this.ws.onclose = function() {};
     this.ws.onmessage = function (e) {
         var reply = eval('('+e.data+')');
         var t = new Date().getTime()
         this.parent.replies.push({c: e.data, t: t, i: reply.msg_id});
-        //log.reply(this.parent.name, this.parent.color, e.data)
+        log.reply(this.parent.name, this.parent.color, e.data)
+
+        var params = this.parent.replyParamsFromMsgId(reply.msg_id)
+        if (params['onReply'] !== undefined)
+            params.onReply(reply);
     };
 
-    this.sendWS = function(cmd) {
-        if (cmd.indexOf('?') == -1) {
-            cmd += "?msg_id=" + this.msg_id;
+    this.sendCmd = function(params) {
+        if (params['cmd'].indexOf('?') == -1) {
+            params['cmd'] += "?msg_id=" + this.msg_id;
         } else {
-            cmd += "&msg_id=" + this.msg_id;
+            params['cmd'] += "&msg_id=" + this.msg_id;
         }
         var t = new Date().getTime();
         if (this.firstTime == 0)
             this.firstTime = t;
-        log.command(this.name, this.color, cmd)
-        this.commands.push({c: cmd, t: t, i: this.msg_id});
-        this.ws.send(cmd);
+
+        log.command(this.name, this.color, params['cmd'])
+
+        var request = { c: params['cmd'],
+                        t: t,
+                        i: this.msg_id }
+
+        this.replyCallbacks.push({ msg_id: this.msg_id,
+                                   params: params });
+
+        this.commands.push(request);
+
+        this.ws.send(params['cmd']);
         this.msg_id++;
     }
-    this.dogvibes = function(cmd) {
-        this.sendWS('/dogvibes/' + cmd);
-    };
-    this.amp = function(cmd) {
-        this.sendWS('/amp/0/' + cmd);
-    };
+//    this.dogvibes = function(params) {
+//        this.sendCmd('/dogvibes/' + params['cmd']);
+//    };
+//    this.amp = function(params) {
+//        this.sendCmd('/amp/0/' + params['cmd']);
+//    };
 
     testers.push(this);
     colors_nbr++;
@@ -96,6 +122,7 @@ function start() {
     }
     run();
 }
+
 function initTest() {
     setTimeout('start()', 500);
 }
@@ -120,7 +147,7 @@ function x_showResults() {
         var t = testers[j];
         for (var i = 0; i < t.commands.length; ++i) {
             var command = t.commands[i];
-            reply = findReplyFromCommand(command);
+            var reply = findReplyFromCommand(command);
             if (reply == null)
                 alert("Did not recieve reply! (Write test for this)");
             log.result(t.color, command.c, reply.c, command.t, reply.t, t.firstTime);
