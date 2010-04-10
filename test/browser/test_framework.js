@@ -30,8 +30,67 @@ colors[1] = '#0000ff'
 colors[2] = '#00dd00'
 colors[3] = '#ffff00'
 
+var lastCmdTime = 0;
+var nbrTotalCommands = 0;
+var nbrTotalReplies = 0;
+var nbrReplyPass = 0;
+var nbrReplyFail = 0;
+
+var queuedCommands = [];
+
+function check(expr) {
+    if (expr === true) {
+        nbrReplyPass++;
+    } else {
+        nbrReplyFail++;
+    }
+}
+
 function pushHandler(d) {
     // dummy
+}
+
+
+this.sendQueuedCmd = function(queuedCommand) {
+
+    var params = queuedCommand.command.params;
+    var tester = queuedCommand.tester;
+
+    if (params['cmd'].indexOf('?') == -1) {
+        params['cmd'] += "?msg_id=" + tester.msg_id;
+    } else {
+        params['cmd'] += "&msg_id=" + tester.msg_id;
+    }
+    var t = new Date().getTime();
+    var lastCmdTime = t;
+    if (tester.firstTime == 0)
+        tester.firstTime = t;
+
+    if (params['requires'] !== undefined) {
+        extraParam = params['requires'] + '=' + eval(params['requires'])
+        if (params['cmd'].indexOf('?') == -1) {
+            params['cmd'] += '?' + extraParam;
+        } else {
+            params['cmd'] += '&' + extraParam;
+        }
+    }
+    log.command(tester.name, tester.color, params['cmd'])
+
+    var request = { c: params['cmd'],
+                    t: t,
+                    i: tester.msg_id }
+
+    tester.replyCallbacks.push({ msg_id: tester.msg_id,
+                               params: params });
+
+    tester.commands.push(request);
+
+//    queuedCommands.push({command: request, tester: tester})
+
+    tester.ws.send(params['cmd']);
+    tester.msg_id++;
+
+    blocking = true;
 }
 
 function Tester(name, uri)
@@ -69,48 +128,81 @@ function Tester(name, uri)
         var reply = eval('('+e.data+')');
         var t = new Date().getTime()
         this.parent.replies.push({c: e.data, t: t, i: reply.msg_id});
+        nbrTotalReplies++;
         log.reply(this.parent.name, this.parent.color, e.data)
 
         var params = this.parent.replyParamsFromMsgId(reply.msg_id)
         if (params['onReply'] !== undefined)
             params.onReply(reply);
+
+        blocking = false;
     };
 
     this.sendCmd = function(params) {
-        if (params['cmd'].indexOf('?') == -1) {
-            params['cmd'] += "?msg_id=" + this.msg_id;
-        } else {
-            params['cmd'] += "&msg_id=" + this.msg_id;
-        }
+//        if (params['cmd'].indexOf('?') == -1) {
+//            params['cmd'] += "?msg_id=" + this.msg_id;
+//        } else {
+//            params['cmd'] += "&msg_id=" + this.msg_id;
+//        }
         var t = new Date().getTime();
-        if (this.firstTime == 0)
-            this.firstTime = t;
-
-        log.command(this.name, this.color, params['cmd'])
-
+//        var lastCmdTime = t;
+//        if (this.firstTime == 0)
+//            this.firstTime = t;
+//
+//        log.command(this.name, this.color, params['cmd'])
+//
         var request = { c: params['cmd'],
                         t: t,
-                        i: this.msg_id }
+                        i: this.msg_id,
+                        params: params }
+//
+//        this.replyCallbacks.push({ msg_id: this.msg_id,
+//                                   params: params });
+//
+//        this.commands.push(request);
+//
+//        nbrTotalCommands++;
 
-        this.replyCallbacks.push({ msg_id: this.msg_id,
-                                   params: params });
+        nbrTotalCommands++;
+//        if (params['prepend'] == true) {
+//            queuedCommands.unshift({command: request, tester: this})
+//        } else {
+            queuedCommands.push({command: request, tester: this})
+//        }
 
-        this.commands.push(request);
-
-        this.ws.send(params['cmd']);
-        this.msg_id++;
+//        this.ws.send(params['cmd']);
+//        this.msg_id++;
     }
-//    this.dogvibes = function(params) {
-//        this.sendCmd('/dogvibes/' + params['cmd']);
-//    };
-//    this.amp = function(params) {
-//        this.sendCmd('/amp/0/' + params['cmd']);
-//    };
 
     testers.push(this);
     colors_nbr++;
 
     return this;
+}
+
+function waitForCompletion() {
+    if (nbrTotalCommands != nbrTotalReplies) {
+        setTimeout('waitForCompletion()', 0);
+        //document.getElementById("log").innerHTML += 'waiting...';
+    } else {
+        document.getElementById("log").innerHTML += 'Pass: ' + nbrReplyPass + '<br>';
+        document.getElementById("log").innerHTML += 'Fail: ' + nbrReplyFail + '<br>';
+    }
+}
+
+queueCount=0;
+blocking=false;
+function executeQueuedCommands() {
+//    for (var i = 0; i < queuedCommands.length; ++i) {
+    if (queueCount < queuedCommands.length) {
+        if (blocking == true) {
+            setTimeout('executeQueuedCommands()', 100);
+        } else {
+            sendQueuedCmd(queuedCommands[queueCount]);
+            queueCount++;
+            executeQueuedCommands();
+        }
+    }
 }
 
 function start() {
@@ -121,6 +213,10 @@ function start() {
         }
     }
     run();
+
+    executeQueuedCommands()
+
+    waitForCompletion();
 }
 
 function initTest() {
