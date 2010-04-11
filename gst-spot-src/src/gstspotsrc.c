@@ -189,6 +189,7 @@ struct spot_work
 GList *spot_works = NULL;
 
 /* FIXME move all these to spotsrc */
+static gboolean play_token_lost = FALSE;
 static gboolean keep_spotify_thread = TRUE;
 static gboolean end_of_track = FALSE;
 static GMutex *process_events_mutex;
@@ -321,6 +322,7 @@ static void
 spotify_cb_play_token_lost (sp_session *session)
 {
   GST_CAT_ERROR_OBJECT (gst_spot_src_debug_cb, spot, "Play_token_lost callback");
+  play_token_lost = TRUE;
   g_signal_emit (spot, gst_spot_signals[SIGNAL_PLAY_TOKEN_LOST], 0);
 }
 
@@ -1008,6 +1010,11 @@ gst_spot_src_create (GstBaseSrc * basesrc, guint64 offset, guint length, GstBuff
   GstSpotSrc *src;
   GstFlowReturn ret;
   src = GST_SPOT_SRC (basesrc);
+
+  if (play_token_lost) {
+    run_spot_cmd (SPOT_CMD_PLAY, 0);
+    play_token_lost = FALSE;
+  }
 
   ret = gst_spot_src_create_read (src, offset, length, buffer);
 
