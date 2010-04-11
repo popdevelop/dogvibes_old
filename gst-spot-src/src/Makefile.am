@@ -25,8 +25,8 @@ libgstspot_la_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) $(GST_CFLAG
 	-I$(prefix)/include
 
 libgstspot_la_LIBADD = $(GST_BASE_LIBS) $(GST_LIBS)
-#libgstspot_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS) -lspotify
-libgstspot_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS) -lopenspotify
+libgstspot_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS) -lspotify
+#libgstspot_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS) -lopenspotify
 
 libgstspot_la_LIBTOOLFLAGS = --tag=disable-static
 

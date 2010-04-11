@@ -26,6 +26,6 @@ SUPPRESSIONS = $(top_srcdir)/common/gst.supp
 elements_spotsrc_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
 
 elements_spotsrc_LDADD = \
-	-lopenspotify \
+	-lspotify \
         $(prefix)/lib/libgstbase-@GST_MAJORMINOR@.la \
         $(LDADD)
