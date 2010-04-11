@@ -216,7 +216,10 @@ static void
 spotify_cb_end_of_track (sp_session *session)
 {
   GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_cb, spot, "End_of_track callback");
+  g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
   end_of_track = TRUE;
+  g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (spot));
+  g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
 }
 
 static void
@@ -1197,6 +1200,7 @@ gst_spot_src_stop (GstBaseSrc * basesrc)
   src->read_position = 0;
   /* clear adapter (we are stopped and do not continue from same place) */
   g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
+  end_of_track = FALSE;
   gst_adapter_clear (GST_SPOT_SRC_ADAPTER (spot));
   g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
   return TRUE;
