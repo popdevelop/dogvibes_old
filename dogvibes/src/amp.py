@@ -311,19 +311,24 @@ class Amp():
             self.pipeline.add(self.src)
             self.pipeline.add(self.decodebin)
             self.src.link(self.decodebin)
-            self.spotify_in_use = False       
+            self.spotify_in_use = False
         self.set_state(gst.STATE_PLAYING)
 
     def play_token_lost(self, data):
         self.API_pause()
 
     def set_state(self, state):
-        print "Start set state"
+        print "set state, try"
         res = self.pipeline.set_state(state)
-        (pending, res, timeout) = self.pipeline.get_state()
-        while (res != state):
-            print res
-            time.sleep(0.1)
+        if res != gst.STATE_CHANGE_FAILURE:
             (pending, res, timeout) = self.pipeline.get_state()
-        print "End set state"
+            while (res != state):
+                print res
+                time.sleep(0.1)
+                (pending, res, timeout) = self.pipeline.get_state()
+            print "set state, success"
+        else:
+            print "set state, failure"
+        return res
+
 
