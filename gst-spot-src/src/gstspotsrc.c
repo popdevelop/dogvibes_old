@@ -1190,7 +1190,7 @@ gst_spot_src_unlock (GstBaseSrc *bsrc)
   GST_DEBUG_OBJECT (spot, "Unlock");
 
   GST_DEBUG_OBJECT (spot, "Broadcast process_events_cond - GST_SPOT_SRC_UNLOCK");
-  g_cond_broadcast (process_events_cond);
+  g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (spot));
   return TRUE;
 }
 
@@ -1199,7 +1199,7 @@ gst_spot_src_unlock_stop (GstBaseSrc *bsrc)
 {
   unlock_state = FALSE;
   GST_DEBUG_OBJECT (spot, "Unlock stop");
-  //g_cond_broadcast (process_events_cond);
+  g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (spot));
   return TRUE;
 }
 
