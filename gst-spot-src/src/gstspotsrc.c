@@ -407,21 +407,24 @@ spotify_thread_func (void *ptr)
         GST_DEBUG_OBJECT (spot, "Uri = %s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
         if (!spot_obj_login (spot_instance)) {
           /* error message from within function */
-          return FALSE;
+          spot_work->ret = -1;
+          goto work_error;
         }
 
         sp_link *link = sp_link_create_from_string (SPOT_OBJ_SPOTIFY_URI (spot_instance));
 
         if (!link) {
           GST_ERROR_OBJECT (spot, "Incorrect track ID:%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
-          return FALSE;
+          spot_work->ret = -1;
+          goto work_error;
         }
 
         SPOT_OBJ_CURRENT_TRACK (spot_instance) = sp_link_as_track (link);
 
         if (!SPOT_OBJ_CURRENT_TRACK (spot_instance)) {
           GST_ERROR_OBJECT (spot, "Only track ID:s are currently supported");
-          return FALSE;
+          spot_work->ret = -1;
+          goto work_error;
         }
 
         sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
@@ -436,11 +439,22 @@ spotify_thread_func (void *ptr)
 
         ret = sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
         if (ret != SP_ERROR_OK) {
-          GST_ERROR_OBJECT (spot, "Failed to load track %s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
+          GST_ERROR_OBJECT (spot, "Failed to load track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
+              (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
+          spot_work->ret = -1;
+          goto work_error;
         }
 
         sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
         ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+        if (ret != SP_ERROR_OK) {
+          GST_ERROR_OBJECT (spot, "Failed to play track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
+              (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
+          spot_work->ret = -1;
+          goto work_error;
+        }
+
+
       } else if (spot_work->cmd == SPOT_CMD_PROCESS) {
         sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
       } else if (spot_work->cmd == SPOT_CMD_PLAY) {
@@ -453,6 +467,8 @@ spotify_thread_func (void *ptr)
       } else if (spot_work->cmd == SPOT_CMD_SEEK && SPOT_OBJ_LOGGED_IN (spot_instance)) {
         spot_work->ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
       }
+
+work_error:
       spot_works = g_list_remove (spot_works, spot_works->data);
       g_mutex_unlock (spot_work->spot_mutex);
       g_cond_broadcast (spot_work->spot_cond);
@@ -1182,10 +1198,11 @@ no_duration:
 static gboolean
 gst_spot_src_start (GstBaseSrc * basesrc)
 {
+  int error;
   GST_DEBUG_OBJECT (spot, "Start");
-  run_spot_cmd (SPOT_CMD_START, 0);
+  error = run_spot_cmd (SPOT_CMD_START, 0);
 
-  return TRUE;
+  return error != -1;
 }
 
 static gboolean
