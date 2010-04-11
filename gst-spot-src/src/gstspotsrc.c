@@ -43,6 +43,8 @@
 #define DEFAULT_SPOTIFY_URI "spotify:track:3odhGRfxHMVIwtNtc4BOZk"
 #define BUFFER_TIME_MAX 50000000
 #define BUFFER_TIME_DEFAULT 2000000
+#define SPOTIFY_DEFAULT_SAMPLE_RATE 44100
+#define SPOTIFY_DEFAULT_NUMBER_CHANNELS 2
 
 static GstStaticPadTemplate srctemplate = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
@@ -264,12 +266,9 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
 
   GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_cb, spot, "Music_delivery callback");
 
-  if (G_UNLIKELY (GST_SPOT_SRC_FORMAT (spot) == NULL)) {
-    GST_SPOT_SRC_FORMAT (spot) = g_malloc0 (sizeof (sp_audioformat));
-    memcpy (GST_SPOT_SRC_FORMAT (spot), format, sizeof (sp_audioformat));
-    /* have seen this happen :) */
-    GST_CAT_ERROR_OBJECT (gst_spot_src_debug_cb, spot, "See if this ever happens");
-  }
+  GST_SPOT_SRC_FORMAT (spot)->sample_rate = sample_rate;
+  GST_SPOT_SRC_FORMAT (spot)->channels = channels; 
+  GST_SPOT_SRC_FORMAT (spot)->sample_type = format->sample_type;
 
   GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, spot, "Start %p with %d frames with size=%d\n", frames, num_frames, bufsize);
 
@@ -447,6 +446,7 @@ spotify_thread_func (void *ptr)
         spot_work->ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
       } else if (spot_work->cmd == SPOT_CMD_STOP && SPOT_OBJ_LOGGED_IN (spot_instance)) {
         sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), FALSE);
+        sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
       } else if (spot_work->cmd == SPOT_CMD_SEEK && SPOT_OBJ_LOGGED_IN (spot_instance)) {
         spot_work->ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
       }
@@ -808,7 +808,11 @@ gst_spot_src_init (GstSpotSrc * src, GstSpotSrcClass * g_class)
   GST_SPOT_SRC_ADAPTER_COND (spot) = g_cond_new ();
   GST_SPOT_SRC_ADAPTER (spot) = gst_adapter_new ();
 
-  GST_SPOT_SRC_FORMAT (spot) = NULL;
+  /* Initiate format to default format. */
+  GST_SPOT_SRC_FORMAT (spot) = g_malloc0 (sizeof (sp_audioformat));
+  GST_SPOT_SRC_FORMAT (spot)->sample_rate = SPOTIFY_DEFAULT_SAMPLE_RATE;
+  GST_SPOT_SRC_FORMAT (spot)->channels = SPOTIFY_DEFAULT_NUMBER_CHANNELS; 
+  GST_SPOT_SRC_FORMAT (spot)->sample_type = SP_SAMPLETYPE_INT16_NATIVE_ENDIAN;
 
   process_events_cond = g_cond_new ();
   process_events_mutex = g_mutex_new ();
@@ -847,8 +851,8 @@ gst_spot_src_finalize (GObject * object)
   src = GST_SPOT_SRC (object);
 
   /* Make thread quit. */
-  keep_spotify_thread = FALSE;
   g_mutex_lock (process_events_mutex);
+  keep_spotify_thread = FALSE;
   GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_threads, spot, "Broadcast process_events_cond");
   g_cond_broadcast (process_events_cond);
   g_mutex_unlock (process_events_mutex);
@@ -1029,6 +1033,13 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
   gint samplerate = GST_SPOT_SRC_FORMAT (spot)->sample_rate;
   gint64 src_val, dest_val;
 
+  if (!GST_SPOT_SRC_FORMAT (spot)) {
+    ret = FALSE;
+    goto no_format_yet;
+  }
+
+  samplerate = GST_SPOT_SRC_FORMAT (spot)->sample_rate;
+
   switch (GST_QUERY_TYPE (query)) {
     case GST_QUERY_URI:
       gst_query_set_uri (query, src->uri);
@@ -1128,6 +1139,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
     ret = GST_BASE_SRC_CLASS (parent_class)->query (basesrc, query);
   }
 
+ no_format_yet:
   if (!ret) {
     GST_DEBUG_OBJECT (src, "Query failed");
   }

@@ -150,10 +150,47 @@ GST_START_TEST (test_change_track)
   g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_2, NULL);
   g_print ("PLAY WITH NEW TRACK\n");
   play_and_verify_buffers (spot, 10);
+  g_print ("VERIFIED NEW TRACK\n");
 
   /* cleanup */
   cleanup_spot (spot);
   g_print ("SUCCESS CHANGE TRACK\n");
+}
+GST_END_TEST;
+
+GST_START_TEST (test_seek)
+{
+  GstElement *spot;
+  gint64 duration;
+  GstFormat format = GST_FORMAT_TIME;
+
+  spot = setup_spot();
+
+  g_print ("STARTING SEEK\n");
+
+  g_print ("SEEK NOT STARTED TRACK\n");
+  fail_unless (gst_element_query_duration (spot, &format, &duration));
+
+  play_and_verify_buffers (spot, 10);
+  fail_unless (gst_element_query_duration (spot, &format, &duration));
+
+  gst_element_seek_simple (spot, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT, GST_SECOND * 1);
+
+  /* FIXME: THIS LOCKS SINK. */
+  /* play_and_verify_buffers (spot, 10); */
+
+  /* gst_element_seek_simple (spot, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SECOND * 10); */
+  /* gst_element_seek_simple (spot, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SECOND * 100); */
+
+  /* play_and_verify_buffers (spot, 10); */
+
+  /* gst_element_seek_simple (spot, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SECOND * 10); */
+  /* gst_element_seek_simple (spot, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, duration); */
+  /* gst_element_seek_simple (spot, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, duration + GST_SECOND * 10); */
+
+  /* cleanup */
+  cleanup_spot (spot);
+  g_print ("SUCCESS SEEK\n");
 }
 GST_END_TEST;
 
@@ -164,9 +201,10 @@ spot_suite (void)
   TCase *tc_chain = tcase_create ("general");
 
   suite_add_tcase (s, tc_chain);
-  tcase_set_timeout (tc_chain, 90);
+  tcase_set_timeout (tc_chain, 20);
   tcase_add_test (tc_chain, test_login_and_play_pause);
   tcase_add_test (tc_chain, test_change_track);
+  tcase_add_test (tc_chain, test_seek);
 
   return s;
 }
