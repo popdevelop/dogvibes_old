@@ -32,7 +32,7 @@ static GstPad *mysinkpad;
     "audio/x-raw-int, "                 \
     "channels = (int) 2, "              \
     "rate = (int) 44100, "              \
-    "endianness = (int) { 1234 }, "	\
+    "endianness = (int) { 1234 }, "     \
     "width = (int) 16, "                \
     "depth = (int) 16, "                \
     "signed = (bool) TRUE"
@@ -42,6 +42,14 @@ static GstPad *mysinkpad;
 #define SPOTIFY_URI_ERROR "spotify:track:deadbeefdeadbeefdeadbeef"
 #define SPOTIFY_USER "user"
 #define SPOTIFY_PASS "pass"
+
+/* seems that some songs are availible when we seek, but we are not able to
+ * load them, for example the awesome song by reflection eternal:
+ * In This World - Amended Album Version uri=spotify:track:2FEyrK5QyboZLgfG6BPmYM
+ */
+#define SPOTIFY_URI_TALIB_KWELI "spotify:track:2FEyrK5QyboZLgfG6BPmYM"
+#define SPOTIFY_URI_JUST_BAD "spotify:track:2FEyaaaaaaaaaaaaaaaa"
+/* FIXME: add test with longer uri, add two more a's and it fails */
 
 static GstStaticPadTemplate sinktemplate = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
@@ -80,8 +88,8 @@ static void
 play_and_verify_buffers (GstElement *spot, int num_buffs)
 {
   fail_unless (gst_element_set_state (spot,
-				      GST_STATE_PLAYING) == GST_STATE_CHANGE_SUCCESS,
-	       "could not set to playing");
+                                      GST_STATE_PLAYING) == GST_STATE_CHANGE_SUCCESS,
+               "could not set to playing");
 
   g_mutex_lock (check_mutex);
   while (g_list_length (buffers) < num_buffs) {
@@ -99,32 +107,32 @@ GST_START_TEST (test_login_and_play_pause)
   GstElement *spot;
 
   g_print ("STARTING TEST LOGIN PLAY PAUSE\n");
-  spot = setup_spot();
+  spot = setup_spot ();
 
   g_print ("PLAY\n");
   play_and_verify_buffers (spot, 10);
   g_print ("PAUSE\n");
   fail_unless (gst_element_set_state (spot,
-				      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
-	       "could not pause element");
+                                      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+               "could not pause element");
   g_print ("PLAY\n");
   play_and_verify_buffers (spot, 10);
   g_print ("PAUSE\n");
   fail_unless (gst_element_set_state (spot,
-				      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
-	       "could not pause element");
+                                      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+               "could not pause element");
   g_print ("PLAY\n");
   play_and_verify_buffers (spot, 10);
   g_print ("PAUSE\n");
   fail_unless (gst_element_set_state (spot,
-				      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
-	       "could not pause element");
+                                      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+               "could not pause element");
   g_print ("PLAY\n");
   play_and_verify_buffers (spot, 10);
   g_print ("STOP\n");
   fail_unless (gst_element_set_state (spot,
-				      GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
-	       "could not pause element");
+                                      GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
+               "could not pause element");
   g_print ("STOPPED\n");
 
   /* cleanup */
@@ -137,15 +145,15 @@ GST_START_TEST (test_change_track)
 {
   GstElement *spot;
 
-  spot = setup_spot();
+  spot = setup_spot ();
 
   g_print ("STARTING CHANGE TRACK\n");
   g_print ("PLAY\n");
   play_and_verify_buffers (spot, 10);
   g_print ("STOP\n");
   fail_unless (gst_element_set_state (spot,
-				      GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
-	       "could not pause element");
+                                      GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
+               "could not pause element");
   g_print ("STOPPED\n");
   g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_2, NULL);
   g_print ("PLAY WITH NEW TRACK\n");
@@ -164,7 +172,7 @@ GST_START_TEST (test_seek)
   gint64 duration;
   GstFormat format = GST_FORMAT_TIME;
 
-  spot = setup_spot();
+  spot = setup_spot ();
 
   g_print ("STARTING SEEK\n");
 
@@ -194,6 +202,63 @@ GST_START_TEST (test_seek)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_login_and_play_bad_uri)
+{
+  GstElement *spot;
+
+  /* src_start should not success with bad uri */
+
+  g_print ("STARTING TEST LOGIN PLAY BAD URI\n");
+
+  spot = gst_check_setup_element ("spot");
+  g_print ("     - uri=%s\n", SPOTIFY_URI_JUST_BAD);
+  g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_JUST_BAD, NULL);
+  g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
+  g_object_set (G_OBJECT (spot), "pass", SPOTIFY_PASS, NULL);
+  mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);
+  gst_pad_set_active (mysinkpad, TRUE);
+
+  g_print ("PLAY - with faulty uri\n");
+  /* should not be able to play with faulty URI */
+  fail_if (gst_element_set_state (spot,
+                              GST_STATE_PLAYING) == GST_STATE_CHANGE_SUCCESS,
+                              "could not set to playing");
+
+  cleanup_spot (spot);
+
+
+  spot = gst_check_setup_element ("spot");
+  g_print ("     - uri=%s\n", SPOTIFY_URI_TALIB_KWELI);
+  g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_TALIB_KWELI, NULL);
+  g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
+  g_object_set (G_OBJECT (spot), "pass", SPOTIFY_PASS, NULL);
+  mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);
+  gst_pad_set_active (mysinkpad, TRUE);
+
+  /* spotify is showing us some upcoming hits here? */
+  g_print ("PLAY - with valid uri from search, but unplayable\n");
+  fail_if (gst_element_set_state (spot,
+                              GST_STATE_PLAYING) == GST_STATE_CHANGE_SUCCESS,
+                              "could not set to playing");
+
+  cleanup_spot (spot);
+  g_print ("SUCCESS TEST LOGIN PLAY BAD URI\n");
+}
+GST_END_TEST;
+
+GST_START_TEST (test_user_pass)
+{
+  /* so we dont have run all tests */
+  g_print ("USER/PASS CHANGE?\n");
+  fail_if (strcmp (SPOTIFY_USER, "user") == 0 && strcmp (SPOTIFY_PASS, "pass") == 0,
+           "You are using wrong defines in %s, rest of the test should fail/timeout\n"
+           "user=%s\npass=%s", __FILE__,
+           SPOTIFY_USER, SPOTIFY_PASS);
+
+  g_print ("SUCCESS USER/PASS CHANGED\n");
+}
+GST_END_TEST;
+
 static Suite *
 spot_suite (void)
 {
@@ -202,7 +267,10 @@ spot_suite (void)
 
   suite_add_tcase (s, tc_chain);
   tcase_set_timeout (tc_chain, 20);
+
+  tcase_add_test (tc_chain, test_user_pass);
   tcase_add_test (tc_chain, test_login_and_play_pause);
+  tcase_add_test (tc_chain, test_login_and_play_bad_uri);
   tcase_add_test (tc_chain, test_change_track);
   tcase_add_test (tc_chain, test_seek);
 
