@@ -404,7 +404,8 @@ spotify_thread_func (void *data)
           sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
           usleep (10000);
         }
-        GST_DEBUG_OBJECT ("Now playing \"%s\"", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
+
+        GST_DEBUG_OBJECT (spot, "Now playing \"%s\"", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
 
         ret = sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
         if (ret != SP_ERROR_OK) {
