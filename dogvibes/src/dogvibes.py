@@ -103,6 +103,7 @@ class Dogvibes():
         return playlist.add_track(track)
         self.needs_push_update = True
 
+    # TODO: should not be named track_id since it's referring to the nbr in the list
     def API_removeTrackFromPlaylist(self, playlist_id, track_id):
         try:
             playlist = Playlist.get(playlist_id)
@@ -126,6 +127,15 @@ class Dogvibes():
             Playlist.rename(playlist_id, name)
         except ValueError as e:
             raise
+        self.needs_push_update = True
+
+    def API_moveTrackInPlaylist(self, playlist_id, track_id, position):
+        try:
+            playlist = Playlist.get(playlist_id)
+            playlist.move_track(int(track_id), int(position))
+        except ValueError as e:
+            raise
+        return 0
         self.needs_push_update = True
 
     def API_getSearchHistory(self, nbr):

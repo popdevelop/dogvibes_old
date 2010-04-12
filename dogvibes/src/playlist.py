@@ -3,7 +3,7 @@ from track import Track
 
 class Playlist():
     def __init__(self, id, name, db):
-        self.id = str(id)
+        self.id = int(id)
         self.name = name
         self.db = db
 
@@ -16,7 +16,7 @@ class Playlist():
         db.commit_statement('''select * from playlists where id = ?''', [int(id)])
         row = db.fetchone()
         if row == None:
-            raise ValueError('Could not get playlist with id=' + id)
+            raise ValueError('Could not get playlist with id=' + str(id))
         return Playlist(id, row['name'], db)
 
     @classmethod
@@ -25,7 +25,7 @@ class Playlist():
         db.commit_statement('''select * from playlists where name = ?''', [name])
         row = db.fetchone()
         if row == None:
-            raise ValueError('Could not get playlist with id=' + id)
+            raise ValueError('Could not get playlist with id=' + str(id))
         return Playlist(row['id'], row['name'], db)
 
     @classmethod
@@ -82,20 +82,24 @@ class Playlist():
     # returns: the id so client don't have to look it up right after add
     def add_track(self, track):
         track_id = track.store()
-        self.db.commit_statement('''insert into playlist_tracks (playlist_id, track_id) values (?, ?)''', [int(self.id), int(track_id)])
+        self.db.commit_statement('''select max(position) from playlist_tracks where playlist_id = ?''', [self.id])
+        row = self.db.fetchone()
+        position = row['max(position)'] + 1
+        self.db.commit_statement('''insert into playlist_tracks (playlist_id, track_id, position) values (?, ?, ?)''', [self.id, track_id, position])
         return self.db.inserted_id()
 
-    def remove_track(self, id):
-        self.db.commit_statement('''select * from tracks where id = ?''', [int(id)])
-        row = self.db.fetchone()
-        if row == None:
-            raise ValueError('Could not find track with id=' + id)
+#    def remove_track(self, id):
+#        self.db.commit_statement('''select * from tracks where id = ?''', [int(id)])
+#        row = self.db.fetchone()
+#        if row == None:
+#            raise ValueError('Could not find track with id=' + id)
 
-        self.db.commit_statement('''delete from playlist_tracks where id = ?''', [int(id)])
+#        self.db.commit_statement('''delete from playlist_tracks where id = ?''', [int(id)])
+#        db.add_statement('''update playlist_tracks set position = position - 1 where position > ? and playlist_id''', [position, self.id])
 
     # returns: an array of Track objects
     def get_all_tracks(self):
-        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? order by position''', [int(self.id)])
         row = self.db.fetchone()
         tracks = []
         while row != None:
@@ -115,17 +119,17 @@ class Playlist():
         return ret_tracks
 
     def get_track_nbr(self, nbr):
-        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ?''', [int(self.id)])
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? and id = ?''', [int(self.id), nbr])
 
         row = self.db.fetchone()
 
         # There is probably a much smarter way to fetch a specific row number
-        i = 0
-        while i < nbr:
-            row = self.db.fetchone()
-            i = i + 1
+#        i = 0
+#        while i < nbr:
+#            row = self.db.fetchone()
+#            i = i + 1
 
-        tid = row['id']
+        tid = row['track_id']
 
         self.db.commit_statement('''select * from tracks where id = ?''', [row['track_id']])
         row = self.db.fetchone()
@@ -134,15 +138,39 @@ class Playlist():
         t.id = tid
         return t
 
+    def move_track(self, id, position):
+        self.db.commit_statement('''select position from playlist_tracks where playlist_id = ? and id = ?''', [self.id, id])
+        row = self.db.fetchone()
+        if row == None:
+            raise ValueError('Could not find track with id=%d in playlist with id=%d' % (id, self.id))
+        old_position = row['position']
+        print old_position
+        print position
+
+        self.db.commit_statement('''select max(position) from playlist_tracks where playlist_id = ?''', [self.id])
+        row = self.db.fetchone()
+        if position > row['max(position)'] or position < 1:
+            raise ValueError('Position %d is out of bounds (%d, %d)' % (position, 1, row['max(position)']))
+
+        if position > old_position:
+            self.db.commit_statement('''update playlist_tracks set position = position - 1 where playlist_id = ? and position > ? and position <= ?''', [self.id, old_position, position])
+            self.db.commit_statement('''update playlist_tracks set position = ? where playlist_id = ? and id = ?''', [position, self.id, id])
+        else:
+            self.db.commit_statement('''update playlist_tracks set position = position + 1 where playlist_id = ? and position >= ?''', [self.id, position])
+            self.db.commit_statement('''update playlist_tracks set position = ? where playlist_id = ? and id = ?''', [position, self.id, id])
+            self.db.commit_statement('''update playlist_tracks set position = position - 1 where playlist_id = ? and position > ?''', [self.id, old_position])
+
     def remove_track_nbr(self, nbr):
-        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? limit ?,1''', [int(self.id), int(nbr)-1])
+#        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? limit ?,1''', [int(self.id), int(nbr)-1])
+        self.db.commit_statement('''select * from playlist_tracks where id = ?''', [nbr])
 
         row = self.db.fetchone()
         if row == None:
-            raise ValueError('Could not find track with id=%s in playlist with id=%d' % (int(nbr), int(self.id)))
+            raise ValueError('Could not find track with id=%s' % (int(nbr)))
 
         id = row['id']
         self.db.commit_statement('''delete from playlist_tracks where id = ?''', [row['id']])
+        self.db.commit_statement('''update playlist_tracks set position = position - 1 where playlist_id = ? and position > ?''', [self.id, row['position']])
 
     def length(self):
         # FIXME this is insane we need to do a real sql count here
@@ -159,27 +187,56 @@ class Playlist():
 
 if __name__ == '__main__':
 
-    p = Playlist.create("testlist 1")
-    p = Playlist.create("testlist 2")
-    p = Playlist.create("testlist 3")
-    print p.name
-    t = Track("dummy-uri0")
-    p.add_track(t)
-    print p.get_all_tracks()
-    try:
-        p = Playlist.get('1000') # should not crash
-    except ValueError: pass
-    p = Playlist.get('2')
-    print p.name
-    ps = Playlist.get_all()
-    print ps[1].name
-    t = Track("dummy-uri1")
-    ps[0].add_track(t)
-    t = Track("dummy-uri2")
-    ps[0].add_track(t)
-    t = Track("dummy-uri3")
-    ps[0].add_track(t)
-    print ps[0].get_all_tracks()
-    ps[0].remove_track('2')
-    print ps[0].get_all_tracks()
-    print [playlist.to_dict() for playlist in Playlist.get_all()]
+#    p = Playlist.create("testlist 1")
+#    p = Playlist.create("testlist 2")
+#    p = Playlist.create("testlist 3")
+#    print p.name
+#    t = Track("dummy-uri0")
+#    p.add_track(t)
+#    print p.get_all_tracks()
+#    try:
+#        p = Playlist.get('1000') # should not crash
+#    except ValueError: pass
+#    p = Playlist.get('2')
+#    print p.name
+#    ps = Playlist.get_all()
+#    print ps[1].name
+#    t = Track("dummy-uri1")
+#    ps[0].add_track(t)
+#    t = Track("dummy-uri2")
+#    ps[0].add_track(t)
+#    t = Track("dummy-uri3")
+#    ps[0].add_track(t)
+#    print ps[0].get_all_tracks()
+#    ps[0].remove_track('2')
+#    print ps[0].get_all_tracks()
+#    print [playlist.to_dict() for playlist in Playlist.get_all()]
+
+#    import pprint
+#    pp = pprint.PrettyPrinter(indent=2)
+
+    from dogvibes import Dogvibes
+    global dogvibes
+    dogvibes = Dogvibes()
+
+#    p = Playlist.create("Sortable")
+    playlist = Playlist.get(1)
+#    playlist.move_track(2,4)
+
+    playlist.remove_track_nbr(6)
+
+#    t = dogvibes.create_track_from_uri('spotify:track:4lnFwlk4m7hhFHCWmMbLqW')
+#    playlist.add_track(t)
+#    t = dogvibes.create_track_from_uri('spotify:track:3XjhVyOmumNu3uY5DrB6cj')
+#    playlist.add_track(t)
+#    t = dogvibes.create_track_from_uri('spotify:track:7FKhuZtIPchBVNIhFnNL5W')
+#    playlist.add_track(t)
+
+
+#    playlist.add_track(Track('spotify:track:4lnFwlk4m7hhFHCWmMbLqW'))
+#    playlist.add_track(Track('spotify:track:3XjhVyOmumNu3uY5DrB6cj'))
+#    playlist.add_track(Track('spotify:track:7FKhuZtIPchBVNIhFnNL5W'))
+
+
+#    t = playlist.get_track_nbr(0)
+#    print t
