@@ -20,7 +20,6 @@
  */
 
 #include <unistd.h>
-
 #include <gst/check/gstcheck.h>
 
 /* For ease of programming we use globals to keep refs for our floating
@@ -40,6 +39,7 @@ static GstPad *mysinkpad;
 #define SPOTIFY_URI "spotify:track:0E4rbyLYVCGLu75H3W6O67"
 #define SPOTIFY_URI_2 "spotify:track:13GSFj7uIxqL9eNItNob3p"
 #define SPOTIFY_URI_ERROR "spotify:track:deadbeefdeadbeefdeadbeef"
+
 #define SPOTIFY_USER "user"
 #define SPOTIFY_PASS "pass"
 
@@ -57,6 +57,11 @@ static GstStaticPadTemplate sinktemplate = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_STATIC_CAPS (CAPS_TEMPLATE_STRING)
     );
 
+guint probe_id;
+
+static gboolean
+buffer_counter (GstObject * pad, GstBuffer * buffer, guint * p_num_eos);
+
 static GstElement *
 setup_spot (void)
 {
@@ -69,6 +74,9 @@ setup_spot (void)
   mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);
   gst_pad_set_active (mysinkpad, TRUE);
 
+  probe_id = gst_pad_add_buffer_probe (mysinkpad,
+      G_CALLBACK (buffer_counter), NULL);
+
   return spot;
 }
 
@@ -79,6 +87,7 @@ cleanup_spot (GstElement * spot)
   g_list_free (buffers);
   buffers = NULL;
 
+  gst_pad_remove_buffer_probe (mysinkpad, probe_id);
   gst_pad_set_active (mysinkpad, FALSE);
   gst_check_teardown_sink_pad (spot);
   gst_check_teardown_element (spot);
@@ -102,43 +111,144 @@ play_and_verify_buffers (GstElement *spot, int num_buffs)
   buffers = NULL;
 }
 
+static gboolean
+eos_event_counter (GstObject * pad, GstEvent * event, guint * p_num_eos)
+{
+  fail_unless (event != NULL);
+  fail_unless (GST_IS_EVENT (event));
+
+  if (GST_EVENT_TYPE (event) == GST_EVENT_EOS) {
+    *p_num_eos += 1;
+    printf ("# ");
+  }
+
+  return TRUE;
+}
+
+static gboolean
+buffer_counter (GstObject * pad, GstBuffer * buf, guint * p_num_eos)
+{
+  fail_unless (buf != NULL);
+  fail_unless (GST_IS_BUFFER (buf));
+
+  printf (".");
+  fflush (stdout);
+  return TRUE;
+}
+
 GST_START_TEST (test_login_and_play_pause)
 {
   GstElement *spot;
 
-  g_print ("STARTING TEST LOGIN PLAY PAUSE\n");
+  g_print ("*** STARTING - TEST LOGIN PLAY PAUSE\n");
+  g_print ("***\n");
+  g_print ("*** each buffer is seen as '.'\n\n");
   spot = setup_spot ();
 
-  g_print ("PLAY\n");
+  g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
   g_print ("PAUSE\n");
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
                "could not pause element");
-  g_print ("PLAY\n");
+  g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
   g_print ("PAUSE\n");
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
                "could not pause element");
-  g_print ("PLAY\n");
+  g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
   g_print ("PAUSE\n");
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
                "could not pause element");
-  g_print ("PLAY\n");
+  g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
   g_print ("STOP\n");
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
                "could not pause element");
-  g_print ("STOPPED\n");
 
   /* cleanup */
   cleanup_spot (spot);
-  g_print ("SUCCESS TEST LOGIN PLAY PAUSE\n");
+  g_print ("\n^^^ END - TEST LOGIN PLAY PAUSEEVENTS\n\n\n");
 }
+GST_END_TEST;
+
+GST_START_TEST (test_eos_events_push)
+{
+  GstStateChangeReturn state_ret;
+  GstElement *src, *sink, *pipe;
+  GstMessage *msg;
+  GstBus *bus;
+  GstPad *srcpad;
+  guint probe, num_eos = 0;
+
+  g_print ("*** STARTING - TEST EOS EVENTS\n");
+  g_print ("***\n");
+  g_print ("*** num-buffers=8, seen as '.'\n");
+  g_print ("*** wait for one EOS event, seen as '#'\n\n");
+
+  pipe = gst_pipeline_new ("pipeline");
+  sink = gst_element_factory_make ("fakesink", "sink");
+  src = gst_element_factory_make ("spot", "src");
+  g_object_set (G_OBJECT (src), "user", SPOTIFY_USER, NULL);
+  g_object_set (G_OBJECT (src), "pass", SPOTIFY_PASS, NULL);
+  g_object_set (G_OBJECT (src), "spotifyuri", SPOTIFY_URI, NULL);
+
+  g_assert (pipe != NULL);
+  g_assert (sink != NULL);
+  g_assert (src != NULL);
+
+  fail_unless (gst_bin_add (GST_BIN (pipe), src) == TRUE);
+  fail_unless (gst_bin_add (GST_BIN (pipe), sink) == TRUE);
+
+  fail_unless (gst_element_link (src, sink) == TRUE);
+
+  g_object_set (sink, "can-activate-push", TRUE, NULL);
+  g_object_set (sink, "can-activate-pull", FALSE, NULL);
+
+  //g_object_set (src, "can-activate-push", TRUE, NULL);
+  //g_object_set (src, "can-activate-pull", FALSE, NULL);
+  g_object_set (src, "num-buffers", 8, NULL);
+
+  srcpad = gst_element_get_pad (src, "src");
+  fail_unless (srcpad != NULL);
+
+  probe_id = gst_pad_add_buffer_probe (srcpad,
+      G_CALLBACK (buffer_counter), NULL);
+  probe = gst_pad_add_event_probe (srcpad,
+      G_CALLBACK (eos_event_counter), &num_eos);
+
+  bus = gst_element_get_bus (pipe);
+  printf ("PLAY");
+  gst_element_set_state (pipe, GST_STATE_PLAYING);
+  state_ret = gst_element_get_state (pipe, NULL, NULL, -1);
+  fail_unless (state_ret == GST_STATE_CHANGE_SUCCESS);
+
+  msg = gst_bus_poll (bus, GST_MESSAGE_EOS | GST_MESSAGE_ERROR, -1);
+  fail_unless (msg != NULL);
+  fail_unless (GST_MESSAGE_TYPE (msg) != GST_MESSAGE_ERROR);
+  fail_unless (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_EOS);
+
+  fail_unless (num_eos == 1);
+
+  gst_element_set_state (pipe, GST_STATE_NULL);
+  gst_element_get_state (pipe, NULL, NULL, -1);
+
+  fail_unless (num_eos == 1);
+  printf ("EOS\n");
+
+  gst_pad_remove_event_probe (srcpad, probe);
+  gst_pad_remove_buffer_probe (srcpad, probe_id);
+  gst_object_unref (srcpad);
+  gst_message_unref (msg);
+  gst_object_unref (bus);
+  gst_object_unref (pipe);
+  g_print ("\n^^^ END - TEST EOS EVENTS\n\n\n");
+}
+
 GST_END_TEST;
 
 GST_START_TEST (test_change_track)
@@ -147,22 +257,23 @@ GST_START_TEST (test_change_track)
 
   spot = setup_spot ();
 
-  g_print ("STARTING CHANGE TRACK\n");
-  g_print ("PLAY\n");
+  g_print ("*** STARTING - CHANGE TRACK\n");
+  g_print ("***\n\n");
+  g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
   g_print ("STOP\n");
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
                "could not pause element");
-  g_print ("STOPPED\n");
   g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_2, NULL);
-  g_print ("PLAY WITH NEW TRACK\n");
+  g_print ("*** set new track\n");
+  g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
-  g_print ("VERIFIED NEW TRACK\n");
+  g_print ("STOP\n");
 
   /* cleanup */
   cleanup_spot (spot);
-  g_print ("SUCCESS CHANGE TRACK\n");
+  g_print ("\n^^^ END - CHANGE TRACK\n\n\n");
 }
 GST_END_TEST;
 
@@ -174,12 +285,12 @@ GST_START_TEST (test_seek)
 
   spot = setup_spot ();
 
-  g_print ("STARTING SEEK\n");
-
-  g_print ("SEEK NOT STARTED TRACK\n");
+  g_print ("*** STARTING - TEST SEEK\n");
+  g_print ("***\n\n");
   fail_unless (gst_element_query_duration (spot, &format, &duration));
-
+  g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
+  g_print ("STOP\n");
   fail_unless (gst_element_query_duration (spot, &format, &duration));
 
   gst_element_seek_simple (spot, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT, GST_SECOND * 1);
@@ -198,7 +309,7 @@ GST_START_TEST (test_seek)
 
   /* cleanup */
   cleanup_spot (spot);
-  g_print ("SUCCESS SEEK\n");
+  g_print ("\n^^^ END - SEEK\n\n\n");
 }
 GST_END_TEST;
 
@@ -208,17 +319,19 @@ GST_START_TEST (test_login_and_play_bad_uri)
 
   /* src_start should not success with bad uri */
 
-  g_print ("STARTING TEST LOGIN PLAY BAD URI\n");
+  g_print ("*** STARTING - TEST LOGIN PLAY BAD URI\n");
 
   spot = gst_check_setup_element ("spot");
-  g_print ("     - uri=%s\n", SPOTIFY_URI_JUST_BAD);
+  g_print ("*** uri=%s\n\n", SPOTIFY_URI_JUST_BAD);
   g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_JUST_BAD, NULL);
   g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
   g_object_set (G_OBJECT (spot), "pass", SPOTIFY_PASS, NULL);
   mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);
   gst_pad_set_active (mysinkpad, TRUE);
+  probe_id = gst_pad_add_buffer_probe (mysinkpad,
+      G_CALLBACK (buffer_counter), NULL);
 
-  g_print ("PLAY - with faulty uri\n");
+  g_print ("TRY PLAY\n");
   /* should not be able to play with faulty URI */
   fail_if (gst_element_set_state (spot,
                               GST_STATE_PLAYING) == GST_STATE_CHANGE_SUCCESS,
@@ -228,34 +341,45 @@ GST_START_TEST (test_login_and_play_bad_uri)
 
 
   spot = gst_check_setup_element ("spot");
-  g_print ("     - uri=%s\n", SPOTIFY_URI_TALIB_KWELI);
+  g_print ("*** uri=%s\n", SPOTIFY_URI_TALIB_KWELI);
   g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_TALIB_KWELI, NULL);
   g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
   g_object_set (G_OBJECT (spot), "pass", SPOTIFY_PASS, NULL);
   mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);
   gst_pad_set_active (mysinkpad, TRUE);
+  probe_id = gst_pad_add_buffer_probe (mysinkpad,
+      G_CALLBACK (buffer_counter), NULL);
 
   /* spotify is showing us some upcoming hits here? */
-  g_print ("PLAY - with valid uri from search, but unplayable\n");
+  g_print ("TRY PLAY\n");
   fail_if (gst_element_set_state (spot,
                               GST_STATE_PLAYING) == GST_STATE_CHANGE_SUCCESS,
                               "could not set to playing");
 
   cleanup_spot (spot);
-  g_print ("SUCCESS TEST LOGIN PLAY BAD URI\n");
+  g_print ("\nEND - TEST LOGIN PLAY BAD URI\n\n\n");
 }
 GST_END_TEST;
 
 GST_START_TEST (test_user_pass)
 {
   /* so we dont have run all tests */
-  g_print ("USER/PASS CHANGE?\n");
-  fail_if (strcmp (SPOTIFY_USER, "user") == 0 && strcmp (SPOTIFY_PASS, "pass") == 0,
+  g_print ("*** STARTING - USER/PASS CHANGE?\n");
+  gboolean unchanged = strcmp (SPOTIFY_USER, "user") == 0 && strcmp (SPOTIFY_PASS, "pass") == 0;
+  fail_if (unchanged,
            "You are using wrong defines in %s, rest of the test should fail/timeout\n"
            "user=%s\npass=%s", __FILE__,
            SPOTIFY_USER, SPOTIFY_PASS);
+  g_assert (!unchanged);
+  g_print ("^^^ END - USER/PASS CHANGED\n\n\n");
+}
+GST_END_TEST;
 
-  g_print ("SUCCESS USER/PASS CHANGED\n");
+GST_START_TEST (test_attributes)
+{
+  /* so we dont have run all tests */
+  g_print ("\n*** STARTING - TEST ATTRIBUTES\n");
+  g_print ("\n^^^ END - TEST ATTRIBUTES\n\n\n");
 }
 GST_END_TEST;
 
@@ -269,10 +393,12 @@ spot_suite (void)
   tcase_set_timeout (tc_chain, 20);
 
   tcase_add_test (tc_chain, test_user_pass);
+  tcase_add_test (tc_chain, test_eos_events_push);
   tcase_add_test (tc_chain, test_login_and_play_pause);
   tcase_add_test (tc_chain, test_login_and_play_bad_uri);
   tcase_add_test (tc_chain, test_change_track);
   tcase_add_test (tc_chain, test_seek);
+  tcase_add_test (tc_chain, test_attributes);
 
   return s;
 }
