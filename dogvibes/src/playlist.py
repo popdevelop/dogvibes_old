@@ -84,7 +84,12 @@ class Playlist():
         track_id = track.store()
         self.db.commit_statement('''select max(position) from playlist_tracks where playlist_id = ?''', [self.id])
         row = self.db.fetchone()
-        position = row['max(position)'] + 1
+
+        if row['max(position)'] == None:
+            position = 1
+        else:
+            position = row['max(position)'] + 1
+
         self.db.commit_statement('''insert into playlist_tracks (playlist_id, track_id, position) values (?, ?, ?)''', [self.id, track_id, position])
         return self.db.inserted_id()
 
@@ -149,6 +154,7 @@ class Playlist():
 
         self.db.commit_statement('''select max(position) from playlist_tracks where playlist_id = ?''', [self.id])
         row = self.db.fetchone()
+
         if position > row['max(position)'] or position < 1:
             raise ValueError('Position %d is out of bounds (%d, %d)' % (position, 1, row['max(position)']))
 
