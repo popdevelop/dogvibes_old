@@ -1050,7 +1050,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
         case GST_FORMAT_BYTES:
           {
           guint64 duration_bytes = (duration/1000) * samplerate * 4;
-          GST_LOG_OBJECT (spot, "Query_duration, duration_bytes=%d", duration_bytes);
+          GST_LOG_OBJECT (spot, "Query_duration, duration_bytes=%" G_GUINT64_FORMAT, duration_bytes);
           gst_query_set_duration (query, format, duration_bytes);
           }
           break;
@@ -1058,7 +1058,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
           {
           /* set it to nanoseconds */
           guint64 duration_time = duration * 1000;
-          GST_LOG_OBJECT (spot, "Query_duration, duration_time=%d", duration_time);
+          GST_LOG_OBJECT (spot, "Query_duration, duration_time=%" G_GUINT64_FORMAT, duration_time);
           gst_query_set_duration (query, format, duration_time);
           }
           break;
