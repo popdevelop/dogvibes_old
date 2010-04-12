@@ -47,6 +47,25 @@ G_BEGIN_DECLS
 typedef struct _GstSpotSrc GstSpotSrc;
 typedef struct _GstSpotSrcClass GstSpotSrcClass;
 
+enum spot_cmd
+{
+  SPOT_CMD_START,
+  SPOT_CMD_STOP,
+  SPOT_CMD_PLAY,
+  SPOT_CMD_PROCESS,
+  SPOT_CMD_DURATION,
+  SPOT_CMD_SEEK,
+};
+
+struct spot_work
+{
+  GMutex *spot_mutex;
+  GCond *spot_cond;
+  int ret;
+  gint64 opt;
+  enum spot_cmd cmd;
+};
+
 #define GST_SPOT_SRC_USER(src) ((src)->user)
 #define GST_SPOT_SRC_PASS(src) ((src)->pass)
 #define GST_SPOT_SRC_URI(src) ((src)->uri)
@@ -77,6 +96,17 @@ struct _GstSpotSrc {
   GMutex *adapter_mutex;
   GCond *adapter_cond;
   sp_audioformat *format;
+
+  GList *spot_works;
+  gboolean play_token_lost;
+  gboolean keep_spotify_thread;
+  gboolean end_of_track;
+  GMutex *process_events_mutex;
+  GThread *process_events_thread;
+  GCond *process_events_cond;
+  gboolean spotify_thread_initiated;
+  gboolean unlock_state;
+
 };
 
 struct _GstSpotSrcClass {
