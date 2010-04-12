@@ -124,7 +124,7 @@ class Playlist():
         return ret_tracks
 
     def get_track_nbr(self, nbr):
-        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? and id = ?''', [int(self.id), nbr])
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? order by position limit ?,1''', [int(self.id), nbr])
 
         row = self.db.fetchone()
 
