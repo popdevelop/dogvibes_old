@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.6
 from twisted.internet.protocol import Protocol, Factory
 from twisted.internet import glib2reactor
 glib2reactor.install()
@@ -52,9 +51,10 @@ class AlbumArtServer(resource.Resource):
         params = cgi.parse_qs(u.query)
 
         uri = params.get('uri', 'dummy')[0]
+        size = int(params.get('size', 0)[0])
 
         request.setHeader("Content-type", "image/jpeg")
-        return dogvibes.API_getAlbumArt(uri)
+        return dogvibes.API_getAlbumArt(uri, size)
 
 class WebSocket(Protocol):
 

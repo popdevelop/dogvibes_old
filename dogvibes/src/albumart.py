@@ -2,7 +2,7 @@ import os
 import re
 import urllib
 import hashlib
-import cStringIO
+import StringIO
 from PIL import Image
 
 art_dir = 'albumart'
@@ -29,7 +29,7 @@ class AlbumArt():
             img_data = self.get_image_data(artist, album)
             if img_data == None:
                 # open standard cover
-                return self.get_standard_image()
+                img_data =  self.get_standard_image()
             else:
                 # save cover to cache
                 f = open(img_path, 'wb')
@@ -37,11 +37,17 @@ class AlbumArt():
                 f.close()
 
         # Resize upon request. Nothing special about 640. Just need a limit...
-        #if size > 0 and size < 640:
-        #    im = cStringIO.StringIO(img_data)
-        #    img = Image.open(im)
-        #    img.resize((size, size), Image.ANTIALIAS)
-        #    img_data = img.tostring() # FIXME: How to extract binary data?
+        if size > 0 and size < 640:
+            buf = StringIO.StringIO(img_data)
+            img = Image.open(buf)
+            img.thumbnail((size, size), Image.ANTIALIAS)
+
+            # Need to create new buffer, otherwise changes won't take effect
+            out_buf = StringIO.StringIO()
+            img.save(out_buf, 'JPEG')
+            out_buf.seek(0)
+            img_data = out_buf.getvalue()
+            buf.close()
 
         return img_data
 
