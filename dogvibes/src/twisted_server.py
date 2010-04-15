@@ -56,6 +56,76 @@ class AlbumArtServer(resource.Resource):
         request.setHeader("Content-type", "image/jpeg")
         return dogvibes.API_getAlbumArt(uri, size)
 
+
+class HTTPServer(resource.Resource):
+    isLeaf = True
+    def render_GET(self, request):
+        u = urlparse(request.uri)
+        c = u.path.split('/')
+        method = 'API_' + c[-1]
+         # TODO: this should be determined on API function return:
+        raw = method == 'API_getAlbumArt'
+
+        obj = c[1]
+        id = c[2]
+        id = 0 # TODO: remove when more amps are supported
+
+        if obj == 'dogvibes':
+            klass = dogvibes
+        else:
+            klass = dogvibes.amps[id]
+
+        callback = None
+        data = None
+        error = 0
+
+        params = cgi.parse_qs(u.query)
+        # use only the first value for each key (feel free to clean up):
+        params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
+        if 'callback' in params:
+            callback = params.pop('callback')
+            if '_' in params:
+                params.pop('_')
+
+        try:
+            # strip params from paramters not in the method definition
+            args = inspect.getargspec(getattr(klass, method))[0]
+            params = dict(filter(lambda k: k[0] in args, params.items()))
+            # call the method
+            data = getattr(klass, method).__call__(**params)
+        except AttributeError as e:
+            print e
+            error = 1 # No such method
+        except TypeError as e:
+            print e
+            error = 2 # Missing parameter
+        except ValueError as e:
+            print e
+            error = 3 # Internal error, e.g. could not find specified uri
+
+#        self.send_response(400 if error else 200) # Bad request or OK
+
+        if raw:
+            self.send_header("Content-type", "image/jpeg")
+        else:
+            # Add results from method call only if there is any
+            if data == None or error != 0:
+                data = dict(error = error)
+            else:
+                data = dict(error = error, result = data)
+
+            data = cjson.encode(data)
+
+            # Wrap result in a Javascript function if a callback was submitted
+            if callback != None:
+                data = callback + '(' + data + ')'
+                request.setHeader("Content-type", "text/javascript")
+            else:
+                request.setHeader("Content-type", "application/json")
+
+        return data
+
+
 class WebSocket(Protocol):
 
     handshaken = False # Indicates if initial setup has been done
@@ -258,6 +328,9 @@ if __name__ == "__main__":
     factory = Factory()
     factory.protocol = WebSocket
     reactor.listenTCP(9999, factory)
+
+    site = server.Site(HTTPServer())
+    reactor.listenTCP(2000, site)
 
     site = server.Site(AlbumArtServer())
     reactor.listenTCP(9998, site)
