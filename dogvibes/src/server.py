@@ -145,6 +145,16 @@ if __name__ == '__main__':
     print "         /)  /__\  /     "
     print "        / \ \_  / /|     "
     print "        \_)\__) \_)_)    "
+    print "                         "
+    print "                         "
+    print "   uses SPOTIFY(R) CORE  "
+    print "                         "
+    print "This product uses SPOTIFY(R) CORE"
+    print "but is not endorsed, certified or"
+    print "otherwise approved in any way by "
+    print "Spotify. Spotify is the registered"
+    print "trade mark of the Spotify Group"
+    print "                         "
 
     # Enable Ctrl-C
     signal.signal(signal.SIGINT, signal.SIG_DFL)
