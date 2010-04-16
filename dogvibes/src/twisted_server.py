@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
     # Setup log
     parser = optparse.OptionParser()
-    parser.add_option('-l', help='Log level', dest='log_level', default=3)
+    parser.add_option('-l', help='Log level', dest='log_level', default=2)
     parser.add_option('-f', help='Log file name', dest='log_file', default='/dev/stdout') # TODO: Windows will feel dizzy
     (options, args) = parser.parse_args()
     log_level = LOG_LEVELS.get(options.log_level, logging.NOTSET)
