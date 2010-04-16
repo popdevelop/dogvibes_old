@@ -6,7 +6,6 @@ import StringIO
 from PIL import Image
 
 art_dir = 'albumart'
-awsurl = "http://ecs.amazonaws.com/onca/xml"
 
 # TODO: perhaps an AlbumArt factory should be inited on startup instead of
 # using classmethods?
@@ -14,6 +13,7 @@ awsurl = "http://ecs.amazonaws.com/onca/xml"
 class AlbumArt():
     @classmethod
     def get_image(self, artist, album, size = 0):
+        size = int(size)
         if not os.path.exists(art_dir):
             os.mkdir(art_dir)
 
@@ -40,6 +40,7 @@ class AlbumArt():
         if size > 0 and size < 640:
             buf = StringIO.StringIO(img_data)
             img = Image.open(buf)
+            # Won't grow the image since I couldn't get .resize() to work
             img.thumbnail((size, size), Image.ANTIALIAS)
 
             # Need to create new buffer, otherwise changes won't take effect
