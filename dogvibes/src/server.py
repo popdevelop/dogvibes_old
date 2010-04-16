@@ -127,7 +127,7 @@ class HTTPServer(resource.Resource):
         (data, raw, error) = handle_request(request.uri)
 
         if raw:
-            request.setHeader("Content-type", "image/jpeg")
+            request.setHeader("Content-type", "image/png")
         else:
             request.setHeader("Content-type", "application/json")
             #request.setHeader("Content-type", "text/javascript") # no callback

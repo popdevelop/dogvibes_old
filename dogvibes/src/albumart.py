@@ -50,7 +50,7 @@ class AlbumArt():
 
             # Need to create new buffer, otherwise changes won't take effect
             out_buf = StringIO.StringIO()
-            img.save(out_buf, 'JPEG')
+            img.save(out_buf, 'PNG')
             out_buf.seek(0)
             img_data = out_buf.getvalue()
             buf.close()
