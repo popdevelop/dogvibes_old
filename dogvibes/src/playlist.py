@@ -1,5 +1,6 @@
 from database import Database
 from track import Track
+import logging
 
 class Playlist():
     def __init__(self, id, name, db):
@@ -53,7 +54,7 @@ class Playlist():
     def create(self, name):
         db = Database()
         db.commit_statement('''insert into playlists (name) values (?)''', [name])
-        print "Adding playlist '" + name + "'"
+        logging.debug ("Adding playlist '" + name + "'")
         return Playlist(db.inserted_id(), name, db)
 
     @classmethod
@@ -149,8 +150,7 @@ class Playlist():
         if row == None:
             raise ValueError('Could not find track with id=%d in playlist with id=%d' % (id, self.id))
         old_position = row['position']
-        print old_position
-        print position
+        logging.debug("Move track from " + old_position + " to " + position)
 
         self.db.commit_statement('''select max(position) from playlist_tracks where playlist_id = ?''', [self.id])
         row = self.db.fetchone()

@@ -3,6 +3,7 @@ import hashlib
 import random
 import config
 import time
+import logging
 
 from track import Track
 from playlist import Playlist
@@ -49,7 +50,7 @@ class Amp():
     def API_connectSpeaker(self, nbr):
         nbr = int(nbr)
         if nbr > len(self.dogvibes.speakers) - 1:
-            print "Speaker does not exist"
+            logging.warning ("Connect speaker - speaker does not exist")
 
         speaker = self.dogvibes.speakers[nbr];
 
@@ -58,14 +59,14 @@ class Amp():
             self.pipeline.add(self.sink)
             self.tee.link(self.sink)
         else:
-            print "Speaker %d already connected" % nbr
+            logging.debug ("Speaker %d already connected" % nbr)
         #self.needs_push_update = True
         # FIXME: activate when client connection has been fixed!
 
     def API_disconnectSpeaker(self, nbr):
         nbr = int(nbr)
         if nbr > len(self.dogvibes.speakers) - 1:
-            print "Speaker does not exist"
+            logging.warning ("disconnect speaker - speaker does not exist")
 
         speaker = self.dogvibes.speakers[nbr];
 
@@ -77,7 +78,7 @@ class Amp():
             self.tee.unlink(rm)
             self.set_state(state)
         else:
-            print "Speaker not connected"
+            logging.warning ("disconnect speaker - speaker not found")
         self.needs_push_update = True
 
     def API_getAllTracksInQueue(self):
@@ -240,7 +241,7 @@ class Amp():
     # Internal functions
 
     def pad_added(self, element, pad, last):
-        print "Lets add a speaker we found suitable elements to decode"
+        logging.debug("Lets add a speaker we found suitable elements to decode")
         pad.link(self.tee.get_pad("sink"))
 
     def change_track(self, tracknbr):
@@ -304,7 +305,7 @@ class Amp():
             self.src.link(self.tee)
             self.spotify_in_use = True
         else:
-            print "Decodebin is taking care of this uri"
+            logging.debug ("Decodebin is taking care of this uri")
             self.src = gst.element_make_from_uri(gst.URI_SRC, track.uri, "source")
             self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")
             self.decodebin.connect('new-decoded-pad', self.pad_added)
@@ -318,7 +319,7 @@ class Amp():
         self.API_pause()
 
     def set_state(self, state):
-        print "set state, try"
+        logging.debug("set state try")
         res = self.pipeline.set_state(state)
         if res != gst.STATE_CHANGE_FAILURE:
             (pending, res, timeout) = self.pipeline.get_state()
@@ -326,9 +327,9 @@ class Amp():
                 print res
                 time.sleep(0.1)
                 (pending, res, timeout) = self.pipeline.get_state()
-            print "set state, success"
+            logging.debug("set state success")
         else:
-            print "set state, failure"
+            logging.warning("set state failure")
         return res
 
 

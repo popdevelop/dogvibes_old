@@ -158,7 +158,7 @@ class WebSocket(Protocol):
 
     def connectionLost(self, reason):
         clients.remove(self)
-        print "Disconnected from", self.transport.client
+        logging.warning("Disconnected from: ", self.transport.client)
 
     def handshake(self, data):
 
@@ -172,8 +172,8 @@ class WebSocket(Protocol):
 
         # re.findall always return an array
         if host == [] or origin == []:
-            print "Websocket handshake is wrong. Check incoming request"
-            print shake
+            logging.error("Websocket handshake is wronng, check incoming request ", self.transport.client)
+            logging.error(shake)
             self.transport.loseConnection()
 
         # compile an answer and send back to the client
@@ -265,7 +265,7 @@ if __name__ == "__main__":
 
     # Setup log
     parser = optparse.OptionParser()
-    parser.add_option('-l', help='Log level', dest='log_level', default=2)
+    parser.add_option('-l', help='Log level', dest='log_level', default='2')
     parser.add_option('-f', help='Log file name', dest='log_file', default='/dev/stdout') # TODO: Windows will feel dizzy
     (options, args) = parser.parse_args()
     log_level = LOG_LEVELS.get(options.log_level, logging.NOTSET)
