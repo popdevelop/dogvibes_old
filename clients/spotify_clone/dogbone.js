@@ -14,7 +14,7 @@ var welcome_text = "<h1>Welcome to dogbone!</h1> <p>The first HTML-client to <a 
 var poll_handle = false;
 var current_song = {
     album: false,
-    index: false ,
+    index: false,
     playqueuehash: false,
     artist: false,
     title: false,
@@ -675,7 +675,7 @@ $("document").ready(function() {
     /* Urk! */
     var a = server.split('/')
     a = a[2].split(':')
-    art_server = 'http://' + a[0] + ':9998/'
+    art_server = 'http://' + a[0] + ':2000'
 
     if (server.substring(0, 2) == 'ws') {
         // We use Flash WebSocket for those who can't handle the native one
