@@ -59,6 +59,16 @@ def handle_request(path):
         raw = False
 
         params = cgi.parse_qs(u.query)
+        # use only the first value for each key (feel free to clean up):
+        params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
+
+        if 'callback' in params:
+            callback = params.pop('callback')
+            if '_' in params:
+                params.pop('_')
+
+        if 'msg_id' in params:
+            msg_id = params.pop('msg_id')
 
         if (len(c) < 3):
             raise NameError("Malformed command: %s" % u.path)
@@ -78,9 +88,6 @@ def handle_request(path):
         else:
             raise NameError("No such object '%s'" % obj)
 
-        # use only the first value for each key (feel free to clean up):
-        params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
-
         # strip params from paramters not in the method definition
         args = inspect.getargspec(getattr(klass, method))[0]
         params = dict(filter(lambda k: k[0] in args, params.items()))
@@ -98,14 +105,6 @@ def handle_request(path):
     except NameError as e:
         error = 4 # Wrong object or other URI error
         logging.warning(e)
-
-    if 'callback' in params:
-        callback = params.pop('callback')
-        if '_' in params:
-            params.pop('_')
-
-    if 'msg_id' in params:
-        msg_id = params.pop('msg_id')
 
     if not raw:
         # Add results from method call only if there is any
