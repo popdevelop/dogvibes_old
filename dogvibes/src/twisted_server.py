@@ -29,16 +29,6 @@ LOG_LEVELS = {'0': logging.CRITICAL,
 
 lock = threading.Lock()
 
-server_handshake = '\
-HTTP/1.1 101 Web Socket Protocol Handshake\r\n\
-Upgrade: WebSocket\r\n\
-Connection: Upgrade\r\n\
-WebSocket-Origin: %s\r\n\
-WebSocket-Location: %s/\r\n\r\n\
-'
-
-clients = []
-
 class AlbumArtServer(resource.Resource):
     isLeaf = True
     def render_GET(self, request):
@@ -57,74 +47,106 @@ class AlbumArtServer(resource.Resource):
         return dogvibes.API_getAlbumArt(uri, size)
 
 
-class HTTPServer(resource.Resource):
-    isLeaf = True
-    def render_GET(self, request):
-        u = urlparse(request.uri)
-        c = u.path.split('/')
+def handle_request(path):
+
+    u = urlparse(path)
+    c = u.path.split('/')
+
+    try:
+        callback = None
+        data = None
+        error = 0
+        raw = False
+
+        params = cgi.parse_qs(u.query)
+
+        if (len(c) < 3):
+            raise NameError("Malformed command: %s" % u.path)
+
         method = 'API_' + c[-1]
          # TODO: this should be determined on API function return:
         raw = method == 'API_getAlbumArt'
 
         obj = c[1]
-        id = c[2]
+        #id = c[2]
         id = 0 # TODO: remove when more amps are supported
 
         if obj == 'dogvibes':
             klass = dogvibes
-        else:
+        elif obj == 'amp':
             klass = dogvibes.amps[id]
+        else:
+            raise NameError("No such object '%s'" % obj)
 
-        callback = None
-        data = None
-        error = 0
-
-        params = cgi.parse_qs(u.query)
         # use only the first value for each key (feel free to clean up):
         params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
-        if 'callback' in params:
-            callback = params.pop('callback')
-            if '_' in params:
-                params.pop('_')
 
-        try:
-            # strip params from paramters not in the method definition
-            args = inspect.getargspec(getattr(klass, method))[0]
-            params = dict(filter(lambda k: k[0] in args, params.items()))
-            # call the method
-            data = getattr(klass, method).__call__(**params)
-        except AttributeError as e:
-            print e
-            error = 1 # No such method
-        except TypeError as e:
-            print e
-            error = 2 # Missing parameter
-        except ValueError as e:
-            print e
-            error = 3 # Internal error, e.g. could not find specified uri
+        # strip params from paramters not in the method definition
+        args = inspect.getargspec(getattr(klass, method))[0]
+        params = dict(filter(lambda k: k[0] in args, params.items()))
+        # call the method
+        data = getattr(klass, method).__call__(**params)
+    except AttributeError as e:
+        error = 1 # No such method
+        logging.warning(e)
+    except TypeError as e:
+        error = 2 # Missing parameter
+        logging.warning(e)
+    except ValueError as e:
+        error = 3 # Internal error, e.g. could not find specified uri
+        logging.warning(e)
+    except NameError as e:
+        error = 4 # Wrong object or other URI error
+        logging.warning(e)
 
-#        self.send_response(400 if error else 200) # Bad request or OK
+    if 'callback' in params:
+        callback = params.pop('callback')
+        if '_' in params:
+            params.pop('_')
+
+    if 'msg_id' in params:
+        msg_id = params.pop('msg_id')
+
+    if not raw:
+        # Add results from method call only if there is any
+        if data == None or error != 0:
+            data = dict(error = error)
+        else:
+            data = dict(error = error, result = data)
+
+        data = cjson.encode(data)
+
+        # Wrap result in a Javascript function if a callback is present
+        if callback != None:
+            data = "%s(%s)" % (callback, data)
+
+    return (data, raw, error)
+
+class HTTPServer(resource.Resource):
+    isLeaf = True
+    def render_GET(self, request):
+        (data, raw, error) = handle_request(request.uri)
 
         if raw:
-            self.send_header("Content-type", "image/jpeg")
+            request.setHeader("Content-type", "image/jpeg")
         else:
-            # Add results from method call only if there is any
-            if data == None or error != 0:
-                data = dict(error = error)
-            else:
-                data = dict(error = error, result = data)
+            request.setHeader("Content-type", "application/json")
+            #request.setHeader("Content-type", "text/javascript") # no callback
 
-            data = cjson.encode(data)
-
-            # Wrap result in a Javascript function if a callback was submitted
-            if callback != None:
-                data = callback + '(' + data + ')'
-                request.setHeader("Content-type", "text/javascript")
-            else:
-                request.setHeader("Content-type", "application/json")
+        #self.send_response(400 if error else 200) # Bad request or OK
 
         return data
 
+
+server_handshake = '\
+HTTP/1.1 101 Web Socket Protocol Handshake\r\n\
+Upgrade: WebSocket\r\n\
+Connection: Upgrade\r\n\
+WebSocket-Origin: %s\r\n\
+WebSocket-Location: %s/\r\n\r\n\
+'
+
+clients = []
 
 class WebSocket(Protocol):
 
@@ -140,9 +162,8 @@ class WebSocket(Protocol):
         print "Disconnected from", self.transport.client
 
     def handshake(self, data):
+
         # FIXME: if smaller than header size, we risk missing some initial commands!!
-#for (var i = 0, l = origins.length; i < l; i++){
-#this.socket.send('  <allow-access-from domain="' + origins[i] + '" to-ports="' + this.server.options.port + '"/>\n');
 
         shake, self.buf = data.split('\r\n\r\n')
 
@@ -213,83 +234,14 @@ class WebSocket(Protocol):
                 cmds.append(msg[1:])
 
         for cmd in cmds:
-            logging.info("%s(%s): %s" % (self.transport.client[0], self.transport.client[1], cmd))
-
-            # path can be like dogvibes/method or amp/0/method
-            u = urlparse(cmd)
-            c = u.path.split('/')
-
-            method = 'API_' + c[-1] # last is always method
-            obj = c[1] # first is always object
-            id = c[2] # TODO: must check len of array for this to work
-            id = 0 # TODO: remove when more amps are supported
-
-            if obj == 'dogvibes':
-                klass = dogvibes
-            else:
-                klass = dogvibes.amps[id]
-
-            callback = None
-            data = None
-            error = 0
-            msg_id = None
-
-            params = cgi.parse_qs(u.query)
-            # use only the first value for each key (feel free to clean up):
-            params = dict(zip(params.keys(), map(lambda x: x[0], params.values())))
-            if 'callback' in params:
-                callback = params.pop('callback')
-                # FIXME: should be allowed to send more parameters
-                # than specified. But strip them
-                if '_' in params: # TODO: this applies when not using callback as well?
-                    params.pop('_')
-
-            if 'callback' in params:
-                callback = params.pop('callback')
-
-            if 'msg_id' in params:
-                msg_id = params.pop('msg_id')
-
-            try:
-                # strip params from paramters not in the method definition
-                args = inspect.getargspec(getattr(klass, method))[0]
-                params = dict(filter(lambda k: k[0] in args, params.items()))
-                # call the method
-                data = getattr(klass, method).__call__(**params)
-            except AttributeError as e:
-                error = 1 # No such method
-                logging.info(e)
-            except TypeError as e:
-                error = 2 # Missing parameter
-                logging.info(e)
-            except ValueError as e:
-                error = 3 # Internal error, e.g. could not find specified uri
-                logging.info(e)
-
-            # Add results from method call only if there are any
-            if data == None or error != 0:
-                data = dict(error = error)
-            else:
-                data = dict(error = error, result = data)
-
-            # TODO: use '_' instead of 'msg_id'?
-            if msg_id != None:
-                data['msg_id'] = msg_id
-
-            # Different JSON syntax in different versions of python
-            data = cjson.encode(data)
-
-            # Wrap result in a Javascript function if a callback was submitted
-            if callback != None:
-                #data = callback + '(' + data + ')'
-                data = "%s(%s)" % (callback, data)
-
+            (data, raw, error) = handle_request(cmd)
             self.sendWS(data);
 
 if __name__ == "__main__":
 
-    print "Running Dogvibes (Websocket edition)"
-    print "   ->Vibe the dog!"
+    print "Running Dogvibes"
+    print
+    print "   Vibe the dog!"
     print "                 .--.    "
     print "                / \\aa\_  "
     print "         ,      \_/ ,_Y) "
@@ -329,10 +281,6 @@ if __name__ == "__main__":
     factory.protocol = WebSocket
     reactor.listenTCP(9999, factory)
 
-    site = server.Site(HTTPServer())
-    reactor.listenTCP(2000, site)
-
-    site = server.Site(AlbumArtServer())
-    reactor.listenTCP(9998, site)
+    reactor.listenTCP(2000, server.Site(HTTPServer()))
 
     reactor.run()
