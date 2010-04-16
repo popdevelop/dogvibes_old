@@ -34,15 +34,15 @@
 G_BEGIN_DECLS
 
 #define GST_TYPE_SPOT_SRC \
-  (gst_spot_src_get_type())
+  (gst_spot_src_get_type ())
 #define GST_SPOT_SRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_SPOT_SRC,GstSpotSrc))
+  (G_TYPE_CHECK_INSTANCE_CAST ((obj),GST_TYPE_SPOT_SRC,GstSpotSrc))
 #define GST_SPOT_SRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_SPOT_SRC,GstSpotSrcClass))
+  (G_TYPE_CHECK_CLASS_CAST ((klass),GST_TYPE_SPOT_SRC,GstSpotSrcClass))
 #define GST_IS_SPOT_SRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_SPOT_SRC))
+  (G_TYPE_CHECK_INSTANCE_TYPE ((obj),GST_TYPE_SPOT_SRC))
 #define GST_IS_SPOT_SRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_SPOT_SRC))
+  (G_TYPE_CHECK_CLASS_TYPE ((klass),GST_TYPE_SPOT_SRC))
 
 typedef struct _GstSpotSrc GstSpotSrc;
 typedef struct _GstSpotSrcClass GstSpotSrcClass;
@@ -75,9 +75,6 @@ struct spot_work
 #define GST_SPOT_SRC_ADAPTER_MUTEX(src) ((src)->adapter_mutex)
 #define GST_SPOT_SRC_ADAPTER_COND(src) ((src)->adapter_cond)
 #define GST_SPOT_SRC_FORMAT(src) ((src)->format)
-//remove this?
-#define GST_SPOT_SRC_BUFFER_INTERNAL_BYTES(src) ((src)->buffer_internal_bytes)
-
 
 /**
  * GstSpotSrc:

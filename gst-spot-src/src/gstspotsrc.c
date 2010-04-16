@@ -367,7 +367,7 @@ spotify_thread_func (void *data)
     spot->spotify_thread_initiated = TRUE;
     while (spot->spot_works) {
       struct spot_work *spot_work;
-      int ret;
+      sp_error ret = SP_ERROR_INVALID_INDATA;
       spot_work = (struct spot_work *)spot->spot_works->data;
       g_mutex_lock (spot_work->spot_mutex);
       switch (spot_work->cmd) {
@@ -375,32 +375,28 @@ spotify_thread_func (void *data)
           GST_DEBUG_OBJECT (spot, "Uri = %s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
           if (!spot_obj_login (spot, spot_instance)) {
             /* error message from within function */
-            spot_work->ret = -1;
-            goto work_error;
+            break;
           }
 
           sp_link *link = sp_link_create_from_string (SPOT_OBJ_SPOTIFY_URI (spot_instance));
 
           if (!link) {
             GST_ERROR_OBJECT (spot, "Incorrect track ID:%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
-            spot_work->ret = -1;
-            goto work_error;
+            break;
           }
 
           SPOT_OBJ_CURRENT_TRACK (spot_instance) = sp_link_as_track (link);
 
           if (!SPOT_OBJ_CURRENT_TRACK (spot_instance)) {
             GST_ERROR_OBJECT (spot, "Could get track from uri=%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
-            spot_work->ret = -1;
-            goto work_error;
+            break;
           }
 
           if (!sp_track_is_available (SPOT_OBJ_CURRENT_TRACK (spot_instance))) {
             /* this probably happens for tracks avaiable in other countries or
                something */
             GST_ERROR_OBJECT (spot, "Track is not available, uri=%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
-            spot_work->ret = -1;
-            goto work_error;
+            break;
           }
 
           sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
@@ -418,8 +414,7 @@ spotify_thread_func (void *data)
           if (ret != SP_ERROR_OK) {
             GST_ERROR_OBJECT (spot, "Failed to load track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
                 (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
-            spot_work->ret = -1;
-            goto work_error;
+            break;
           }
 
           sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
@@ -427,8 +422,7 @@ spotify_thread_func (void *data)
           if (ret != SP_ERROR_OK) {
             GST_ERROR_OBJECT (spot, "Failed to play track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
                 (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
-            spot_work->ret = -1;
-            goto work_error;
+            break;
           }
           break;
         case SPOT_CMD_PROCESS:
@@ -436,25 +430,29 @@ spotify_thread_func (void *data)
           break;
 
         case SPOT_CMD_PLAY:
-          sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+          ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
           break;
 
         case SPOT_CMD_DURATION:
           if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
-            spot_work->ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
+            ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
           }
           break;
 
         case SPOT_CMD_STOP:
           if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
-            sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), FALSE);
+            ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), FALSE);
+            if (ret != SP_ERROR_OK)  {
+              break;
+            }
+            ret = SP_ERROR_OK;
             sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
           }
           break;
 
         case SPOT_CMD_SEEK:
           if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
-            spot_work->ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
+            ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
           }
           break;
         default:
@@ -463,7 +461,12 @@ spotify_thread_func (void *data)
 
       }
 
-work_error:
+      /* print all errors caught and propagate to calling thread */
+      if (ret != SP_ERROR_OK) {
+            GST_ERROR_OBJECT (spot, "Failed with SPOT_CMD=%d, error=%s", spot_work->cmd, sp_error_message (ret));
+      }
+      spot_work->ret = ret;
+
       spot->spot_works = g_list_remove (spot->spot_works, spot->spot_works->data);
       g_mutex_unlock (spot_work->spot_mutex);
       g_cond_broadcast (spot_work->spot_cond);
