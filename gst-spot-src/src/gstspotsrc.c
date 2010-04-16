@@ -237,7 +237,7 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_cb, ugly_spot, "Music_delivery callback");
 
   GST_SPOT_SRC_FORMAT (ugly_spot)->sample_rate = sample_rate;
-  GST_SPOT_SRC_FORMAT (ugly_spot)->channels = channels; 
+  GST_SPOT_SRC_FORMAT (ugly_spot)->channels = channels;
   GST_SPOT_SRC_FORMAT (ugly_spot)->sample_type = format->sample_type;
 
   GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Start %p with %d frames with size=%d\n", frames, num_frames, bufsize);
@@ -270,7 +270,6 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   /* data is available broadcast read thread */
   g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (ugly_spot));
   g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (ugly_spot));
-
   GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Return num_frames=%d\n", num_frames);
   return num_frames;
 }
@@ -355,7 +354,6 @@ spotify_thread_func (void *data)
   GTimeVal t;
   GstSpotSrc *spot = (GstSpotSrc *) data;
 
-
   if (!spot_obj_create_session (spot, spot_instance)) {
     GST_ERROR_OBJECT (spot, "Spot_obj_create_session error");
     return FALSE;
@@ -372,70 +370,97 @@ spotify_thread_func (void *data)
       int ret;
       spot_work = (struct spot_work *)spot->spot_works->data;
       g_mutex_lock (spot_work->spot_mutex);
-      if (spot_work->cmd == SPOT_CMD_START) {
-        GST_DEBUG_OBJECT (spot, "Uri = %s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
-        if (!spot_obj_login (spot, spot_instance)) {
-          /* error message from within function */
-          spot_work->ret = -1;
-          goto work_error;
-        }
+      switch (spot_work->cmd) {
+        case SPOT_CMD_START:
+          GST_DEBUG_OBJECT (spot, "Uri = %s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
+          if (!spot_obj_login (spot, spot_instance)) {
+            /* error message from within function */
+            spot_work->ret = -1;
+            goto work_error;
+          }
 
-        sp_link *link = sp_link_create_from_string (SPOT_OBJ_SPOTIFY_URI (spot_instance));
+          sp_link *link = sp_link_create_from_string (SPOT_OBJ_SPOTIFY_URI (spot_instance));
 
-        if (!link) {
-          GST_ERROR_OBJECT (spot, "Incorrect track ID:%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
-          spot_work->ret = -1;
-          goto work_error;
-        }
+          if (!link) {
+            GST_ERROR_OBJECT (spot, "Incorrect track ID:%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
+            spot_work->ret = -1;
+            goto work_error;
+          }
 
-        SPOT_OBJ_CURRENT_TRACK (spot_instance) = sp_link_as_track (link);
+          SPOT_OBJ_CURRENT_TRACK (spot_instance) = sp_link_as_track (link);
 
-        if (!SPOT_OBJ_CURRENT_TRACK (spot_instance)) {
-          GST_ERROR_OBJECT (spot, "Only track ID:s are currently supported");
-          spot_work->ret = -1;
-          goto work_error;
-        }
+          if (!SPOT_OBJ_CURRENT_TRACK (spot_instance)) {
+            GST_ERROR_OBJECT (spot, "Could get track from uri=%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
+            spot_work->ret = -1;
+            goto work_error;
+          }
 
-        sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
-        sp_link_add_ref (link);
+          if (!sp_track_is_available (SPOT_OBJ_CURRENT_TRACK (spot_instance))) {
+            /* this probably happens for tracks avaiable in other countries or
+               something */
+            GST_ERROR_OBJECT (spot, "Track is not available, uri=%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
+            spot_work->ret = -1;
+            goto work_error;
+          }
 
-        sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-        while (sp_track_is_loaded (SPOT_OBJ_CURRENT_TRACK (spot_instance)) == 0) {
+          sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
+          sp_link_add_ref (link);
+
           sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-          usleep (10000);
-        }
+          while (sp_track_is_loaded (SPOT_OBJ_CURRENT_TRACK (spot_instance)) == 0) {
+            sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+            usleep (10000);
+          }
 
-        GST_DEBUG_OBJECT (spot, "Now playing \"%s\"", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
+          GST_DEBUG_OBJECT (spot, "Now playing \"%s\"", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
 
-        ret = sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
-        if (ret != SP_ERROR_OK) {
-          GST_ERROR_OBJECT (spot, "Failed to load track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
-              (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
-          spot_work->ret = -1;
-          goto work_error;
-        }
+          ret = sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
+          if (ret != SP_ERROR_OK) {
+            GST_ERROR_OBJECT (spot, "Failed to load track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
+                (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
+            spot_work->ret = -1;
+            goto work_error;
+          }
 
-        sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-        ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
-        if (ret != SP_ERROR_OK) {
-          GST_ERROR_OBJECT (spot, "Failed to play track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
-              (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
-          spot_work->ret = -1;
-          goto work_error;
-        }
+          sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+          ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+          if (ret != SP_ERROR_OK) {
+            GST_ERROR_OBJECT (spot, "Failed to play track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
+                (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
+            spot_work->ret = -1;
+            goto work_error;
+          }
+          break;
+        case SPOT_CMD_PROCESS:
+          sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+          break;
 
+        case SPOT_CMD_PLAY:
+          sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+          break;
 
-      } else if (spot_work->cmd == SPOT_CMD_PROCESS) {
-        sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-      } else if (spot_work->cmd == SPOT_CMD_PLAY) {
-        sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
-      } else if (spot_work->cmd == SPOT_CMD_DURATION && SPOT_OBJ_LOGGED_IN (spot_instance)) {
-        spot_work->ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
-      } else if (spot_work->cmd == SPOT_CMD_STOP && SPOT_OBJ_LOGGED_IN (spot_instance)) {
-        sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), FALSE);
-        sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
-      } else if (spot_work->cmd == SPOT_CMD_SEEK && SPOT_OBJ_LOGGED_IN (spot_instance)) {
-        spot_work->ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
+        case SPOT_CMD_DURATION:
+          if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
+            spot_work->ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
+          }
+          break;
+
+        case SPOT_CMD_STOP:
+          if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
+            sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), FALSE);
+            sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
+          }
+          break;
+
+        case SPOT_CMD_SEEK:
+          if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
+            spot_work->ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
+          }
+          break;
+        default:
+          g_assert_not_reached ();
+          break;
+
       }
 
 work_error:
@@ -701,9 +726,9 @@ _do_init (GType spotsrc_type)
   * that are printed very often. The combination of levels and categories should
   * make it easy to filter out the correct information.
   *
-  * GST_DEBUG=spot*:2,spot_audio:3,spot_threads:5 for example, 
-  * this will give you all errors and warnings, some info on from 
-  * audio parts and all info for the threads 
+  * GST_DEBUG=spot*:2,spot_audio:3,spot_threads:5 for example,
+  * this will give you all errors and warnings, some info on from
+  * audio parts and all info for the threads
   *
   */
 
@@ -800,7 +825,7 @@ gst_spot_src_init (GstSpotSrc * spot, GstSpotSrcClass * g_class)
   /* initiate format to default format */
   GST_SPOT_SRC_FORMAT (spot) = g_malloc0 (sizeof (sp_audioformat));
   GST_SPOT_SRC_FORMAT (spot)->sample_rate = SPOTIFY_DEFAULT_SAMPLE_RATE;
-  GST_SPOT_SRC_FORMAT (spot)->channels = SPOTIFY_DEFAULT_NUMBER_CHANNELS; 
+  GST_SPOT_SRC_FORMAT (spot)->channels = SPOTIFY_DEFAULT_NUMBER_CHANNELS;
   GST_SPOT_SRC_FORMAT (spot)->sample_type = SP_SAMPLETYPE_INT16_NATIVE_ENDIAN;
 
   spot_instance = g_object_new (SPOT_OBJ_TYPE, NULL);
@@ -885,6 +910,7 @@ gst_spot_src_set_property (GObject * object, guint prop_id,
       g_object_set (spot_instance, "pass", g_value_get_string (value), NULL);
       break;
     case ARG_URI:
+      //FIXME: how do handle error from this func?
       gst_spot_src_set_spotifyuri (spot, g_value_get_string (value));
       break;
     case ARG_SPOTIFY_URI:
@@ -1302,10 +1328,12 @@ gst_spot_src_uri_set_uri (GstURIHandler * handler, const gchar * uri)
   ret = gst_spot_src_set_spotifyuri (spot, location);
 
 beach:
-  if (location)
+  if (location) {
     g_free (location);
-  if (hostname)
+  }
+  if (hostname) {
     g_free (hostname);
+  }
 
   return ret;
 }
