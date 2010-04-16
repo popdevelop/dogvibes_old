@@ -392,12 +392,15 @@ spotify_thread_func (void *data)
             break;
           }
 
+#if 0
+          /* FIXME: why does not this work? */
           if (!sp_track_is_available (SPOT_OBJ_CURRENT_TRACK (spot_instance))) {
             /* this probably happens for tracks avaiable in other countries or
                something */
             GST_ERROR_OBJECT (spot, "Track is not available, uri=%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
             break;
           }
+#endif
 
           sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
           sp_link_add_ref (link);
