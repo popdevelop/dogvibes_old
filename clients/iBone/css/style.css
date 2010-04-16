@@ -1,0 +1,114 @@
+* { color:#FFF; font-family: helvetica, verdana, sans-serif; margin: 0; padding: 0;}
+
+ul, li { display: inline-block; list-style-type: none; }
+
+body {
+	text-align: center;
+}
+
+#container {
+	position: relative;
+	background-color: #000;
+	background-image: none;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
+}
+
+#container.none {
+	background-image: none;
+}
+
+#top {
+	position:absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+}
+
+#top div#info {
+	display: inline-block;
+	width: 100%;
+	height: 47px;
+	background-image: url('../img/top_grad.png');
+	background-repeat: repeat-x;
+	padding-top: 1px;
+}
+#top div#info ul {
+	width: 100%;
+}
+#top div#info ul li {
+	width: 100%;
+	text-align: center;
+	display: block;
+	font-size: 11px;
+	color: #CCC;
+	padding-top: 1px;
+}
+
+#top div#info ul li.highlight {
+	color: #fff;
+}
+
+#top div#track {
+	width: 100%;
+	background-image: url('../img/black-px-30.png');
+}
+
+#top div#track strong {
+	width; 100%;
+	text-align: center;
+	padding: 10px 0 5px 0;
+	display: block;
+}
+
+#top div#track #time {
+	padding: 5px 0 10px 0;
+}
+
+#top div#track #time li {
+	padding: 0 10px;
+}
+
+#bottom {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 100px;
+	background-image: url('../img/bottom_grad.png');
+	background-repeat: repeat-x;
+	background-position: left bottom;
+}
+
+
+#bottom ul#playback {
+	width: 100%;
+}
+
+#bottom ul#playback li a {
+	background-image: url('../img/playctrl-sprite-off.png');
+	background-repeat: no-repeat;
+	text-indent: -9999px;
+	display: inline-block;
+	height: 75px;
+}
+
+#bottom ul#playback li a:active {
+	background-image: url('../img/playctrl-sprite-on.png');
+}
+
+#bottom ul#playback li a.prev {
+	width: 110px;
+	background-position: 0 0;
+}
+
+#bottom ul#playback li a.play {
+	width: 90px;
+	background-position: -110px 0;
+}
+
+#bottom ul#playback li a.next {
+	width: 110px;
+	background-position: -205px 0;
+}
+
