@@ -3,6 +3,7 @@ import re
 import urllib
 import hashlib
 import StringIO
+import logging
 from PIL import Image
 
 art_dir = 'albumart'
@@ -16,6 +17,10 @@ class AlbumArt():
         size = int(size)
         if not os.path.exists(art_dir):
             os.mkdir(art_dir)
+
+        # Need this for Swedish and other peculiar languages to pass
+        artist = artist.encode('utf-8')
+        album = album.encode('utf-8')
 
         img_hash = hashlib.sha224(artist + album).hexdigest()
         img_path = art_dir + '/' + img_hash + '.jpg'
@@ -76,7 +81,12 @@ class AlbumArt():
             return None
 
         # last item is extralarge, then large etc
-        return urllib.urlopen(sizes[-1][1]).read()
+        art_uri = sizes[-1][1]
+        try:
+            return urllib.urlopen(art_uri).read()
+        except IOError:
+            logging.warning("Could not open album art URI: '%s'" % art_uri)
+            return None
 
 if __name__ == '__main__':
     img_data = AlbumArt.get_image('oasis', 'stop the clocks', 80)
