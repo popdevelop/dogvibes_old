@@ -1,9 +1,9 @@
 /* Some configuration options */
 var Config =  {
 	defServer: "http://dogvibes.com",
-	defAmp: "/amp/0/",
+	defAmp: "/amp/0",
 	defAlbumArtURL: "img/michael.jpg",
-	pollIntervall: 2000 /* ms */
+	pollInterval: 2000 /* ms */
 }
 
 /* Shortcuts to save some typing */
@@ -42,7 +42,7 @@ var UI = {
 			obj.appendChild(d.cT(text));
 		}
 		else {
-			obj.childNodes[0].value = text+"";
+			obj.childNodes[0].nodeValue = text+"";
 		}
 	}
 }
@@ -52,7 +52,7 @@ var defStatus = {
 	volume: 0,
 	index: 0,
 	state: "",
-	track: "Not connected",
+	title: "Not connected",
 	artist: "",
 	album: "",
 	albumArt: "",
@@ -65,6 +65,7 @@ var defStatus = {
  * always contains the latest status data in Status.data */
 var Status = {
 	timer: null,
+  inProgress: false,
 	data: defStatus,
 	init: function() {
 		/* Listen and respond to server connection events */
@@ -78,37 +79,43 @@ var Status = {
 		$(document).trigger("Status.songinfo");
 	},
 	run: function() {
-		Status.timer = setInterval(Config.pollInterval, Status.get);
+		Status.timer = setTimeout(Status.get, Config.pollInterval);
 	},
 	stop: function() {
-		clearInterval(Status.timer);
-		Status.handle(defStatus);
+		clearTimeout(Status.timer);
+		Status.handle({result: defStatus, error: 1});
 	},
 	get: function() {
-		Server.request(Server.cmd.status, Status.handle);
+    /* Clear any pending request prior to making a new one */
+    clearTimeout(Status.timer);
+    Server.request(Server.cmd.status, Status.handle);
 	},
 	handle: function(data) {
+    if(data.error == 0) {
+      /* Reload timer on success */
+      Status.timer = setTimeout(Status.get, Config.pollInterval);
+    }
 		/* Walk through interesting status fields and dispatch events if changed*/
 		/* Need to save old data before dispatching events */
 		var oldStatus = Status.data;
-		Status.data = data;
+		Status.data = data.result;
 		
-		if(data.state != oldStatus.state) {
+		if(Status.data.state != oldStatus.state) {
 			$(document).trigger("Status.state");
 		}		
 		
-		if(data.volume != oldStatus.volume) {
+		if(Status.data.volume != oldStatus.volume) {
 			$(document).trigger("Status.volume");
 		}
 		
-		if(data.artist != oldStatus.artist ||
-		   data.track  != oldStatus.track  ||
-			 data.album  != oldStatus.album  ||
-			 data.albumArt != oldStatus.albumArt) {
+		if(Status.data.artist != oldStatus.artist ||
+		   Status.data.title  != oldStatus.title  ||
+			 Status.data.album  != oldStatus.album  ||
+			 Status.data.albumArt != oldStatus.albumArt) {
 			$(document).trigger("Status.songinfo");
 		}
 		
-		if(data.elapsedTime != oldStatus.elapsedTime) {
+		if(Status.data.elapsedTime != oldStatus.elapsedTime) {
 			$(document).trigger("Status.time");
 		}
 	}
@@ -142,18 +149,17 @@ var Server = {
 	},
 	request: function(Command, Success, Error) {
 		/* Setup default callbacks */
-		if(typeof(Success == "undefined")) {
+		if(typeof(Success) == "undefined") {
 			Success = Status.get; 
 		}	
-		if(typeof(Error == "undefined")) {
+		if(typeof(Error) == "undefined") {
 			Error = Server.error; 
 		}
     $.jsonp({
 			url: Server.url + Command,
-      //data: options,
       error: Error,
-      callbackParameter: "callback",
-      success: Success
+      success: Success,
+      callbackParameter: "callback"
 		});	
 	},	
 	connected: function() {
@@ -161,7 +167,7 @@ var Server = {
 		$(document).trigger("Server.connected");
 		
 	},
-	error: function() {
+	error: function(data, text) {
 		$(document).trigger("Server.error");	
 		/* */
 		alert("Ooops! No server!");		
@@ -184,9 +190,9 @@ var SongInfo = {
 		SongInfo.ui.artist = d.cE('li');
 		ul.appendChild(SongInfo.ui.artist);
 
-		SongInfo.ui.track = d.cE('li');
-		SongInfo.ui.track.className = "highlight";		
-		ul.appendChild(SongInfo.ui.track);
+		SongInfo.ui.title = d.cE('li');
+		SongInfo.ui.title.className = "highlight";		
+		ul.appendChild(SongInfo.ui.title);
 		
 		SongInfo.ui.album = d.cE('li');
 		ul.appendChild(SongInfo.ui.album);
@@ -219,7 +225,7 @@ var SongInfo = {
 		/* Update UI labels with lastes song info  */
 		UI.setText(SongInfo.ui.artist, Status.data.artist);
 		UI.setText(SongInfo.ui.album, Status.data.album);
-		UI.setText(SongInfo.ui.track, Status.data.track);
+		UI.setText(SongInfo.ui.title, Status.data.title);
 		/* Update album art */
 		var imgUrl = typeof(Status.data.uri) == "undefined" ?
 								 Config.defAlbumArtURL :
@@ -259,19 +265,16 @@ var PlayControl = {
 		
 		PlayControl.ui.prev = d.cE('a');
 		PlayControl.ui.prev.className = "prev";
-		PlayControl.ui.prev.onclick = function() { Server.request(Server.cmd.prev); };
-		li = UI.newElement('li', PlayControl.ui.prev);
+    li = UI.newElement('li', PlayControl.ui.prev);
 		PlayControl.ui.ctrl.appendChild(li);
 		
 		PlayControl.ui.play = d.cE('a');
 		PlayControl.ui.play.className = "play";
-		PlayControl.ui.play.onclick = function() { Server.request(Server.cmd.play); };
 		li = UI.newElement('li', PlayControl.ui.play);
 		PlayControl.ui.ctrl.appendChild(li);		
 		
 		PlayControl.ui.next = d.cE('a');
 		PlayControl.ui.next.className = "next";
-		PlayControl.ui.next.onclick = function() { Server.request(Server.cmd.next); };
 		li = UI.newElement('li', PlayControl.ui.next);
 		PlayControl.ui.ctrl.appendChild(li);	
 		
@@ -287,14 +290,35 @@ var PlayControl = {
 	volume: function() {
 		/* TODO: Do something */
 	},
+  /* Update to the correct state */
 	state: function() {
-		/* TODO: implement */
+		if(Status.data.state == "stopped") {
+      
+    } 
+    else {
+      
+    }
 	},
 	show: function() {
-		$(UI.bottom).show();
+		$(PlayControl.ui.ctrl).removeClass("disabled");
+    /* Make controlls clickable */
+    $(PlayControl.ui.prev).click(function() { Server.request(Server.cmd.prev) });
+    $(PlayControl.ui.play).click(function() {
+      Server.request(
+        Status.data.state == "stopped" ?
+        Server.cmd.play :
+        Server.cmd.pause
+      );
+    });
+ 		$(PlayControl.ui.next).click(function() { Server.request(Server.cmd.next); });
+
 	},
-	hide: function() {
-		$(UI.bottom).hide();	
+	hide: function() {	
+		$(PlayControl.ui.ctrl).addClass("disabled");  
+    /* Make controls unclickable */
+    $(PlayControl.ui.prev).unbind();
+    $(PlayControl.ui.play).unbind();
+    $(PlayControl.ui.next).unbind();
 	}
 }
 

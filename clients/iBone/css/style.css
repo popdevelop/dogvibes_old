@@ -97,6 +97,15 @@ body {
 	background-image: url('../img/playctrl-sprite-on.png');
 }
 
+#bottom ul#playback.disabled {
+  filter:alpha(opacity=50);
+  opacity: 0.5;
+}
+
+#bottom ul#playback.disabled li a:active {
+  background-image: url('../img/playctrl-sprite-off.png');
+}
+
 #bottom ul#playback li a.prev {
 	width: 110px;
 	background-position: 0 0;
