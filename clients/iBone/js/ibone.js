@@ -49,7 +49,7 @@ var UI = {
 
 /* Create a function for converting msec to time string */
 Number.prototype.msec2time = function() {
-  var ts = this / 1000;
+  var ts = Math.floor(this / 1000);
   if(!ts) { ts=0; }
   if(ts==0) { return "0:00"; }
   m = Math.round(ts/60 - 0.5);
@@ -71,7 +71,7 @@ var defStatus = {
 }
 
 var stopStatus = {
-	title: "Nothing playing",
+	title: "Nothing to play",
 	artist: "",
 	album: "",
 }
@@ -227,6 +227,11 @@ var SongInfo = {
 		SongInfo.ui.time = d.cE('ul');
 		var ul = d.cE('ul');
 		
+    /* Back button */
+    SongInfo.ui.back = d.cE('a');
+    SongInfo.ui.back.className = 'button left';
+    SongInfo.ui.back.onclick = function() { alert('Sorry, not yet!'); };
+    
 		/* Track data */
 		SongInfo.ui.artist = d.cE('li');
 		ul.appendChild(SongInfo.ui.artist);
@@ -238,6 +243,8 @@ var SongInfo = {
 		SongInfo.ui.album = d.cE('li');
 		ul.appendChild(SongInfo.ui.album);
 		
+    /* Append to top menu */
+    UI.info.appendChild(SongInfo.ui.back);
 		UI.info.appendChild(ul);
 		
 		/* Time and slider */
@@ -253,6 +260,7 @@ var SongInfo = {
 		SongInfo.ui.total.className = "time";
 		SongInfo.ui.time.appendChild(SongInfo.ui.total);
 		
+    /* Append to 'trackNo and time' info */
 		UI.track.appendChild(SongInfo.ui.trackNo);
 		UI.track.appendChild(SongInfo.ui.time);
 		
@@ -268,8 +276,11 @@ var SongInfo = {
 		UI.setText(SongInfo.ui.album, Status.data.album);
 		UI.setText(SongInfo.ui.title, Status.data.title);
 		/* Update album art */
-		var imgUrl = typeof(Status.data.uri) == "undefined" ?
-								 Config.defAlbumArtURL :
+		var imgUrl = (typeof(Status.data.uri) == "undefined" ||
+                  Status.data.uri == "dummy") 
+                 ?
+								 Config.defAlbumArtURL 
+                 :
 								 Server.url + Server.cmd.albumArt + Status.data.uri;
 		$(UI.albArt).css('background-image', 'url(' + imgUrl + ')'); 
 		

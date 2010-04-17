@@ -4,6 +4,7 @@ ul, li { display: inline-block; list-style-type: none; }
 
 body {
 	text-align: center;
+  background-color: #000;
 }
 
 #container {
@@ -25,16 +26,32 @@ body {
 	width: 100%;
 }
 
+#top .left {
+  position:absolute;
+  top: 0;
+  left: 0;
+  display: inline;
+}
+
+#top .button {
+  background-image: url('../img/button-back.png');
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  height: 50px;
+  width: 53px;
+}
+
 #top div#info {
 	display: inline-block;
 	width: 100%;
-	height: 47px;
+	height: 50px;
 	background-image: url('../img/top_grad.png');
 	background-repeat: repeat-x;
 	padding-top: 1px;
 }
 #top div#info ul {
-	width: 100%;
+  float: center;
+  display: inline;  
 }
 #top div#info ul li {
 	width: 100%;
