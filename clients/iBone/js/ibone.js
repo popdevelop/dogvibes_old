@@ -297,7 +297,7 @@ var SongInfo = {
     }
     else {
       elapsed  = Status.data.elapsedmseconds.msec2time();
-      duration = Status.data.duration.msec2time();       
+      duration = (Status.data.elapsedmseconds - Status.data.duration).msec2time();       
     }
     
     UI.setText(SongInfo.ui.elapsed, elapsed);
