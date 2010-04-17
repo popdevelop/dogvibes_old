@@ -49,9 +49,6 @@ var UI = {
 
 /* Create a function for converting msec to time string */
 Number.prototype.msec2time = function() {
-  if(ts == 0) { 
-    return "";
-  }
   var ts = this / 1000;
   if(!ts) { ts=0; }
   if(ts==0) { return "0:00"; }
@@ -66,14 +63,17 @@ Number.prototype.msec2time = function() {
 /* The status fields this application is interested in. Also default values */
 var defStatus = {
 	volume: 0,
-	index: 0,
-	state: "",
+	state: "disconnected",
 	title: "Not connected",
 	artist: "",
 	album: "",
 	albumArt: "",
-	elapsedmseconds: 0,
-  duration: 0
+}
+
+var stopStatus = {
+	title: "Nothing playing",
+	artist: "",
+	album: "",
 }
 
 /* Status:
@@ -83,7 +83,7 @@ var defStatus = {
 var Status = {
 	timer: null,
   inProgress: false,
-	data: defStatus,
+	data: { result: defStatus, error: 0 },
 	init: function() {
 		/* Listen and respond to server connection events */
 		$(document).bind("Server.connected", Status.run);
@@ -101,6 +101,7 @@ var Status = {
 	stop: function() {
 		clearTimeout(Status.timer);
 		Status.handle({result: defStatus, error: 1});
+    Status.data.state = "disconnected";
 	},
 	get: function() {
     /* Clear any pending request prior to making a new one */
@@ -108,15 +109,28 @@ var Status = {
     Server.request(Server.cmd.status, Status.handle);
 	},
 	handle: function(data) {
-    if(data.error == 0) {
-      /* Reload timer on success */
-      Status.timer = setTimeout(Status.get, Config.pollInterval);
-    }
-		/* Walk through interesting status fields and dispatch events if changed*/
 		/* Need to save old data before dispatching events */
 		var oldStatus = Status.data;
 		Status.data = data.result;
-		
+
+    /* TODO: solve better. Fill in artist info when state is stopped.
+     * since this info is not sent from server */
+    if(data.result.state == "stopped") {
+      data.result.artist = stopStatus.artist;
+      data.result.album  = stopStatus.album;
+      data.result.title  = stopStatus.title;            
+    }
+
+    /* Reload timer if not disconnected */
+    if(data.result.state != "disconnected") {
+      Status.timer = setTimeout(Status.get, Config.pollInterval);
+    }
+      
+    if(data.error != 0) {    
+      /* TODO: notify some how */
+    } 
+    
+		/* Walk through interesting status fields and dispatch events if changed*/		
 		if(Status.data.state != oldStatus.state) {
 			$(document).trigger("Status.state");
 		}		
@@ -184,11 +198,14 @@ var Server = {
       callbackParameter: "callback"
 		});	
 	},	
-	connected: function() {
+	connected: function(json) {
 		/* Let people know that we have working connection */
 		$(document).trigger("Server.connected");
     /* Save server in cookie for next time */
     setCookie("dogvibes.server", Server.url, 365);
+    /* FIXME: not nice. Trigger an info update since we've got the 
+       latest status at this point */
+    Status.handle(json);
 		
 	},
 	error: function(data, text) {
@@ -241,12 +258,12 @@ var SongInfo = {
 		
 		/* Setup event listeners */
 		$(document).bind("Server.error", SongInfo.hide);
-		$(document).bind("Server.connected", SongInfo.show);
+		//$(document).bind("Server.connected", SongInfo.show);
 		$(document).bind("Status.songinfo", SongInfo.set);
 		$(document).bind("Status.time", SongInfo.time);
 	},
 	set: function() {
-		/* Update UI labels with lastes song info  */
+		/* Update UI labels with lastest song info  */
 		UI.setText(SongInfo.ui.artist, Status.data.artist);
 		UI.setText(SongInfo.ui.album, Status.data.album);
 		UI.setText(SongInfo.ui.title, Status.data.title);
@@ -256,14 +273,25 @@ var SongInfo = {
 								 Server.url + Server.cmd.albumArt + Status.data.uri;
 		$(UI.albArt).css('background-image', 'url(' + imgUrl + ')'); 
 		
-		/* TODO: Track number */
-    UI.setText(SongInfo.ui.trackNo, (Status.data.index + 1) + " of ??");
-		
+    
+    UI.setText(SongInfo.ui.trackNo, (Status.data.index + 1) + " of ??");		
 	},
 	time: function() {
 		/* TODO: implement slider */
-    UI.setText(SongInfo.ui.elapsed, Status.data.elapsedmseconds.msec2time());
-    UI.setText(SongInfo.ui.total, Status.data.duration.msec2time());    
+    var elapsed, duration;
+    /* We don't have time information when state is stopped */
+    if(Status.data.state == "stopped") {
+      elapsed = "";
+      duration = "";
+    }
+    else {
+      elapsed  = Status.data.elapsedmseconds.msec2time();
+      duration = Status.data.duration.msec2time();       
+    }
+    
+    UI.setText(SongInfo.ui.elapsed, elapsed);
+    UI.setText(SongInfo.ui.total, duration);    
+    
 	},
 	show: function() {
 		$(UI.track).show();
@@ -316,7 +344,7 @@ var PlayControl = {
 	},
 	volume: function() {
 		/* TODO: Implement slider */
-    UI.setText(PlayControl.ui.volume, "Volume: " + Status.data.volume*100);
+    UI.setText(PlayControl.ui.volume, "Volume: " + Math.round(Status.data.volume*100),0);
 	},
   /* Update to the correct state */
 	state: function() {
@@ -325,6 +353,15 @@ var PlayControl = {
     } 
     else {
       $(PlayControl.ui.ctrl).removeClass('playing');      
+    }
+    
+    /* Hide time info when stopped */
+    if(Status.data.state == "stopped" |
+       Status.data.state == "disconnected") {
+      SongInfo.hide();
+    }
+    else {
+      SongInfo.show();
     }
 	},
 	show: function() {
