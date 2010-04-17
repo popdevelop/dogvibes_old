@@ -47,6 +47,7 @@ body {
 
 #top div#info ul li.highlight {
 	color: #fff;
+  font-weight: bold;
 }
 
 #top div#track {
@@ -61,11 +62,13 @@ body {
 	display: block;
 }
 
-#top div#track #time {
+#top div#track ul {
 	padding: 5px 0 10px 0;
 }
 
-#top div#track #time li {
+#top div#track li.time {
+  font-size: 11px;
+  font-weight: bold;
 	padding: 0 10px;
 }
 
@@ -106,6 +109,14 @@ body {
   background-image: url('../img/playctrl-sprite-off.png');
 }
 
+/* Playing state */
+#bottom ul#playback.playing li a {
+  background-image: url('../img/playctrl-sprite-playing-off.png');
+}
+#bottom ul#playback.playing li a:active {
+  background-image: url('../img/playctrl-sprite-playing-off.png');
+}
+
 #bottom ul#playback li a.prev {
 	width: 110px;
 	background-position: 0 0;
@@ -113,7 +124,7 @@ body {
 
 #bottom ul#playback li a.play {
 	width: 90px;
-	background-position: -110px 0;
+	background-position: -115px 0;
 }
 
 #bottom ul#playback li a.next {

@@ -47,6 +47,22 @@ var UI = {
 	}
 }
 
+/* Create a function for converting msec to time string */
+Number.prototype.msec2time = function() {
+  if(ts == 0) { 
+    return "";
+  }
+  var ts = this / 1000;
+  if(!ts) { ts=0; }
+  if(ts==0) { return "0:00"; }
+  m = Math.round(ts/60 - 0.5);
+  s = Math.round(ts - m*60);
+  if (s<10 && s>=0){
+    s="0" + s;
+  }
+  return m + ":" + s;
+}
+
 /* The status fields this application is interested in. Also default values */
 var defStatus = {
 	volume: 0,
@@ -56,7 +72,8 @@ var defStatus = {
 	artist: "",
 	album: "",
 	albumArt: "",
-	elapsedTime: 0
+	elapsedmseconds: 0,
+  duration: 0
 }
 
 /* Status:
@@ -115,7 +132,8 @@ var Status = {
 			$(document).trigger("Status.songinfo");
 		}
 		
-		if(Status.data.elapsedTime != oldStatus.elapsedTime) {
+		if(Status.data.elapsedmseconds != oldStatus.elapsedmseconds ||
+       Status.data.duration != oldStatus.duration) {
 			$(document).trigger("Status.time");
 		}
 	}
@@ -137,10 +155,14 @@ var Server = {
 		albumArt: "/dogvibes/getAlbumArt?size=320&uri="
 	},
 	init: function() {
+    var temp;
 		/* Default state */
 		$(document).trigger("Server.error");	
 		
 		/* Do we have a server? Otherwise ask user to enter URL */
+    if((temp = getCookie("dogvibes.server")) != ""){
+        Config.defServer = temp;
+    }    
 		if(!Server.url) {
 			Server.url = prompt("Enter Dogvibes server URL:", Config.defServer);
 		}
@@ -165,6 +187,8 @@ var Server = {
 	connected: function() {
 		/* Let people know that we have working connection */
 		$(document).trigger("Server.connected");
+    /* Save server in cookie for next time */
+    setCookie("dogvibes.server", Server.url, 365);
 		
 	},
 	error: function(data, text) {
@@ -233,10 +257,13 @@ var SongInfo = {
 		$(UI.albArt).css('background-image', 'url(' + imgUrl + ')'); 
 		
 		/* TODO: Track number */
+    UI.setText(SongInfo.ui.trackNo, (Status.data.index + 1) + " of ??");
 		
 	},
 	time: function() {
-		/* TODO: implement */
+		/* TODO: implement slider */
+    UI.setText(SongInfo.ui.elapsed, Status.data.elapsedmseconds.msec2time());
+    UI.setText(SongInfo.ui.total, Status.data.duration.msec2time());    
 	},
 	show: function() {
 		$(UI.track).show();
@@ -288,15 +315,16 @@ var PlayControl = {
 		$(document).bind("Server.error", PlayControl.hide);				
 	},
 	volume: function() {
-		/* TODO: Do something */
+		/* TODO: Implement slider */
+    UI.setText(PlayControl.ui.volume, "Volume: " + Status.data.volume*100);
 	},
   /* Update to the correct state */
 	state: function() {
-		if(Status.data.state == "stopped") {
-      
+		if(Status.data.state == "playing") {
+      $(PlayControl.ui.ctrl).addClass('playing');
     } 
     else {
-      
+      $(PlayControl.ui.ctrl).removeClass('playing');      
     }
 	},
 	show: function() {
@@ -305,9 +333,9 @@ var PlayControl = {
     $(PlayControl.ui.prev).click(function() { Server.request(Server.cmd.prev) });
     $(PlayControl.ui.play).click(function() {
       Server.request(
-        Status.data.state == "stopped" ?
-        Server.cmd.play :
-        Server.cmd.pause
+        Status.data.state == "playing" ?
+        Server.cmd.pause :
+        Server.cmd.play
       );
     });
  		$(PlayControl.ui.next).click(function() { Server.request(Server.cmd.next); });
