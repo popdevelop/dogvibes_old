@@ -31,12 +31,28 @@
   display: inline;
 }
 
+#top .right {
+  position:absolute;
+  top: 0;
+  right: 0;
+  display: inline;
+}
+
 #top .music_button {
   background-image: url('../img/button-back.png');
   background-position: 50% 50%;
   background-repeat: no-repeat;
   height: 50px;
   width: 53px;
+}
+
+
+#top .list_button {
+  background-image: url('../img/button-list.png');
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  height: 50px;
+  width: 50px;
 }
 
 #top div#info {

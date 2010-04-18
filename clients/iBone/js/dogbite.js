@@ -27,6 +27,7 @@ var UI = {
 		UI.albArt  = d.gID("player");
     UI.playlists = d.gID("home");
     UI.playlist = d.gID("playlist");
+    UI.currentlist = d.gID("currentlist");    
 	},
 	/* Misc handy function for creating elements */
 	newElement: function (tag, content) {
@@ -70,7 +71,9 @@ var defStatus = {
 	title: "Not connected",
 	artist: "",
 	album: "",
-	albumArt: ""
+	albumArt: "",
+  playqueuehash: "",
+  playlist_id: false
 }
 
 var stopStatus = {
@@ -153,6 +156,11 @@ var Status = {
        Status.data.duration != oldStatus.duration) {
 			$(document).trigger("Status.time");
 		}
+    
+    if(Status.data.playlist_id != oldStatus.playlist_id ||
+       Status.data.playqueuehash != oldStatus.playqueuehash) {
+      $(document).trigger("Status.playlist");
+    }
 	}
 }
 
@@ -230,7 +238,6 @@ var SongInfo = {
 	ui: Array(),
 	init: function() {
 		/* Create UI objects that this module controls */
-		SongInfo.ui.trackNo = d.cE('strong');
 		SongInfo.ui.time = d.cE('ul');
 		var ul = d.cE('ul');
 		
@@ -239,6 +246,12 @@ var SongInfo = {
     SongInfo.ui.back.className = 'music_button left';
     //SongInfo.ui.back.onclick = function() { alert('Sorry, not yet!'); };
     SongInfo.ui.back.href = "#home";
+
+    SongInfo.ui.list = d.cE('a');
+    SongInfo.ui.list.className = 'list_button right';
+    //SongInfo.ui.back.onclick = function() { alert('Sorry, not yet!'); };
+    SongInfo.ui.list.href = "#currentlist";
+
     
 		/* Track data */
 		SongInfo.ui.artist = d.cE('li');
@@ -254,6 +267,7 @@ var SongInfo = {
     /* Append to top menu */
     UI.info.appendChild(SongInfo.ui.back);
 		UI.info.appendChild(ul);
+    UI.info.appendChild(SongInfo.ui.list);    
 		
 		/* Time and slider */
 		SongInfo.ui.elapsed = d.cE('li');
@@ -269,7 +283,6 @@ var SongInfo = {
 		SongInfo.ui.time.appendChild(SongInfo.ui.total);
 		
     /* Append to 'trackNo and time' info */
-		UI.track.appendChild(SongInfo.ui.trackNo);
 		UI.track.appendChild(SongInfo.ui.time);
 		
 		/* Setup event listeners */
@@ -291,15 +304,13 @@ var SongInfo = {
                  :
 								 Server.url + Server.cmd.albumArt + Status.data.uri;
 		$(UI.albArt).css('background-image', 'url(' + imgUrl + ')'); 
-		
-    
-    UI.setText(SongInfo.ui.trackNo, (Status.data.index + 1) + " of ??");		
 	},
 	time: function() {
 		/* TODO: implement slider */
     var elapsed, duration;
     /* We don't have time information when state is stopped */
-    if(Status.data.state == "stopped") {
+    if(Status.data.state == "stopped" ||
+       Status.data.state == "disconnected") {
       elapsed = "";
       duration = "";
     }
@@ -410,9 +421,11 @@ var PlayControl = {
 /* Playlists */
 
 var Playlists  = {
-  activeList: -1,
+  activeList: "",
+  nbrOfSongs: 0,
   init: function() {
     $(document).bind("Server.connected", Playlists.fetch);
+    $(document).bind("Status.playlist", Playlists.getListContent);
   },
   fetch: function() {
     Server.request(Server.cmd.playlists, Playlists.update);
@@ -445,14 +458,26 @@ var Playlists  = {
   getListContent: function() {
     /* Clear list */
     $(UI.playlist).empty();
-    
-    var pid = this._pid;
+    var pid;
+    /* Only update from event if active list is updated */
+    if(typeof(this._pid) == "undefined") {
+      if(Status.data.playlist_id === Playlists.activeList) {
+        pid = Playlists.activeList;
+      }
+      else {
+        return;
+      }
+    }
+    else {
+      pid = this._pid;
+    }
     /* Get items, TODO: load indicator */
     var cmd = pid == -1 ?
       Server.cmd.playqueue 
       :
       Server.cmd.playlist + pid;
     UI.playlist.title = this._name;
+    /* Set currently viewed playlist */
     Playlists.activeList = pid;
     Server.request(cmd, Playlists.setListContent);
   },
@@ -464,10 +489,15 @@ var Playlists  = {
       a  = UI.newElement('a', items[i].title);
       a.href = "#player";
       a._id = cnt++;
-      a.onclick = Playlists.playItem;
+      a.onclick = Playlists.playItem;       
       li = UI.newElement('li', a);
+      if(a._id == Status.data.index &&
+         Playlists.activeList == Status.data.playlist_id) {
+        li.setAttribute('selected','true');
+      }      
       UI.playlist.appendChild(li);
     }
+    Playlists.nbrOfSongs = cnt;
   },
   playItem: function() {
     var item = this._id;
@@ -475,10 +505,52 @@ var Playlists  = {
   }
 }
 
+var CurrentList = {
+  nbrOfItems: 0,
+  ui: Array(),
+  init: function() {
+		CurrentList.ui.trackNo = d.cE('strong');
+    UI.track.appendChild(CurrentList.ui.trackNo);
+    
+    $(document).bind("Status.playlist", CurrentList.fetch);
+  },
+  fetch: function() {
+    var pid = Status.data.playlist_id;
+    if(!pid) { return; }
+    var cmd = pid == "-1" ?
+      Server.cmd.playqueue 
+      :
+      Server.cmd.playlist + pid; 
+    Server.request(cmd, CurrentList.update);
+  },
+  update: function(json) {
+    var items = json.result;
+    var li, a, cnt = 0;
+    CurrentList.nbrOfItems = items.length;
+    for(var i in items) {
+      a  = UI.newElement('a', items[i].title);
+      a.href = "#player";
+      a._id = cnt++;
+      a.onclick = CurrentList.playItem;
+      li = UI.newElement('li', a);
+      if(a._id == Status.data.index) {
+        li.setAttribute('selected','true');
+      }            
+      UI.currentlist.appendChild(li);
+    }
+    UI.setText(CurrentList.ui.trackNo, (Status.data.index + 1) + " of " + CurrentList.nbrOfItems);		    
+  }, 
+  playItem: function() {
+    var item = this._id;
+    Server.request(Server.cmd.playTrack + item + "&playlist_id=" + Status.data.playlist_id);
+  }  
+}
+
 /* Let's begin when document is ready */
 window.onload = function() {
 	/* UI needs to be initialized first! */
 	UI.init();
+  CurrentList.init();
 	SongInfo.init();
 	PlayControl.init();
 	Status.init();
