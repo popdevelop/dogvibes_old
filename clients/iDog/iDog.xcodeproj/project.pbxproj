@@ -14,7 +14,6 @@
 		047115040FCC9E8D00C755A5 /* prev.png in Resources */ = {isa = PBXBuildFile; fileRef = 047114FF0FCC9E8D00C755A5 /* prev.png */; };
 		047115050FCC9E8D00C755A5 /* play.png in Resources */ = {isa = PBXBuildFile; fileRef = 047115000FCC9E8D00C755A5 /* play.png */; };
 		047115060FCC9E8D00C755A5 /* pause.png in Resources */ = {isa = PBXBuildFile; fileRef = 047115010FCC9E8D00C755A5 /* pause.png */; };
-		047115070FCC9E8D00C755A5 /* oasis.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 047115020FCC9E8D00C755A5 /* oasis.jpg */; };
 		047115F30FCCC00000C755A5 /* TrackViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 047115F20FCCC00000C755A5 /* TrackViewController.m */; };
 		047115F50FCCC02300C755A5 /* TrackView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 047115F40FCCC02300C755A5 /* TrackView.xib */; };
 		047117B00FCF387A00C755A5 /* dogvibes_logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 047117AF0FCF387A00C755A5 /* dogvibes_logo.png */; };
@@ -49,7 +48,6 @@
 		047114FF0FCC9E8D00C755A5 /* prev.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = prev.png; sourceTree = "<group>"; };
 		047115000FCC9E8D00C755A5 /* play.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = play.png; sourceTree = "<group>"; };
 		047115010FCC9E8D00C755A5 /* pause.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pause.png; sourceTree = "<group>"; };
-		047115020FCC9E8D00C755A5 /* oasis.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = oasis.jpg; sourceTree = "<group>"; };
 		047115F10FCCC00000C755A5 /* TrackViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TrackViewController.h; sourceTree = "<group>"; };
 		047115F20FCCC00000C755A5 /* TrackViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TrackViewController.m; sourceTree = "<group>"; };
 		047115F40FCCC02300C755A5 /* TrackView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = TrackView.xib; sourceTree = "<group>"; };
@@ -189,7 +187,6 @@
 				047114FF0FCC9E8D00C755A5 /* prev.png */,
 				047115000FCC9E8D00C755A5 /* play.png */,
 				047115010FCC9E8D00C755A5 /* pause.png */,
-				047115020FCC9E8D00C755A5 /* oasis.jpg */,
 				282CCBFD0DB6C98000C4EA27 /* PlaylistView.xib */,
 				28AD73870D9D96C1002E5188 /* MainWindow.xib */,
 				8D1107310486CEB800E47090 /* Info.plist */,
@@ -260,7 +257,6 @@
 				047115040FCC9E8D00C755A5 /* prev.png in Resources */,
 				047115050FCC9E8D00C755A5 /* play.png in Resources */,
 				047115060FCC9E8D00C755A5 /* pause.png in Resources */,
-				047115070FCC9E8D00C755A5 /* oasis.jpg in Resources */,
 				047115F50FCCC02300C755A5 /* TrackView.xib in Resources */,
 				047117B00FCF387A00C755A5 /* dogvibes_logo.png in Resources */,
 				043A732F11752C82006DF639 /* Settings.bundle in Resources */,

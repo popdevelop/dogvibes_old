@@ -154,6 +154,15 @@
 	[dog release];
 }
 
+- (IBAction) volumeChanged:(id)sender
+{
+	UISlider *mySlider = (UISlider *) sender;
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:[NSString stringWithFormat:@"/amp/0/setVolume?level=%f",mySlider.value, nil]];
+	[dog release];
+}
+
 - (void) check_system_prefs {
 	iDogAppDelegate *iDogApp = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
 	iDogApp.kDogVibesIP = @"dogVibesIP";

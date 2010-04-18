@@ -13,6 +13,7 @@
 	IBOutlet UIButton *nextButton;
 	IBOutlet UIButton *prevButton;
 	IBOutlet UIButton *stopButton;
+	IBOutlet UISlider *volumeSlider;
 	IBOutlet UIImageView *jsonImage;
 	IBOutlet UILabel *label;
 	int state;
@@ -23,6 +24,7 @@
 - (IBAction)stopButtonPressed:(id)sender;
 - (IBAction)nextButtonPressed:(id)sender;
 - (IBAction)prevButtonPressed:(id)sender;
+- (IBAction)volumeChanged:(id)sender;
 
 - (void)setPlayButtonImage:(UIImage *)image;
 - (void)updateTrackInfo;
