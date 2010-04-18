@@ -17,7 +17,6 @@
 	IBOutlet UISwitch *spk0;
 	IBOutlet UISwitch *spk1;
 	IBOutlet UISwitch *spk2;
-	NSMutableArray *jsonArray;
 }
 
 /* button handlers */
@@ -36,7 +35,5 @@
 
 /* export the settingsviewcontroller */
 +(SettingsViewController *) sharedViewController;
-
-@property (nonatomic, retain) NSMutableArray *jsonArray;
 
 @end

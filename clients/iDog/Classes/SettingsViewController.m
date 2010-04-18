@@ -6,40 +6,24 @@
 //  Copyright 2009 NoName. All rights reserved.
 //
 
+#import "iDogAppDelegate.h"
 #import "SettingsViewController.h"
 
 @implementation SettingsViewController
 
 static SettingsViewController *sharedViewController;
 
-/*
-// The designated initializer. Override to perform setup that is required before the view is loaded.
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
-    if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {
-        // Custom initialization
-	}
-    return self;
-}
-*/
-
-/*
- // Implement loadView to create a view hierarchy programmatically, without using a nib.
- - (void)loadView {
- }
- */
-
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
-    [super viewDidLoad];
+	[super viewDidLoad];
+	
+	iDogAppDelegate *iDogApp = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
+	NSLog(@"%@", iDogApp.dogIP);
+	if (iDogApp.dogIP != nil) {
+	  IPtextField.text = iDogApp.dogIP;
+	}
+    
 }
-
-/*
- // Override to allow orientations other than the default portrait orientation.
- - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
- // Return YES for supported orientations
- return (interfaceOrientation == UIInterfaceOrientationPortrait);
- }
- */
 
 - (IBAction)statusButtonPressed:(id)sender
 {
@@ -54,7 +38,6 @@ static SettingsViewController *sharedViewController;
 		label.text = jsonData;
 	}
 }
-
 
 /* gui handlers */
 - (IBAction)slider0Changed:(id)sender
@@ -71,15 +54,22 @@ static SettingsViewController *sharedViewController;
 		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
 		[alert show];
 		[alert release];
-	} else {
-		//textView.text = jsonData;
 	}
 }
 
 - (IBAction)IPtextFieldChanged:(id)sender
 {
 	[IPtextField resignFirstResponder];
+	iDogAppDelegate *iDogApp = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
 	textView.text = IPtextField.text;
+	iDogApp.dogIP = [(NSString *)CFURLCreateStringByAddingPercentEscapes(
+																		 nil,
+																		 (CFStringRef)[IPtextField text],
+																		 NULL,
+																		 NULL,
+																		 kCFStringEncodingUTF8) autorelease];
+	[[NSUserDefaults standardUserDefaults] setObject:iDogApp.dogIP forKey:iDogApp.kDogVibesIP];
+	[[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 - (NSString *)getIPfromTextField {
@@ -130,16 +120,13 @@ static SettingsViewController *sharedViewController;
 	return sharedViewController;
 }
 
-
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning]; // Releases the view if it doesn't have a superview
     // Release anything that's not essential, such as cached data
 }
 
-
 - (void)dealloc {
     [super dealloc];
 }
-
 
 @end

@@ -15,5 +15,6 @@
 
 -(NSString*) dogRequest:(NSString *)request;
 - (UIImage *) dogGetAlbumArt:(NSString *)uri;
+- (NSURL *)smartURLForString:(NSString *)str;
 @end
 

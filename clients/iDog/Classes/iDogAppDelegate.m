@@ -8,37 +8,35 @@
 
 #import "iDogAppDelegate.h"
 
-
 @implementation iDogAppDelegate
 
 @synthesize window;
 @synthesize tabBarController;
 @synthesize navController;
 @synthesize curTrack;
-
+@synthesize dogIP, kDogVibesIP;
 
 - (void)applicationDidFinishLaunching:(UIApplication *)application {
+	NSLog(@"appFinishedLaunching...");
     // Add the tab bar controller's current view as a subview of the window
     [window addSubview:tabBarController.view];
 }
 
 // Optional UITabBarControllerDelegate method
 - (void)tabBarController:(UITabBarController *)tabBarController didSelectViewController:(UIViewController *)viewController {
+	NSLog(@"didSelectViewController...");
 	[viewController viewDidLoad];
 }
 
-/*
-// Optional UITabBarControllerDelegate method
-- (void)tabBarController:(UITabBarController *)tabBarController didEndCustomizingViewControllers:(NSArray *)viewControllers changed:(BOOL)changed {
-}
-*/
-
 - (NSString*) getCurTrack {
-	return self.curTrack;
+	NSLog(@"cur track is: %@ ", self.curTrack);
+	return curTrack;
 }
 
 - (void) setCurTrack:(NSString *)uri {
-	self.curTrack = uri;
+	NSLog(@"cur track updated to: %@ ", uri);
+	[curTrack autorelease];
+	curTrack = [uri retain];
 }
 
 - (void)dealloc {

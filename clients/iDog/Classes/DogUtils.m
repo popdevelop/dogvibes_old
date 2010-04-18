@@ -8,18 +8,27 @@
 
 #import "DogUtils.h"
 #import "JSON.h"
+#import "iDogAppDelegate.h"
 #import "SettingsViewController.h"
 
 @implementation DogUtils
 
-// Customize the number of rows in the table view.
-- (NSString *)dogRequest:(NSString *)request{
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
+/* TODO!: asynchronous http requests */
+- (NSString *)dogRequest:(NSString *)request {
+	iDogAppDelegate *iDogApp = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
+	NSString *ip = iDogApp.dogIP;
+	
+	int stringLength = [request length];
+	NSRange range = NSMakeRange(0, stringLength);
+	NSString *newStr = [request stringByReplacingOccurrencesOfString:@" " withString:@"%20" options:NSCaseInsensitiveSearch range:range];	
+	
 	if (ip != nil) {
 		NSLog(@"dog: %@, %@", ip, request);
-		NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@%@",ip, request, nil]];
+		//synchronous...
+		NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@%@",ip, newStr, nil]];
 		NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
+		//asynchronous: TODO..
+		if (jsonData == nil) {NSLog(@"NULL!"); return nil;}
 		return jsonData;
 	} else {
 		return nil;
@@ -27,8 +36,8 @@
 }
 
 - (UIImage *) dogGetAlbumArt:(NSString *)uri {
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
+	iDogAppDelegate *iDogApp = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
+	NSString *ip = iDogApp.dogIP;
 	if (ip != nil) {
 		return [UIImage imageWithData: 
 				[NSData dataWithContentsOfURL: 

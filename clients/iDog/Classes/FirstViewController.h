@@ -8,7 +8,6 @@
 
 #import <UIKit/UIKit.h>
 
-
 @interface FirstViewController : UIViewController {
 	IBOutlet UIButton *playButton;
 	IBOutlet UIButton *nextButton;
@@ -17,6 +16,7 @@
 	IBOutlet UIImageView *jsonImage;
 	IBOutlet UILabel *label;
 	int state;
+	int visitCount;
 }
 
 - (IBAction)playButtonPressed:(id)sender;
@@ -25,7 +25,6 @@
 - (IBAction)prevButtonPressed:(id)sender;
 
 - (void)setPlayButtonImage:(UIImage *)image;
-- (void)setAlbumArt:(NSString *)uri;
 - (void)updateTrackInfo;
-
+- (void)check_system_prefs;
 @end

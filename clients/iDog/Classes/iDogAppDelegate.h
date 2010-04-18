@@ -13,12 +13,16 @@
     UITabBarController *tabBarController;
 	UINavigationController *navController;
 	NSString *curTrack;
+	NSString *dogIP;
+	NSString *kDogVibesIP;
 }
 
 @property (nonatomic, retain) IBOutlet UIWindow *window;
 @property (nonatomic, retain) IBOutlet UITabBarController *tabBarController;
 @property (nonatomic, retain) IBOutlet UINavigationController *navController;
 @property (nonatomic, retain) NSString *curTrack;
+@property (nonatomic, retain) NSString *dogIP;
+@property (nonatomic, retain) NSString *kDogVibesIP;
 
 - (NSString*) getCurTrack;
 - (void) setCurTrack:(NSString *)uri;

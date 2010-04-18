@@ -16,54 +16,12 @@
 
 @implementation SearchViewController
 
-@synthesize jsonArray, jsonItem, mySearchBar, myTableView;
+@synthesize jsonArray, jsonItem, mySearchBar, myTableView, mySearchText;
 @synthesize listContent, filteredListContent, savedContent, trackItems, trackURIs;
-
-
-/*
- - (id)initWithStyle:(UITableViewStyle)style {
- // Override initWithStyle: if you create the controller programmatically and want to perform customization that is not appropriate for viewDidLoad.
- if (self = [super initWithStyle:style]) {
- }
- return self;
- }
- */
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-	
-    // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-    // self.navigationItem.rightBarButtonItem = self.editButtonItem;
 }
-
-/*
- - (void)viewWillAppear:(BOOL)animated {
- [super viewWillAppear:animated];
- }
- */
-/*
- - (void)viewDidAppear:(BOOL)animated {
- [super viewDidAppear:animated];
- }
- */
-/*
- - (void)viewWillDisappear:(BOOL)animated {
- [super viewWillDisappear:animated];
- }
- */
-/*
- - (void)viewDidDisappear:(BOOL)animated {
- [super viewDidDisappear:animated];
- }
- */
-
-/*
- // Override to allow orientations other than the default portrait orientation.
- - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
- // Return YES for supported orientations
- return (interfaceOrientation == UIInterfaceOrientationPortrait);
- }
- */
 
 - (void)awakeFromNib
 {	
@@ -94,7 +52,6 @@
 	[myTableView deselectRowAtIndexPath:tableSelection animated:NO];
 }
 
-
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning]; // Releases the view if it doesn't have a superview
     // Release anything that's not essential, such as cached data
@@ -106,7 +63,6 @@
     return 1;
 }
 
-
 // Customize the number of rows in the table view.
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return [trackItems count];
@@ -114,7 +70,6 @@
 
 
 - (UITableViewCell *)tableView:(UITableView *)tv cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-	NSLog(@"called cellForIndexPath");
     static NSString *kCellIdentifier = @"MyCell";
     UITableViewCell *cell = [myTableView dequeueReusableCellWithIdentifier:kCellIdentifier];
     if (cell == nil) {
@@ -125,19 +80,7 @@
     return cell;
 }
 
-
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-
-	// load the clicked cell
-	//ImageCell *cell = (ImageCell *)[tableView cellForRowAtIndexPath:indexPath];
-	
-	// init the controller
-	//TrackViewController *controller = [[TrackViewController alloc] initWithNibName:@"TrackView" bundle:nil];
-	
-	// set the ID and call JSON in the controller
-	//[controller setID:[cell getID]];
-	// show the view
-	
 	NSLog(@"adding %@ to playqueue", [trackURIs objectAtIndex:indexPath.row]);
 	NSLog(@"Play this song title: %@, %@!", [trackItems objectAtIndex:indexPath.row], [trackURIs objectAtIndex:indexPath.row]);
 	DogUtils *dog = [[DogUtils alloc] init];
@@ -149,49 +92,9 @@
 		[alert show];
 		[alert release];
 	}
-	
-	//[self.navController pushViewController:controller animated:YES];	
+	[dog release];
+	[jsonData release];
 }
-
-/*
- // Override to support conditional editing of the table view.
- - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
- // Return NO if you do not want the specified item to be editable.
- return YES;
- }
- */
-
-
-/*
- // Override to support editing the table view.
- - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
- 
- if (editingStyle == UITableViewCellEditingStyleDelete) {
- // Delete the row from the data source
- [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:YES];
- }   
- else if (editingStyle == UITableViewCellEditingStyleInsert) {
- // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
- }   
- }
- */
-
-
-/*
- // Override to support rearranging the table view.
- - (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath {
- }
- */
-
-
-/*
- // Override to support conditional rearranging of the table view.
- - (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
- // Return NO if you do not want the item to be re-orderable.
- return YES;
- }
- */
-
 
 #pragma mark UISearchBarDelegate
 
@@ -214,30 +117,7 @@
 {
 	[trackItems removeAllObjects];	// clear the filtered array first
 	[trackURIs removeAllObjects];
-	
-	// search the table content for cell titles that match "searchText"
-	// if found add to the mutable array and force the table to reload
-	//
-	/* let's put the search contents in the table */
-	SettingsViewController *svc = [SettingsViewController sharedViewController];
-	NSString *ip = [svc getIPfromTextField];
-	NSLog(@"IP: %@", ip);
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/dogvibes/search?query=%@",ip ? ip : @"83.249.229.59:2000", searchText,nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];	
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	} else {
-		jsonArray = [jsonData JSONValue];
-		NSDictionary *tsdic = [jsonData JSONValue];
-		/* Dictionary!!! */
-		for (id key in [tsdic objectForKey:@"result"]) {
-			[trackItems addObject:(NSString *)[key objectForKey:@"title"]];
-			[trackURIs addObject:(NSString *)[key objectForKey:@"uri"]];
-		}		
-	}
-	[myTableView reloadData];
+	mySearchText = [searchText retain];
 }
 
 // called when cancel button pressed
@@ -248,7 +128,6 @@
 	if (searchBar.text.length > 0)
 	{
 		[trackItems removeAllObjects];
-		//[trackItems addObjectsFromArray: savedContent];
 	}
 	[myTableView reloadData];
 	[searchBar resignFirstResponder];
@@ -259,6 +138,21 @@
 - (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar
 {
 	NSLog(@"searchButtonClicked!");
+	
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:[NSString stringWithFormat:@"/dogvibes/search?query=%@",mySearchText, nil]];
+	[dog release];
+	if (jsonData != nil) {
+		jsonArray = [jsonData JSONValue];
+		NSDictionary *tsdic = [jsonData JSONValue];
+		for (id key in [tsdic objectForKey:@"result"]) {
+			[trackItems addObject:(NSString *)[key objectForKey:@"title"]];
+			[trackURIs addObject:(NSString *)[key objectForKey:@"uri"]];
+		}
+		[myTableView reloadData];
+	}
+	[jsonData release];
 	[searchBar resignFirstResponder];
 }
 

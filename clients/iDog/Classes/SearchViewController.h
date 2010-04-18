@@ -20,7 +20,8 @@
 	
 	NSMutableArray *trackItems;
 	NSMutableArray *trackURIs;
-	
+
+	NSString *mySearchText;
 }
 
 @property (nonatomic, retain) NSMutableArray *jsonArray;
@@ -33,7 +34,6 @@
 @property (nonatomic, retain) NSMutableArray *savedContent;
 @property (nonatomic, retain) NSMutableArray *trackItems;
 @property (nonatomic, retain) NSMutableArray *trackURIs;
-
-
+@property (nonatomic, retain) NSString *mySearchText;
 
 @end
