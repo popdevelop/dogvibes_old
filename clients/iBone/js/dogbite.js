@@ -18,12 +18,15 @@ var UI = {
 	track: null,
 	bottom: null,
 	albArt: null,
+  playlists: null,
 	/* Initialize all objects */
 	init: function() {
 		UI.info    = d.gID("info");
 		UI.track   = d.gID("track");
 		UI.bottom  = d.gID("bottom");
-		UI.albArt  = d.gID("container");
+		UI.albArt  = d.gID("player");
+    UI.playlists = d.gID("home");
+    UI.playlist = d.gID("playlist");
 	},
 	/* Misc handy function for creating elements */
 	newElement: function (tag, content) {
@@ -67,7 +70,7 @@ var defStatus = {
 	title: "Not connected",
 	artist: "",
 	album: "",
-	albumArt: "",
+	albumArt: ""
 }
 
 var stopStatus = {
@@ -162,11 +165,15 @@ var Server = {
 		status: Config.defAmp + "/getStatus",
 		prev:   Config.defAmp + "/previousTrack",
 		play:   Config.defAmp + "/play",
+    playTrack: Config.defAmp + "/playTrack?nbr=",
 		pause:  Config.defAmp + "/pause",
 		next:   Config.defAmp + "/nextTrack",
 		seek:   Config.defAmp + "/seek?mseconds=",
 		volume: Config.defAmp + "/setVolume?level=",
-		albumArt: "/dogvibes/getAlbumArt?size=320&uri="
+		albumArt: "/dogvibes/getAlbumArt?size=320&uri=",
+    playlists: "/dogvibes/getAllPlaylists",
+    playlist: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
+    playqueue: Config.defAmp + "/getAllTracksInQueue"
 	},
 	init: function() {
     var temp;
@@ -229,8 +236,9 @@ var SongInfo = {
 		
     /* Back button */
     SongInfo.ui.back = d.cE('a');
-    SongInfo.ui.back.className = 'button left';
-    SongInfo.ui.back.onclick = function() { alert('Sorry, not yet!'); };
+    SongInfo.ui.back.className = 'music_button left';
+    //SongInfo.ui.back.onclick = function() { alert('Sorry, not yet!'); };
+    SongInfo.ui.back.href = "#home";
     
 		/* Track data */
 		SongInfo.ui.artist = d.cE('li');
@@ -329,17 +337,17 @@ var PlayControl = {
 		PlayControl.ui.ctrl = d.cE('ul');
 		PlayControl.ui.ctrl.id = "playback";
 		
-		PlayControl.ui.prev = d.cE('a');
+		PlayControl.ui.prev = d.cE('span');
 		PlayControl.ui.prev.className = "prev";
     li = UI.newElement('li', PlayControl.ui.prev);
 		PlayControl.ui.ctrl.appendChild(li);
 		
-		PlayControl.ui.play = d.cE('a');
+		PlayControl.ui.play = d.cE('span');
 		PlayControl.ui.play.className = "play";
 		li = UI.newElement('li', PlayControl.ui.play);
 		PlayControl.ui.ctrl.appendChild(li);		
 		
-		PlayControl.ui.next = d.cE('a');
+		PlayControl.ui.next = d.cE('span');
 		PlayControl.ui.next.className = "next";
 		li = UI.newElement('li', PlayControl.ui.next);
 		PlayControl.ui.ctrl.appendChild(li);	
@@ -378,15 +386,16 @@ var PlayControl = {
 	show: function() {
 		$(PlayControl.ui.ctrl).removeClass("disabled");
     /* Make controlls clickable */
-    $(PlayControl.ui.prev).click(function() { Server.request(Server.cmd.prev) });
+    $(PlayControl.ui.prev).click(function() { Server.request(Server.cmd.prev); return false; });
     $(PlayControl.ui.play).click(function() {
       Server.request(
         Status.data.state == "playing" ?
         Server.cmd.pause :
         Server.cmd.play
       );
+      return false;
     });
- 		$(PlayControl.ui.next).click(function() { Server.request(Server.cmd.next); });
+ 		$(PlayControl.ui.next).click(function() { Server.request(Server.cmd.next); return false; });
 
 	},
 	hide: function() {	
@@ -398,18 +407,88 @@ var PlayControl = {
 	}
 }
 
+/* Playlists */
+
+var Playlists  = {
+  activeList: -1,
+  init: function() {
+    $(document).bind("Server.connected", Playlists.fetch);
+  },
+  fetch: function() {
+    Server.request(Server.cmd.playlists, Playlists.update);
+  },
+  update: function(json) {
+    var lists = json.result;
+    var li, a;
+    $(UI.playlists).empty();
+    /* Add playqeueu item */
+    
+    a = UI.newElement('a', 'Playqueue');
+    a.href = "#playlist";
+    a._pid = "-1";
+    a._name = "Playqueue";
+    a.onclick = Playlists.getListContent;
+    li = UI.newElement('li', a);
+    UI.playlists.appendChild(li);
+    
+    for(var i in lists) {
+      a  = UI.newElement('a', lists[i].name);
+      a.href = "#playlist";
+      a._pid = lists[i].id;
+      a._name = lists[i].name;
+      a.onclick = Playlists.getListContent;
+      
+      li = UI.newElement('li', a);
+      UI.playlists.appendChild(li)
+    }
+  },
+  getListContent: function() {
+    /* Clear list */
+    $(UI.playlist).empty();
+    
+    var pid = this._pid;
+    /* Get items, TODO: load indicator */
+    var cmd = pid == -1 ?
+      Server.cmd.playqueue 
+      :
+      Server.cmd.playlist + pid;
+    UI.playlist.title = this._name;
+    Playlists.activeList = pid;
+    Server.request(cmd, Playlists.setListContent);
+  },
+  setListContent: function(json) {
+    var items = json.result;
+    var a, li, cnt = 0;
+    
+    for(var i in items) {
+      a  = UI.newElement('a', items[i].title);
+      a.href = "#player";
+      a._id = cnt++;
+      a.onclick = Playlists.playItem;
+      li = UI.newElement('li', a);
+      UI.playlist.appendChild(li);
+    }
+  },
+  playItem: function() {
+    var item = this._id;
+    Server.request(Server.cmd.playTrack + item + "&playlist_id=" + Playlists.activeList);
+  }
+}
+
 /* Let's begin when document is ready */
 window.onload = function() {
 	/* UI needs to be initialized first! */
 	UI.init();
 	SongInfo.init();
 	PlayControl.init();
-	Status.init();	
+	Status.init();
+  Playlists.init();	
 	/* Finally start server connection */
 	Server.init();	
 
 	/* Hide iPhone status bar */
-	window.scrollTo(0, 0.9);
+	window.scrollTo(0, 1);
+  
 }
 
 

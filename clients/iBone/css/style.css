@@ -1,21 +1,19 @@
-* { color:#FFF; font-family: helvetica, verdana, sans-serif; margin: 0; padding: 0;}
+#player * { color:#FFF; font-family: helvetica, verdana, sans-serif; margin: 0; padding: 0;}
 
-ul, li { display: inline-block; list-style-type: none; }
+#player ul, #player li { display: inline-block; list-style-type: none; }
 
-body {
-	text-align: center;  
-  background-color: #000;
-}
-
-#container {
+#player {
 	position: relative;
 	background-color: #000;
 	background-image: none;
 	background-repeat: no-repeat;
 	background-position: 50% 50%;
+	text-align: center;  
+  background-color: #000;
+  
 }
 
-#container.none {
+#player.none {
 	background-image: none;
 }
 
@@ -33,7 +31,7 @@ body {
   display: inline;
 }
 
-#top .button {
+#top .music_button {
   background-image: url('../img/button-back.png');
   background-position: 50% 50%;
   background-repeat: no-repeat;
@@ -111,7 +109,7 @@ body {
 	width: 100%;
 }
 
-#bottom ul#playback li a {
+#bottom ul#playback li span {
 	background-image: url('../img/playctrl-sprite-off.png');
 	background-repeat: no-repeat;
 	text-indent: -9999px;
@@ -119,7 +117,7 @@ body {
 	height: 75px;
 }
 
-#bottom ul#playback li a:active {
+#bottom ul#playback li span:active {
 	background-image: url('../img/playctrl-sprite-on.png');
 }
 
@@ -133,24 +131,24 @@ body {
 }
 
 /* Playing state */
-#bottom ul#playback.playing li a {
+#bottom ul#playback.playing li span {
   background-image: url('../img/playctrl-sprite-playing-off.png');
 }
-#bottom ul#playback.playing li a:active {
+#bottom ul#playback.playing li span:active {
   background-image: url('../img/playctrl-sprite-playing-off.png');
 }
 
-#bottom ul#playback li a.prev {
+#bottom ul#playback li span.prev {
 	width: 110px;
 	background-position: 0 0;
 }
 
-#bottom ul#playback li a.play {
+#bottom ul#playback li span.play {
 	width: 90px;
 	background-position: -115px 0;
 }
 
-#bottom ul#playback li a.next {
+#bottom ul#playback li span.next {
 	width: 110px;
 	background-position: -205px 0;
 }
