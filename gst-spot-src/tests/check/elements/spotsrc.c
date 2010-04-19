@@ -1,4 +1,3 @@
- *
 /* GStreamer
  * unit test for spot
  *
@@ -284,12 +283,12 @@ static gboolean
 get_element_position (GstElement *elem)
 {
   GstFormat fmt = GST_FORMAT_TIME;
-  gint64 pos, len;
+  gint64 pos;
 
-  if (gst_element_query_position (elem, &fmt, &pos) {
-    return GST_TIME_ARGS(pos)
+  if (gst_element_query_position (elem, &fmt, &pos)) {
+    return pos;
   }
-  return -1
+  return -1;
 }
 
 GST_START_TEST (test_pause_and_duration)
@@ -451,6 +450,7 @@ spot_suite (void)
   tcase_set_timeout (tc_chain, 20);
 
   tcase_add_test (tc_chain, test_user_pass);
+  tcase_add_test (tc_chain, test_pause_and_duration);
   tcase_add_test (tc_chain, test_eos_events_push);
   tcase_add_test (tc_chain, test_login_and_play_pause);
   tcase_add_test (tc_chain, test_login_and_play_bad_uri);
