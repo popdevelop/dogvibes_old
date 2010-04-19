@@ -4,7 +4,7 @@ var Config =  {
   defAmp: "/amp/0",
   defAlbumArtURL: "img/michael.jpg",
   pollInterval: 2000 /* ms */
-}
+};
 
 /* Shortcuts to save some typing */
 var d = document;
@@ -39,7 +39,7 @@ var UI = {
       c = d.cT(content+"");
     }
     el.appendChild(c);
-          return el;
+    return el;
   },
   setText: function(obj, text) {
     if(typeof(obj.childNodes[0]) == "undefined") {
@@ -49,20 +49,20 @@ var UI = {
       obj.childNodes[0].nodeValue = text+"";
     }
   }
-}
+};
 
 /* Create a function for converting msec to time string */
 Number.prototype.msec2time = function() {
   var ts = Math.floor(this / 1000);
   if(!ts) { ts=0; }
-  if(ts==0) { return "0:00"; }
-  m = Math.round(ts/60 - 0.5);
-  s = Math.round(ts - m*60);
+  if(ts===0) { return "0:00"; }
+  var m = Math.round(ts/60 - 0.5);
+  var s = Math.round(ts - m*60);
   if (s<10 && s>=0){
     s="0" + s;
   }
   return m + ":" + s;
-}
+};
 
 /* The status fields this application is interested in. Also default values */
 var defStatus = {
@@ -74,13 +74,13 @@ var defStatus = {
   albumArt: "",
   playqueuehash: "",
   playlist_id: false
-}
+};
 
 var stopStatus = {
   title: "Nothing to play",
   artist: "",
-  album: "",
-}
+  album: ""
+};
 
 /* Status:
  *
@@ -132,7 +132,7 @@ var Status = {
       Status.timer = setTimeout(Status.get, Config.pollInterval);
     }
 
-    if(data.error != 0) {
+    if(data.error !== 0) {
       /* TODO: notify some how */
     }
 
@@ -162,7 +162,7 @@ var Status = {
       $(document).trigger("Status.playlist");
     }
   }
-}
+};
 
 /* Server:
  *
@@ -228,7 +228,7 @@ var Server = {
     /* */
     alert("Ooops! No server!");
   }
-}
+};
 
 /* SongInfo:
  *
@@ -331,7 +331,7 @@ var SongInfo = {
     $(UI.track).hide();
     UI.albArt.className = "none";
   }
-}
+};
 
 /* PlayControl:
  *
@@ -416,7 +416,7 @@ var PlayControl = {
     $(PlayControl.ui.play).unbind();
     $(PlayControl.ui.next).unbind();
   }
-}
+};
 
 /* Playlists */
 
@@ -452,7 +452,7 @@ var Playlists  = {
       a.onclick = Playlists.getListContent;
 
       li = UI.newElement('li', a);
-      UI.playlists.appendChild(li)
+      UI.playlists.appendChild(li);
     }
   },
   getListContent: function() {
@@ -503,7 +503,7 @@ var Playlists  = {
     var item = this._id;
     Server.request(Server.cmd.playTrack + item + "&playlist_id=" + Playlists.activeList);
   }
-}
+};
 
 var CurrentList = {
   nbrOfItems: 0,
@@ -544,7 +544,7 @@ var CurrentList = {
     var item = this._id;
     Server.request(Server.cmd.playTrack + item + "&playlist_id=" + Status.data.playlist_id);
   }
-}
+};
 
 /* Let's begin when document is ready */
 window.onload = function() {
@@ -560,7 +560,4 @@ window.onload = function() {
 
   /* Hide iPhone status bar */
   window.scrollTo(0, 1);
-
-}
-
-
+};
