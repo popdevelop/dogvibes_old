@@ -1,5 +1,5 @@
-/* GStreamer
  *
+/* GStreamer
  * unit test for spot
  *
  * Copyright (C) <2010> Johan Gyllenspez
@@ -104,6 +104,9 @@ play_and_verify_buffers (GstElement *spot, int num_buffs)
   while (g_list_length (buffers) < num_buffs) {
     g_cond_wait (check_cond, check_mutex);
   }
+
+  printf("length =%d\n", g_list_length(buffers));
+
   g_mutex_unlock (check_mutex);
 
   g_list_foreach (buffers, (GFunc) gst_mini_object_unref, NULL);
@@ -168,7 +171,7 @@ GST_START_TEST (test_login_and_play_pause)
   g_print ("STOP\n");
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
-               "could not pause element");
+               "could not stop element");
 
   /* cleanup */
   cleanup_spot (spot);
@@ -264,7 +267,7 @@ GST_START_TEST (test_change_track)
   g_print ("STOP\n");
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
-               "could not pause element");
+               "could not stop element");
   g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_2, NULL);
   g_print ("*** set new track\n");
   g_print ("PLAY");
@@ -272,6 +275,61 @@ GST_START_TEST (test_change_track)
   g_print ("STOP\n");
 
   /* cleanup */
+  cleanup_spot (spot);
+  g_print ("\n^^^ END - CHANGE TRACK\n\n\n");
+}
+GST_END_TEST;
+
+static gboolean
+get_element_position (GstElement *elem)
+{
+  GstFormat fmt = GST_FORMAT_TIME;
+  gint64 pos, len;
+
+  if (gst_element_query_position (elem, &fmt, &pos) {
+    return GST_TIME_ARGS(pos)
+  }
+  return -1
+}
+
+GST_START_TEST (test_pause_and_duration)
+{
+  GstElement *spot;
+
+  spot = setup_spot ();
+
+  g_print ("*** STARTING - TEST PAUSE AND DURATION\n");
+  g_print ("***\n");
+  g_print ("*** each buffer is seen as '.'\n\n");
+  spot = setup_spot ();
+
+  g_print ("PLAY");
+  play_and_verify_buffers (spot, 10);
+  g_print ("PAUSE\n");
+  fail_unless (gst_element_set_state (spot,
+                                      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+               "could not pause element");
+  //get duration
+  fail_if (0 == get_element_position(spot));
+
+  g_print ("PLAY");
+  play_and_verify_buffers (spot, 10);
+  g_print ("PAUSE\n");
+  fail_unless (gst_element_set_state (spot,
+                                      GST_STATE_PAUSED) == GST_STATE_CHANGE_SUCCESS,
+               "could not pause element");
+  //get duration
+  fail_if (0 == get_element_position(spot));
+
+  g_print ("PLAY");
+  play_and_verify_buffers (spot, 10);
+  g_print ("STOP\n");
+  fail_unless (gst_element_set_state (spot,
+                                      GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
+               "could not stop element");
+
+  /* cleanup */
+
   cleanup_spot (spot);
   g_print ("\n^^^ END - CHANGE TRACK\n\n\n");
 }
