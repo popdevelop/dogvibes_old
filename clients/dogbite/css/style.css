@@ -3,25 +3,23 @@
 #player ul, #player li { display: inline-block; list-style-type: none; }
 
 #player {
-	position: relative;
-	background-color: #000;
-	background-image: none;
-	background-repeat: no-repeat;
-	background-position: 50% 50%;
-	text-align: center;  
+  position: relative;
   background-color: #000;
-  
+  background-image: none;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  text-align: center;
 }
 
 #player.none {
-	background-image: none;
+  background-image: none;
 }
 
 #top {
-	position:absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
+  position:absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
 }
 
 #top .left {
@@ -46,7 +44,6 @@
   width: 53px;
 }
 
-
 #top .list_button {
   background-image: url('../img/button-list.png');
   background-position: 50% 50%;
@@ -56,85 +53,85 @@
 }
 
 #top div#info {
-	display: inline-block;
-	width: 100%;
-	height: 50px;
-	background-image: url('../img/top_grad.png');
-	background-repeat: repeat-x;
-	padding-top: 1px;
-  text-shadow: rgba(0,0,0,0.6) 0 -1px 0;  
-  
+  display: inline-block;
+  width: 100%;
+  height: 50px;
+  background-image: url('../img/top_grad.png');
+  background-repeat: repeat-x;
+  padding-top: 1px;
+  text-shadow: rgba(0,0,0,0.6) 0 -1px 0;
+
 }
 #top div#info ul {
   float: center;
-  display: inline;  
+  display: inline;
 }
 #top div#info ul li {
-	width: 100%;
-	text-align: center;
-	display: block;
-	font-size: 12px;
+  width: 100%;
+  text-align: center;
+  display: block;
+  font-size: 12px;
   font-weight: bold;
-	color: #BBB;
-	padding-top: 1px;
+  color: #BBB;
+  padding-top: 1px;
 }
 
 #top div#info ul li.highlight {
-	color: #fff;
+  color: #fff;
   font-weight: bold;
 }
 
 #top div#track {
-	width: 100%;
-	background-image: url('../img/black-px-30.png');
-  text-shadow: rgba(0,0,0,0.6) 0 -1px 0;  
+  width: 100%;
+  background-image: url('../img/black-px-30.png');
+  text-shadow: rgba(0,0,0,0.6) 0 -1px 0;
 }
 
 #top div#track strong {
-	width; 100%;
-	text-align: center;
+  width; 100%;
+  text-align: center;
   font-size: 12px;
-	padding: 10px 0 5px 0;
-	display: block;
+  padding: 10px 0 5px 0;
+  display: block;
 }
 
 #top div#track ul {
-	padding: 5px 0 10px 0;
+  padding: 5px 0 10px 0;
 }
 
 #top div#track li.time {
   font-size: 16px;
   font-weight: bold;
-	padding: 0 10px;
+  padding: 0 10px;
 }
 
 #bottom {
   font-size: 12px;
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	width: 100%;
-	height: 100px;
-	background-image: url('../img/bottom_grad.png');
-	background-repeat: repeat-x;
-	background-position: left bottom;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  background-image: url('../img/bottom_grad.png');
+  background-repeat: repeat-x;
+  background-position: left bottom;
 }
 
 
 #bottom ul#playback {
-	width: 100%;
+  width: 100%;
 }
 
 #bottom ul#playback li span {
-	background-image: url('../img/playctrl-sprite-off.png');
-	background-repeat: no-repeat;
-	text-indent: -9999px;
-	display: inline-block;
-	height: 75px;
+  background-image: url('../img/playctrl-sprite-off.png');
+  background-repeat: no-repeat;
+  text-indent: -9999px;
+  display: inline-block;
+  height: 75px;
 }
 
 #bottom ul#playback li span:active {
-	background-image: url('../img/playctrl-sprite-on.png');
+  background-image: url('../img/playctrl-sprite-on.png');
 }
 
 #bottom ul#playback.disabled {
@@ -146,7 +143,6 @@
   background-image: url('../img/playctrl-sprite-off.png');
 }
 
-/* Playing state */
 #bottom ul#playback.playing li span {
   background-image: url('../img/playctrl-sprite-playing-off.png');
 }
@@ -155,17 +151,17 @@
 }
 
 #bottom ul#playback li span.prev {
-	width: 110px;
-	background-position: 0 0;
+  width: 110px;
+  background-position: 0 0;
 }
 
 #bottom ul#playback li span.play {
-	width: 90px;
-	background-position: -115px 0;
+  width: 90px;
+  background-position: -115px 0;
 }
 
 #bottom ul#playback li span.next {
-	width: 110px;
-	background-position: -205px 0;
+  width: 110px;
+  background-position: -205px 0;
 }
 
