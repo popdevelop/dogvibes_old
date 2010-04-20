@@ -69,12 +69,16 @@ struct spot_work
 #define GST_SPOT_SRC_USER(src) ((src)->user)
 #define GST_SPOT_SRC_PASS(src) ((src)->pass)
 #define GST_SPOT_SRC_URI(src) ((src)->uri)
-#define GST_SPOT_SRC_SPOTIFY_URI(src) ((src)->spotify_uri)
+#define GST_SPOT_SRC_URI_LOCATION(src) (gst_uri_get_location ((src)->uri))
 #define GST_SPOT_SRC_BUFFER_TIME(src) ((src)->buffer_time)
 #define GST_SPOT_SRC_ADAPTER(src) ((src)->adapter)
 #define GST_SPOT_SRC_ADAPTER_MUTEX(src) ((src)->adapter_mutex)
 #define GST_SPOT_SRC_ADAPTER_COND(src) ((src)->adapter_cond)
 #define GST_SPOT_SRC_FORMAT(src) ((src)->format)
+#define GST_SPOT_SRC_CURRENT_TRACK(o) ((o)->current_track)
+#define GST_SPOT_SRC_LOGGED_IN(o) ((o)->logged_in)
+#define GST_SPOT_SRC_SPOTIFY_SESSION(o) ((o)->spotify_session)
+
 
 /**
  * GstSpotSrc:
@@ -86,6 +90,8 @@ struct _GstSpotSrc {
 
   /*< private >*/
 
+  gchar *user;
+  gchar *pass;
   gchar *uri;
   guint64 read_position;
   guint64 buffer_time;
@@ -103,7 +109,9 @@ struct _GstSpotSrc {
   GCond *process_events_cond;
   gboolean spotify_thread_initiated;
   gboolean unlock_state;
-
+  sp_track *current_track;
+  sp_session *spotify_session;
+  gboolean logged_in;
 };
 
 struct _GstSpotSrcClass {

@@ -67,7 +67,7 @@ setup_spot (void)
   GstElement *spot;
 
   spot = gst_check_setup_element ("spot");
-  g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI, NULL);
+  g_object_set (G_OBJECT (spot), "uri", SPOTIFY_URI, NULL);
   g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
   g_object_set (G_OBJECT (spot), "pass", SPOTIFY_PASS, NULL);
   mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);
@@ -197,7 +197,7 @@ GST_START_TEST (test_eos_events_push)
   src = gst_element_factory_make ("spot", "src");
   g_object_set (G_OBJECT (src), "user", SPOTIFY_USER, NULL);
   g_object_set (G_OBJECT (src), "pass", SPOTIFY_PASS, NULL);
-  g_object_set (G_OBJECT (src), "spotifyuri", SPOTIFY_URI, NULL);
+  g_object_set (G_OBJECT (src), "uri", SPOTIFY_URI, NULL);
 
   g_assert (pipe != NULL);
   g_assert (sink != NULL);
@@ -267,7 +267,7 @@ GST_START_TEST (test_change_track)
   fail_unless (gst_element_set_state (spot,
                                       GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS,
                "could not stop element");
-  g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_2, NULL);
+  g_object_set (G_OBJECT (spot), "uri", SPOTIFY_URI_2, NULL);
   g_print ("*** set new track\n");
   g_print ("PLAY");
   play_and_verify_buffers (spot, 10);
@@ -380,7 +380,7 @@ GST_START_TEST (test_login_and_play_bad_uri)
 
   spot = gst_check_setup_element ("spot");
   g_print ("*** uri=%s\n\n", SPOTIFY_URI_JUST_BAD);
-  g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_JUST_BAD, NULL);
+  g_object_set (G_OBJECT (spot), "uri", SPOTIFY_URI_JUST_BAD, NULL);
   g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
   g_object_set (G_OBJECT (spot), "pass", SPOTIFY_PASS, NULL);
   mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);
@@ -399,7 +399,7 @@ GST_START_TEST (test_login_and_play_bad_uri)
 
   spot = gst_check_setup_element ("spot");
   g_print ("*** uri=%s\n", SPOTIFY_URI_TALIB_KWELI);
-  g_object_set (G_OBJECT (spot), "spotifyuri", SPOTIFY_URI_TALIB_KWELI, NULL);
+  g_object_set (G_OBJECT (spot), "uri", SPOTIFY_URI_TALIB_KWELI, NULL);
   g_object_set (G_OBJECT (spot), "user", SPOTIFY_USER, NULL);
   g_object_set (G_OBJECT (spot), "pass", SPOTIFY_PASS, NULL);
   mysinkpad = gst_check_setup_sink_pad (spot, &sinktemplate, NULL);

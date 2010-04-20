@@ -35,12 +35,12 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "gstspotobj.h"
 #include "gstspotsrc.h"
 #include "config.h"
 
 #define DEFAULT_URI "spotify://spotify:track:3odhGRfxHMVIwtNtc4BOZk"
-#define DEFAULT_SPOTIFY_URI "spotify:track:3odhGRfxHMVIwtNtc4BOZk"
+#define DEFAULT_PASS "sverkerolofsson"
+#define DEFAULT_USER "plus"
 #define BUFFER_TIME_MAX 50000000
 #define BUFFER_TIME_DEFAULT 2000000
 #define SPOTIFY_DEFAULT_SAMPLE_RATE 44100
@@ -67,7 +67,6 @@ GST_DEBUG_CATEGORY_STATIC (gst_spot_src_debug_cb);
 enum
 {
   ARG_0,
-  ARG_SPOTIFY_URI,
   ARG_USER,
   ARG_PASS,
   ARG_URI,
@@ -98,7 +97,9 @@ static void spotify_cb_metadata_updated (sp_session *session);
 static void spotify_cb_message_to_user (sp_session *session, const char *msg);
 static void spotify_cb_play_token_lost (sp_session *session);
 static void spotify_cb_end_of_track (sp_session *session);
-static void* spotify_thread_func (void *ptr);
+static void *spotify_thread_func (void *ptr);
+static gboolean spotify_create_session (GstSpotSrc *spot);
+static gboolean spotify_login (GstSpotSrc *spot);
 
 /* basesrc stuff */
 static void gst_spot_src_finalize (GObject * object);
@@ -120,9 +121,6 @@ static void gst_spot_src_uri_handler_init (gpointer g_iface, gpointer iface_data
 static const gchar *gst_spot_src_uri_get_uri (GstURIHandler * handler);
 static gchar **gst_spot_src_uri_get_protocols (void);
 static GstURIType gst_spot_src_uri_get_type (void);
-
-static gboolean spot_obj_create_session (GstSpotSrc *spot, SpotObj *self);
-static gboolean spot_obj_login (GstSpotSrc *spot, SpotObj *self);
 
 /* libspotify */
 static sp_session_callbacks g_callbacks = {
@@ -163,8 +161,6 @@ static const uint8_t g_appkey[] = {
 };
 
 static const size_t g_appkey_size = sizeof (g_appkey);
-
-SpotObj *spot_instance;
 
 /* list of spotify commad work structs to be processed */
 static GstSpotSrc *ugly_spot;
@@ -208,7 +204,7 @@ spotify_cb_logged_in (sp_session *spotify_session, sp_error error)
                          sp_user_display_name (me) :
                          sp_user_canonical_name (me));
   GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_cb, ugly_spot, "Logged_in callback, user=%s", my_name);
-  SPOT_OBJ_LOGGED_IN (spot_instance) = TRUE;
+  GST_SPOT_SRC_LOGGED_IN (ugly_spot) = TRUE;
 }
 
 static void
@@ -345,6 +341,61 @@ run_spot_cmd (GstSpotSrc *spot, enum spot_cmd cmd, gint64 opt)
   return ret;
 }
 
+static gboolean spotify_create_session (GstSpotSrc *spot)
+{
+  sp_session_config config;
+  sp_error error;
+
+  config.api_version = SPOTIFY_API_VERSION;
+  //FIXME check if these paths are appropiate
+  config.cache_location = "tmp";
+  config.settings_location = "tmp";
+  config.application_key = g_appkey;
+  config.application_key_size = g_appkey_size;
+  config.user_agent = "spotify-gstreamer-src";
+  config.callbacks = &g_callbacks;
+
+  error = sp_session_init (&config, &GST_SPOT_SRC_SPOTIFY_SESSION (spot));
+
+  if (SP_ERROR_OK != error) {
+    GST_ERROR_OBJECT ("Failed to create spotify_session: %s", sp_error_message (error));
+    return FALSE;
+  }
+
+  GST_DEBUG_OBJECT (spot, "Created spotify session");
+  return TRUE;
+}
+
+static gboolean spotify_login (GstSpotSrc *spot)
+{
+  sp_error error;
+  if (GST_SPOT_SRC_LOGGED_IN (spot)) {
+    GST_DEBUG_OBJECT (spot, "Already logged in\n");
+    return TRUE;
+  }
+
+  GST_DEBUG_OBJECT (spot, "Trying to login\n");
+
+  /* login using the credentials given on the command line */
+  error = sp_session_login (GST_SPOT_SRC_SPOTIFY_SESSION (spot), GST_SPOT_SRC_USER (spot), GST_SPOT_SRC_PASS (spot));
+
+  if (SP_ERROR_OK != error) {
+    GST_ERROR_OBJECT (spot, "Failed to login: %s\n", sp_error_message (error));
+    return FALSE;
+  }
+  int timeout = -1;
+
+  sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
+  while (!GST_SPOT_SRC_LOGGED_IN (spot)) {
+    usleep (10000);
+    sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
+  }
+
+  GST_DEBUG_OBJECT (spot, "Login ok!\n");
+
+ return TRUE;
+}
+
 /* only used to trigger sp_session_process_events when needed,
  * looks like about once a second */
 static void*
@@ -354,13 +405,13 @@ spotify_thread_func (void *data)
   GTimeVal t;
   GstSpotSrc *spot = (GstSpotSrc *) data;
 
-  if (!spot_obj_create_session (spot, spot_instance)) {
-    GST_ERROR_OBJECT (spot, "Spot_obj_create_session error");
+  if (!spotify_create_session (spot)) {
+    GST_ERROR_OBJECT (spot, "Create_session error");
     return FALSE;
   }
 
   while (spot->keep_spotify_thread) {
-    sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+    sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
     g_get_current_time (&t);
     g_time_val_add (&t, timeout * 1000);
     g_cond_timed_wait (spot->process_events_cond, spot->process_events_mutex, &t);
@@ -372,90 +423,90 @@ spotify_thread_func (void *data)
       g_mutex_lock (spot_work->spot_mutex);
       switch (spot_work->cmd) {
         case SPOT_CMD_START:
-          GST_DEBUG_OBJECT (spot, "Uri = %s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
-          if (!spot_obj_login (spot, spot_instance)) {
+          GST_DEBUG_OBJECT (spot, "Uri = %s", GST_SPOT_SRC_URI_LOCATION (spot));
+          if (!spotify_login (spot)) {
             /* error message from within function */
             break;
           }
 
-          sp_link *link = sp_link_create_from_string (SPOT_OBJ_SPOTIFY_URI (spot_instance));
+          sp_link *link = sp_link_create_from_string (GST_SPOT_SRC_URI_LOCATION (spot));
 
           if (!link) {
-            GST_ERROR_OBJECT (spot, "Incorrect track ID:%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
+            GST_ERROR_OBJECT (spot, "Incorrect track ID:%s", GST_SPOT_SRC_URI_LOCATION (spot));
             break;
           }
 
-          SPOT_OBJ_CURRENT_TRACK (spot_instance) = sp_link_as_track (link);
+          GST_SPOT_SRC_CURRENT_TRACK (spot) = sp_link_as_track (link);
 
-          if (!SPOT_OBJ_CURRENT_TRACK (spot_instance)) {
-            GST_ERROR_OBJECT (spot, "Could get track from uri=%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
+          if (!GST_SPOT_SRC_CURRENT_TRACK (spot)) {
+            GST_ERROR_OBJECT (spot, "Could get track from uri=%s", GST_SPOT_SRC_URI_LOCATION (spot));
             break;
           }
 
 #if 0
           /* FIXME: why does not this work? */
-          if (!sp_track_is_available (SPOT_OBJ_CURRENT_TRACK (spot_instance))) {
+          if (!sp_track_is_available (GST_SPOT_SRC_CURRENT_TRACK (spot))) {
             /* this probably happens for tracks avaiable in other countries or
                something */
-            GST_ERROR_OBJECT (spot, "Track is not available, uri=%s", SPOT_OBJ_SPOTIFY_URI (spot_instance));
+            GST_ERROR_OBJECT (spot, "Track is not available, uri=%s", GST_SPOT_SRC_URI_LOCATION (spot));
             break;
           }
 #endif
 
-          sp_track_add_ref (SPOT_OBJ_CURRENT_TRACK (spot_instance));
+          sp_track_add_ref (GST_SPOT_SRC_CURRENT_TRACK (spot));
           sp_link_add_ref (link);
 
-          sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-          while (sp_track_is_loaded (SPOT_OBJ_CURRENT_TRACK (spot_instance)) == 0) {
-            sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+          sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
+          while (sp_track_is_loaded (GST_SPOT_SRC_CURRENT_TRACK (spot)) == 0) {
+            sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
             usleep (10000);
           }
 
-          GST_DEBUG_OBJECT (spot, "Now playing \"%s\"", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)));
+          GST_DEBUG_OBJECT (spot, "Now playing \"%s\"", sp_track_name (GST_SPOT_SRC_CURRENT_TRACK (spot)));
 
-          ret = sp_session_player_load (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_CURRENT_TRACK (spot_instance));
+          ret = sp_session_player_load (GST_SPOT_SRC_SPOTIFY_SESSION (spot), GST_SPOT_SRC_CURRENT_TRACK (spot));
           if (ret != SP_ERROR_OK) {
-            GST_ERROR_OBJECT (spot, "Failed to load track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
-                (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
+            GST_ERROR_OBJECT (spot, "Failed to load track '%s' uri=%s", sp_track_name (GST_SPOT_SRC_CURRENT_TRACK (spot)),
+                (GST_SPOT_SRC_URI_LOCATION (spot)));
             break;
           }
 
-          sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-          ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+          sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
+          ret = sp_session_player_play (GST_SPOT_SRC_SPOTIFY_SESSION (spot), TRUE);
           if (ret != SP_ERROR_OK) {
-            GST_ERROR_OBJECT (spot, "Failed to play track '%s' uri=%s", sp_track_name (SPOT_OBJ_CURRENT_TRACK (spot_instance)),
-                (SPOT_OBJ_SPOTIFY_URI (spot_instance)));
+            GST_ERROR_OBJECT (spot, "Failed to play track '%s' uri=%s", sp_track_name (GST_SPOT_SRC_CURRENT_TRACK (spot)),
+                (GST_SPOT_SRC_URI_LOCATION (spot)));
             break;
           }
           break;
         case SPOT_CMD_PROCESS:
-          sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
+          sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
           break;
 
         case SPOT_CMD_PLAY:
-          ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), TRUE);
+          ret = sp_session_player_play (GST_SPOT_SRC_SPOTIFY_SESSION (spot), TRUE);
           break;
 
         case SPOT_CMD_DURATION:
-          if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
-            ret = sp_track_duration (SPOT_OBJ_CURRENT_TRACK (spot_instance));
+          if (GST_SPOT_SRC_CURRENT_TRACK (spot)) {
+            ret = sp_track_duration (GST_SPOT_SRC_CURRENT_TRACK (spot));
           }
           break;
 
         case SPOT_CMD_STOP:
-          if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
-            ret = sp_session_player_play (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), FALSE);
+          if (GST_SPOT_SRC_CURRENT_TRACK (spot)) {
+            ret = sp_session_player_play (GST_SPOT_SRC_SPOTIFY_SESSION (spot), FALSE);
             if (ret != SP_ERROR_OK)  {
               break;
             }
             ret = SP_ERROR_OK;
-            sp_session_player_unload (SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
+            sp_session_player_unload (GST_SPOT_SRC_SPOTIFY_SESSION (spot));
           }
           break;
 
         case SPOT_CMD_SEEK:
-          if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
-            ret = sp_session_player_seek (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), spot_work->opt);
+          if (GST_SPOT_SRC_CURRENT_TRACK (spot)) {
+            ret = sp_session_player_seek (GST_SPOT_SRC_SPOTIFY_SESSION (spot), spot_work->opt);
           }
           break;
         default:
@@ -477,232 +528,6 @@ spotify_thread_func (void *data)
   }
 
   return NULL;
-}
-
-/*****************************************************************************/
-/*** SPOTOBJ FUNCTIONS *******************************************************/
-
-enum {
-        SPOT_OBJ_ARG_USER = 1,
-        SPOT_OBJ_ARG_PASS,
-        SPOT_OBJ_ARG_SPOTIFY_URI,
-};
-
-static GObjectClass *spot_obj_parent_class = NULL;
-
-static gboolean spot_obj_create_session (GstSpotSrc *spot, SpotObj *self)
-{
-  sp_session_config config;
-  sp_error error;
-
-  config.api_version = SPOTIFY_API_VERSION;
-  //FIXME check if these paths are appropiate
-  config.cache_location = "tmp";
-  config.settings_location = "tmp";
-  config.application_key = g_appkey;
-  config.application_key_size = g_appkey_size;
-  config.user_agent = "spotify-gstreamer-src";
-  config.callbacks = &g_callbacks;
-
-  error = sp_session_init (&config, &SPOT_OBJ_SPOTIFY_SESSION (spot_instance));
-
-  if (SP_ERROR_OK != error) {
-    GST_ERROR_OBJECT ("Failed to create spotify_session: %s", sp_error_message (error));
-    return FALSE;
-  }
-
-  GST_DEBUG_OBJECT (spot, "Created spotify session");
-  return TRUE;
-}
-
-static gboolean spot_obj_login (GstSpotSrc *spot, SpotObj *self)
-{
-  sp_error error;
-  if (SPOT_OBJ_LOGGED_IN (spot_instance)) {
-    GST_DEBUG_OBJECT (spot, "Already logged in\n");
-    return TRUE;
-  }
-
-  GST_DEBUG_OBJECT (spot, "Trying to login\n");
-
-  /* Login using the credentials given on the command line */
-  error = sp_session_login (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), SPOT_OBJ_USER (spot_instance) , SPOT_OBJ_PASS (spot_instance));
-
-  if (SP_ERROR_OK != error) {
-    GST_ERROR_OBJECT (spot, "Failed to login: %s\n", sp_error_message (error));
-    return FALSE;
-  }
-  int timeout = -1;
-
-  sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-  while (!SPOT_OBJ_LOGGED_IN (spot_instance)) {
-    usleep (10000);
-    sp_session_process_events (SPOT_OBJ_SPOTIFY_SESSION (spot_instance), &timeout);
-  }
-
-  GST_DEBUG_OBJECT (spot, "Login ok!\n");
-
- return TRUE;
-}
-
-
-static void
-spot_obj_instance_init (GTypeInstance *instance, gpointer g_class)
-{
-  SpotObj *self = (SpotObj *)instance;
-  self->user = NULL;
-  self->pass = NULL;
-  self->spotify_uri = NULL;
-}
-
-
-static void
-spot_obj_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
-{
-  SpotObj *self = (SpotObj *) object;
-
-  switch (property_id) {
-  case SPOT_OBJ_ARG_USER:
-    g_free (SPOT_OBJ_USER (self));
-    SPOT_OBJ_USER (self) = g_strdup (g_value_get_string (value));
-    break;
-  case SPOT_OBJ_ARG_PASS:
-    g_free (SPOT_OBJ_PASS (self));
-    SPOT_OBJ_PASS (self) = g_strdup (g_value_get_string (value));
-    break;
-  case SPOT_OBJ_ARG_SPOTIFY_URI:
-    g_free (SPOT_OBJ_SPOTIFY_URI (self));
-    SPOT_OBJ_SPOTIFY_URI (self) = g_strdup (g_value_get_string (value));
-    GST_DEBUG_OBJECT (ugly_spot, "Set spotifyuri=%s", g_value_get_string (value));
-    break;
-  default:
-    G_OBJECT_WARN_INVALID_PROPERTY_ID (object,property_id,pspec);
-    break;
-  }
-}
-
-static void
-spot_obj_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
-{
-  SpotObj *self = (SpotObj *) object;
-
-  switch (property_id) {
-  case SPOT_OBJ_ARG_USER:
-    g_value_set_string (value, SPOT_OBJ_USER (self));
-    break;
-  case SPOT_OBJ_ARG_PASS:
-    g_value_set_string (value, SPOT_OBJ_PASS (self));
-    break;
-  case SPOT_OBJ_ARG_SPOTIFY_URI:
-    g_value_set_string (value, SPOT_OBJ_SPOTIFY_URI (self));
-    break;
-  default:
-    G_OBJECT_WARN_INVALID_PROPERTY_ID (object,property_id,pspec);
-    break;
-  }
-}
-
-static GObject *
-spot_obj_constructor (GType type, guint n_construct_properties, GObjectConstructParam *construct_properties)
-{
-  GObject *obj;
-
-  {
-    /* Invoke parent constructor. */
-    SpotObjClass *klass;
-    klass = SPOT_OBJ_CLASS (g_type_class_peek (SPOT_OBJ_TYPE));
-    obj = spot_obj_parent_class->constructor (type,
-                                              n_construct_properties,
-                                              construct_properties);
-  }
-
-  return obj;
-}
-
-static void
-spot_obj_dispose (GObject *obj)
-{
-
-  /*
-   * In dispose, you are supposed to free all types referenced from this
-   * object which might themselves hold a reference to self. Generally,
-   * the most simple solution is to unref all members on which you own a
-   * reference.
-   */
-
-  /* Chain up to the parent class */
-  GST_DEBUG_OBJECT (ugly_spot, "Dispose");
-  G_OBJECT_CLASS (spot_obj_parent_class)->dispose (obj);
-}
-
-static void
-spot_obj_finalize (GObject *obj)
-{
-  SpotObj *self = (SpotObj *)obj;
-
-  /*
-   * Here, complete object destruction.
-   * You might not need to do much...
-   */
-  g_free (self->user);
-  g_free (self->pass);
-  g_free (self->spotify_uri);
-
-  /* Chain up to the parent class */
-  GST_DEBUG_OBJECT (ugly_spot, "Finalize");
-  G_OBJECT_CLASS (spot_obj_parent_class)->finalize (obj);
-}
-
-
-static void
-spot_obj_class_init (gpointer g_class,
-                      gpointer g_class_data)
-{
-  GObjectClass *gobject_class = G_OBJECT_CLASS (g_class);
-  SpotObjClass *klass = SPOT_OBJ_CLASS (g_class);
-
-  gobject_class->set_property = spot_obj_set_property;
-  gobject_class->get_property = spot_obj_get_property;
-  gobject_class->dispose = spot_obj_dispose;
-  gobject_class->finalize = spot_obj_finalize;
-  gobject_class->constructor = spot_obj_constructor;
-
-  spot_obj_parent_class = g_type_class_peek_parent (klass);
-
-
-  g_object_class_install_property (gobject_class, SPOT_OBJ_ARG_USER,
-      g_param_spec_string ("user", "Username", "Username for premium spotify account", "unknown",
-          G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class, SPOT_OBJ_ARG_PASS,
-      g_param_spec_string ("pass", "Password", "Password for premium spotify account", "unknown",
-          G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class, SPOT_OBJ_ARG_SPOTIFY_URI,
-      g_param_spec_string ("spotifyuri", "Spotify URI", "Spotify URI", "unknown",
-          G_PARAM_READWRITE));
-}
-
-GType spot_obj_get_type (void)
-{
-  static GType type = 0;
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (SpotObjClass),
-      NULL,                  /* base_init */
-      NULL,                  /* base_finalize */
-      spot_obj_class_init,   /* class_init */
-      NULL,                  /* class_finalize */
-      NULL,                  /* class_data */
-      sizeof (SpotObj),
-      0,                     /* n_preallocs */
-      spot_obj_instance_init /* instance_init */
-    };
-    type = g_type_register_static (G_TYPE_OBJECT,
-                                   "SpotObjType",
-                                   &info, 0);
-  }
-  return type;
 }
 
 /*****************************************************************************/
@@ -785,19 +610,15 @@ gst_spot_src_class_init (GstSpotSrcClass * klass)
   gstbasesrc_class->query = GST_DEBUG_FUNCPTR (gst_spot_src_query);
 
   g_object_class_install_property (gobject_class, ARG_USER,
-      g_param_spec_string ("user", "Username", "Username for premium spotify account", "unknown",
-          G_PARAM_READWRITE));
+      g_param_spec_string ("user", "Username", "Username for premium spotify account",
+          DEFAULT_USER, G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, ARG_PASS,
-      g_param_spec_string ("pass", "Password", "Password for premium spotify account", "unknown",
-          G_PARAM_READWRITE));
+      g_param_spec_string ("pass", "Password", "Password for premium spotify account",
+	  DEFAULT_PASS, G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, ARG_URI,
       g_param_spec_string ("uri", "URI", "A URI", "unknown",
-          G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class, ARG_SPOTIFY_URI,
-      g_param_spec_string ("spotifyuri", "Spotify URI", "A spotify URI", "unknown",
           G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, ARG_BUFFER_TIME,
@@ -834,13 +655,17 @@ gst_spot_src_init (GstSpotSrc * spot, GstSpotSrcClass * g_class)
   GST_SPOT_SRC_FORMAT (spot)->channels = SPOTIFY_DEFAULT_NUMBER_CHANNELS;
   GST_SPOT_SRC_FORMAT (spot)->sample_type = SP_SAMPLETYPE_INT16_NATIVE_ENDIAN;
 
-  spot_instance = g_object_new (SPOT_OBJ_TYPE, NULL);
-
   /* initiate state varables */
   spot->spot_works = NULL;
   spot->play_token_lost = FALSE;
   spot->end_of_track = FALSE;
   spot->unlock_state = FALSE;
+
+  /* initiate user settings */
+  spot->user = g_strdup (DEFAULT_USER);
+  spot->pass = g_strdup (DEFAULT_PASS);
+  spot->uri = g_strdup (DEFAULT_URI);
+  spot->logged_in = FALSE;
 
   /* intiate worker thread and its state variables */
   spot->keep_spotify_thread = TRUE;
@@ -872,19 +697,20 @@ gst_spot_src_finalize (GObject * object)
 
   spot = GST_SPOT_SRC (object);
 
-  /* Make thread quit. */
+  /* make thread quit */
   g_mutex_lock (spot->process_events_mutex);
   spot->keep_spotify_thread = FALSE;
   GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_threads, spot, "Broadcast process_events_cond");
   g_cond_broadcast (spot->process_events_cond);
   g_mutex_unlock (spot->process_events_mutex);
   g_thread_join (spot->process_events_thread);
+  
+  /* free user variables */
+  g_free (spot->user);
+  g_free (spot->pass);
+  g_free (spot->uri);
 
-  g_object_unref (spot_instance);
-
-  g_free (GST_SPOT_SRC_URI (spot));
-  g_free (GST_SPOT_SRC_FORMAT (spot));
-
+  g_free (spot->format);
   g_list_free (spot->spot_works);
 
   g_cond_free (spot->process_events_cond);
@@ -910,17 +736,26 @@ gst_spot_src_set_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case ARG_USER:
-      g_object_set (spot_instance, "user", g_value_get_string (value), NULL);
+      g_free (GST_SPOT_SRC_USER (spot));
+      GST_SPOT_SRC_USER (spot) = g_value_dup_string (value);
+      /* will work for everyone excepct Sverker Olofsson */
+      if (g_strcmp0 (GST_SPOT_SRC_PASS (spot), DEFAULT_PASS)) {
+	/* FIXME: Handle error */
+	spotify_login (spot);
+      }
       break;
     case ARG_PASS:
-      g_object_set (spot_instance, "pass", g_value_get_string (value), NULL);
+      g_free (GST_SPOT_SRC_PASS (spot));
+      GST_SPOT_SRC_PASS (spot) = g_value_dup_string (value);
+      /* will work for everyone excepct Sverker Olofsson */
+      if (g_strcmp0 (GST_SPOT_SRC_USER (spot), DEFAULT_USER)) {
+	/* FIXME: Handle error */
+	spotify_login (spot);
+      }
       break;
     case ARG_URI:
       //FIXME: how do handle error from this func?
       gst_spot_src_set_spotifyuri (spot, g_value_get_string (value));
-      break;
-    case ARG_SPOTIFY_URI:
-      g_object_set (spot_instance, "spotifyuri", g_value_get_string (value), NULL);
       break;
     case ARG_BUFFER_TIME:
       GST_SPOT_SRC_BUFFER_TIME (spot) = (g_value_get_uint64 (value));
@@ -943,13 +778,10 @@ gst_spot_src_get_property (GObject * object, guint prop_id, GValue * value,
 
   switch (prop_id) {
     case ARG_USER:
-      g_value_set_string (value, SPOT_OBJ_USER (spot_instance));
+      g_value_set_string (value, GST_SPOT_SRC_USER (spot));
       break;
     case ARG_PASS:
-      g_value_set_string (value, SPOT_OBJ_PASS (spot_instance));
-      break;
-    case ARG_SPOTIFY_URI:
-      g_value_set_string (value, SPOT_OBJ_SPOTIFY_URI (spot_instance));
+      g_value_set_string (value, GST_SPOT_SRC_PASS (spot));
       break;
     case ARG_URI:
       g_value_set_string (value, GST_SPOT_SRC_URI (spot));
@@ -1259,27 +1091,22 @@ gst_spot_src_set_spotifyuri (GstSpotSrc * spot, const gchar * spotify_uri)
 {
   GstState state;
 
-  gchar *s_uri = SPOT_OBJ_SPOTIFY_URI (spot_instance);
+  /* hopefully not possible */
+  g_assert (spotify_uri);
+
   /* the element must be stopped in order to do this */
   state = GST_STATE (spot);
   if (state != GST_STATE_READY && state != GST_STATE_NULL) {
     goto wrong_state;
   }
 
-  g_free (s_uri);
-  g_free (spot->uri);
+  g_free (GST_SPOT_SRC_URI (spot));
 
-  /* clear the both uri/spotify_uri if we get a NULL (is that possible?) */
-  if (spotify_uri == NULL) {
-    s_uri = NULL;
-    spot->uri = NULL;
-  } else {
-    /* we store the spotify_uri as received by the application. On Windoes this
-     * should be UTF8 */
-    s_uri = g_strdup (spotify_uri);
-    spot->uri = gst_uri_construct ("spotify", s_uri);
-  }
-  g_object_notify (G_OBJECT (spot), "spotifyuri"); /* why? */
+  /* we store the spotify_uri as received by the application. On Windoes this
+   * should be UTF8 */
+  GST_SPOT_SRC_URI (spot) = gst_uri_construct ("spotify", spotify_uri);
+
+  g_object_notify (G_OBJECT (spot), "uri"); /* why? */
   gst_uri_handler_new_uri (GST_URI_HANDLER (spot), spot->uri);
 
   return TRUE;
