@@ -89,4 +89,4 @@ class SpotifySource:
         return[]
 
     def set_track (self, track):
-        self.spotify.set_property ("spotifyuri", track.uri)
+        self.spotify.set_property ("uri", track.uri)
