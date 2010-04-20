@@ -32,19 +32,38 @@ class Amp():
         self.tmpqueue = []
         self.intmpqueue = True
 
+        # sources connected to the amp
+        self.sources = []
+
+        # the gstreamer source that is currently used for playback
+        self.src = None
+
         self.active_playlist_id = -1
         self.active_playlist_position = 0
-
-        self.src = None
 
         self.needs_push_update = False
 
         # set playlist mode to normal
         self.playlist_mode = "normal"
-        if("ENABLE_SPOTIFY_SOURCE" in cfg):
-            # spotify is special FIXME: not how its supposed to be
-            self.spotify = self.dogvibes.sources[0].get_src()
-            self.spotify.get_by_name("spot").connect('play-token-lost', self.play_token_lost)
+
+    # Soon to be API
+    def connect_source(self, nbr):
+        nbr = int(nbr)
+        if nbr > len(self.dogvibes.sources) - 1:
+            logging.warning ("Connect source - source does not exist")
+
+        if self.dogvibes.sources[nbr].amp != None:
+            logging.warning ("Connect source - source is already connected to amp")
+
+        # Add amp as owner of source
+        self.dogvibes.sources[nbr].amp = self
+        self.sources.append(self.dogvibes.sources[nbr])
+
+    def disconnect_source(self, nbr):
+        nbr = int(nbr)
+        if nbr > len(self.dogvibes.sources) - 1:
+            logging.warning ("Disonnect source - source does not exist")
+        # FIXME implament me
 
     # API
     def API_connectSpeaker(self, nbr):
@@ -290,17 +309,20 @@ class Amp():
 
         if self.src:
             self.pipeline.remove(self.src)
-            if self.spotify_in_use == False:
+            if self.pipeline.get_by_name("decodebin2") != None:
                 self.pipeline.remove(self.decodebin)
 
-        if track.uri[0:7] == "spotify":
-            self.src = self.spotify
-            # FIXME ugly
-            self.dogvibes.sources[0].set_track(track)
-            self.pipeline.add(self.src)
-            self.src.link(self.tee)
-            self.spotify_in_use = True
-        else:
+        self.src = None
+
+        for source in self.sources:
+            if source.uri_matches(track.uri):
+                self.src = source.get_src()
+                source.set_track(track)
+                self.pipeline.add(self.src)
+                self.src.link(self.tee)
+
+        # Try decode bin if there where no match within the sources
+        if self.src == None:
             logging.debug ("Decodebin is taking care of this uri")
             self.src = gst.element_make_from_uri(gst.URI_SRC, track.uri, "source")
             self.decodebin = gst.element_factory_make("decodebin2", "decodebin2")
@@ -308,11 +330,8 @@ class Amp():
             self.pipeline.add(self.src)
             self.pipeline.add(self.decodebin)
             self.src.link(self.decodebin)
-            self.spotify_in_use = False
-        self.set_state(gst.STATE_PLAYING)
 
-    def play_token_lost(self, data):
-        self.API_pause()
+        self.set_state(gst.STATE_PLAYING)
 
     def set_state(self, state):
         logging.debug("set state try")

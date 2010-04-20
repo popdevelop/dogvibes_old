@@ -3,6 +3,8 @@ from collection import Collection
 import config
 
 class FileSource:
+    amp = None
+
     def __init__(self, name, directory):
         self.name = name
         self.directory = directory
@@ -19,3 +21,6 @@ class FileSource:
 
     def list(self, type):
         return self.collection.list(type)
+
+    def uri_matches(self, uri):
+        return False

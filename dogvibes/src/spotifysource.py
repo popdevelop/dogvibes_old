@@ -6,6 +6,8 @@ import xml.etree.ElementTree as ET
 from track import Track
 
 class SpotifySource:
+    amp = None
+
     def __init__(self, name, user, passw):
         self.name = name
         self.passw = passw
@@ -63,9 +65,11 @@ class SpotifySource:
             gpad = gst.GhostPad("src", self.spotify.get_static_pad("src"))
             self.bin.add_pad(gpad)
             self.created = True
+            # Connect playtoken lost signal
+            self.spotify.connect('play-token-lost', self.play_token_lost)
         return self.bin
 
-    def search (self, query):
+    def search(self, query):
         tracks = []
 
         url = "http://ws.spotify.com/search/1/track?q=" + urllib.quote_plus(query)
@@ -88,5 +92,13 @@ class SpotifySource:
     def list(self, type):
         return[]
 
-    def set_track (self, track):
+    def set_track(self, track):
         self.spotify.set_property ("uri", track.uri)
+
+    def uri_matches(self, uri):
+        return (uri[0:7] == "spotify")
+
+    def play_token_lost(self, data):
+        # Pause connected amp if play_token_lost is recieved
+        if amp != None:
+            amp.API_pause()

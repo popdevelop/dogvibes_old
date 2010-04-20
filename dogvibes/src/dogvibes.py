@@ -31,6 +31,8 @@ class Dogvibes():
             spot_user = os.environ.get('SPOTIFY_USER') or cfg["SPOTIFY_USER"]
             spot_pass = os.environ.get('SPOTIFY_PASS') or cfg["SPOTIFY_PASS"]
             self.sources[0] = (SpotifySource("spotify", spot_user, spot_pass))
+            # FIXME: this logs in to the spotify source for the moment
+            self.sources[0].get_src()
             self.sources[0].create_playlists(spot_user, spot_pass)
 
         if("ENABLE_FILE_SOURCE" in cfg):
@@ -47,6 +49,9 @@ class Dogvibes():
         amp0 = Amp(self, "0")
         amp0.API_connectSpeaker(0)
         self.amps = [amp0]
+
+        # add sources to amp
+        amp0.connect_source(0)
 
     def create_track_from_uri(self, uri):
         track = None
