@@ -172,10 +172,6 @@ class Amp():
             self.set_state(gst.STATE_PLAYING)
         self.needs_push_update = True
 
-    def API_playQueueTrack(self, nbr):
-        self.API_play()
-        self.needs_push_update = True
-
     def API_previousTrack(self):
         # TODO: stay on same place if in play queue?
         if (self.intmpqueue):
