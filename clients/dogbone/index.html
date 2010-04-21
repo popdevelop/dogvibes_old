@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dogvibes</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="icon" type="image/png" href="img/favicon.png" />
+<link rel="stylesheet" type="text/css" media="all" href="css/style.css" />
+<link rel="stylesheet" type="text/css" media="all" href="css/skin.css" />
+<script type='text/javascript' src='js/jquery-1.3.2.min.js'></script> 
+<script type='text/javascript' src='js/jquery.jsonp.min.js'></script>
+<script type='text/javascript' src='js/cookies.js'></script>	  
+<script type='text/javascript' src='js/dogvibes-core.js'></script>	
+<script type='text/javascript' src='js/dogbone-core.js'></script>	
+<script type='text/javascript' src='js/dogbone-modules.js'></script>	
+</head>
+
+<body>
+
+<div id="top" class="theme-top">
+  <form id="searchform" action="">
+  <input type="text" id="searchfield" class="theme-searchfield" />
+  </form>
+</div>
+
+<div id="leftcol" class="theme-leftcol">
+  <div id="navigation" class="theme-navigation">        
+  </div>
+  <div id="currentsong" class="theme-currentsong">
+    <ul id="trackinfo" class="theme-trackinfo">
+      <li>&nbsp;</li>    
+    </ul>
+  </div>
+</div>
+
+<div id="separator" class="theme-separator">
+</div>
+
+<div id="rightcol" class="theme-rightcol">
+  <ul id="titlebar" class="theme-titlebar">
+    <li>&nbsp;</li>
+  </ul>
+  <div id="content" class="theme-content">
+  
+    <!-- All the pages //-->
+    <div id="home" title="Home">Home</div>
+    <div id="playqueue" title="Play queue">Queue</div>
+    <div id="search" title="Search">Search</div>
+    <div id="playlist" title="Playlist">Playlist</div>
+  </div>
+</div>
+
+<div id="bottom" class="theme-bottom">
+  <ul id="playback_control">
+    <li id="pb-prev"><a href="javascript:;" onclick="this.blur();">Prev</a></li>
+    <li id="pb-play"><a href="javascript:;" onclick="this.blur();">Play</a></li>
+    <li id="pb-next"><a href="javascript:;" onclick="this.blur();">Next</a></li>
+  </ul>
+  <div style="width:140;">
+    <div id="playback_volume"></div>
+    <div id="volume_icon"></div>
+  </div>
+  <div id="playback_info">
+    <div id="playback_time"></div>
+    <div id="playback_seek"></div>
+    <div id="playback_total"></div>
+  </div>  
+</div>
+
+</body>
+
+</html>

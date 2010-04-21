@@ -1,0 +1,188 @@
+
+/*
+ * Colors:
+ * #474747
+ * #C3C3C3 - Font color
+ * #373737 - Right (main) column background
+ */
+ 
+ * { font: 13px/1.5 Lucida Grande,Helvetica,Arial,'Liberation Sans',FreeSans,sans-serif; }
+
+
+a, a:hover, a:active {
+  text-decoration: none;
+}
+
+.theme-top {
+  background-image: url('img/skin-top-bg.gif');
+  background-repeat: repeat-x;
+}
+
+.theme-searchfield {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  width: 232px;
+  height: 20px;
+  background-image: url('img/skin-searchfield-bg.gif');
+  background-repeat: no-repeat;
+  background-color: transparent;
+  border: 0;
+  padding: 1px 20px 0 20px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.theme-leftcol {
+  background-color: #474747;
+  color: #C3C3C3;
+}
+
+.theme-navigation ul {
+  position: relative;
+  left: 0;
+  right: 0;
+  padding: 6px 0;
+  border-bottom: 1px solid #363636;
+}
+
+.theme-navigation ul li {
+  position: relative;
+  left: 0;
+  right: 0;
+  padding-left: 28px;
+  background-position:10px 4px;
+  background-repeat:no-repeat;   
+}
+
+.theme-navigation ul li a {
+  font-size: 11px;  
+  color: #C3C3C3;  
+  text-shadow: rgba(0,0,0,0.6) 0 1px 0;
+  display: inline-block;
+  width: 90%;
+   
+}
+
+.theme-navigation ul li.selected {
+  background-color: #a9d9ff;
+}
+
+.theme-navigation ul li.selected a {
+  color: #000;  
+  text-shadow: none;
+}
+
+.theme-navigation ul li:hover a {
+  color: #FFF;
+}
+
+.theme-navigation ul.last {
+  border: none;
+}
+
+.theme-navigation ul.search li {
+  background-image:url("img/skin-icon-search.gif");
+}
+
+.theme-navigation ul.playlists li {
+  background-image:url("img/skin-icon-playlist.gif");
+}
+
+.theme-navigation ul li.playqueue {
+  background-image:url("img/skin-icon-playqueue.gif");
+}
+
+.theme-navigation ul li.home {
+  background-image:url("img/skin-icon-home.gif");
+}
+
+.theme-navigation ul li.newlist {
+  background-image:url("img/skin-icon-plus.gif");
+}
+
+.theme-currentsong {
+  background-image: url('img/skin-no-albumart-bg.gif');
+  background-repeat: no-repeat;
+  background-position: 50% bottom;
+  background-color: #474747;
+}
+
+.theme-trackinfo {
+  background-image: url('img/skin-trackinfo-bg.gif');
+  background-repeat: no-repeat;
+  background-position: right top;
+}
+
+.minimized #trackinfo {
+  background-image: url('img/skin-trackinfo-min-bg.png');
+}
+
+.theme-separator {
+  background-color: #292929;
+}
+
+.theme-rightcol {
+  background-color: #373737;
+  color: #C3C3C3;
+}
+
+.theme-titlebar {
+  background-image: url('img/skin-titlebar-bg.png');
+  background-repeat: repeat-x;
+  background-color: #636363;
+}
+
+.theme-titlebar li {
+  background-image: url('img/skin-titlebar-item-sep-bg.png');
+  background-repeat: no-repeat;
+  background-position: top right;
+  width: 90px;
+  height: 22px;
+  color: #292929;
+  font-size: 12px;  
+  text-align: center;
+  text-shadow: rgba(255,255,255,0.4) 0 1px 0;  
+}
+
+.theme-titlebar li.keyword {
+  background: none;
+  color: #000;
+  font-weight: bold;
+  float: right;
+}
+
+.theme-titlebar li.selected {
+  background-image: url('img/skin-titlebar-item-bg.gif');
+  background-repeat: repeat-x;
+  background-color: #C3C3C3;
+  color: #FFF;
+  text-shadow: rgba(0,0,0,0.8) 0 1px 0;
+}
+
+.theme-bottom {
+  background-image: url('img/skin-bottom-bg.gif');
+  background-repeat: repeat-x;
+}
+
+
+/*
+ *  TODO: fix these: Prev, Play, Next controls
+ */
+ 
+#playback_control { margin: 6px 0 0 10px; padding: 0; width: 110px;}
+#playback_control li { display: inline; }
+#playback_control li a { float: left; width: 31px; height: 0; padding: 31px 0 0 0; overflow: hidden; }
+#playback_control li a { background-image: url('img/skin-playctrl-bg.gif');  background-repeat: no-repeat; }
+#playback_control li a.playing { background-image: url('img/skin-playctrl-stop-bg.gif'); }
+
+/* BUTTONS */
+#playback_control li#pb-prev a { background-position: 0px 0px; }
+#playback_control li#pb-play a { background-position: -31px 0; }
+#playback_control li#pb-next a { background-position: -62px 0; }
+
+/* PRESSED STATES */
+#playback_control li#pb-prev a:active { background-position: 0 -31px; }
+#playback_control li#pb-play a:active { background-position: -31px -31px; }
+#playback_control li#pb-next a:active { background-position: -62px -31px; }
+
