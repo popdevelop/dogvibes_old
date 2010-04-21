@@ -100,5 +100,5 @@ class SpotifySource:
 
     def play_token_lost(self, data):
         # Pause connected amp if play_token_lost is recieved
-        if amp != None:
-            amp.API_pause()
+        if self.amp != None:
+            self.amp.API_pause()
