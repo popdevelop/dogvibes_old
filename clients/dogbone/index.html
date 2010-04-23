@@ -17,8 +17,8 @@
 <body>
 
 <div id="top" class="theme-top">
-  <form id="searchform" action="">
-  <input type="text" id="searchfield" class="theme-searchfield" />
+  <form id="Search-form" action="">
+  <input type="text" id="Search-input" class="theme-searchfield" />
   </form>
 </div>
 
@@ -27,7 +27,8 @@
   </div>
   <div id="currentsong" class="theme-currentsong">
     <ul id="trackinfo" class="theme-trackinfo">
-      <li>&nbsp;</li>    
+      <li id="TrackInfo-title">&nbsp;</li>
+      <li id="TrackInfo-artist">&nbsp;</li>      
     </ul>
   </div>
 </div>
@@ -44,8 +45,36 @@
     <!-- All the pages //-->
     <div id="home" title="Home">Home</div>
     <div id="playqueue" title="Play queue">Queue</div>
-    <div id="search" title="Search">Search</div>
-    <div id="playlist" title="Playlist">Playlist</div>
+    <div id="search" title="Search">
+
+      <!-- Template for search content //-->
+      <table id="Search-content">
+        <thead>
+          <th id="Search-space">&nbsp;</th>
+          <th id="Search-title">Track</th>
+          <th id="Search-artist">Artist</th>
+          <th id="Search-duration">Time</th>
+          <th id="Search-album">Album</th>
+        </thead>
+        <tbody id="Search-items">
+        </tbody>
+      </table>    
+    </div>
+    <div id="playlist" title="Playlist">
+
+      <!-- Template for playlist content //-->
+      <table id="Playlist-content">
+        <thead>
+          <th id="Playlist-space">&nbsp;</th>
+          <th id="Playlist-title">Track</th>
+          <th id="Playlist-artist">Artist</th>
+          <th id="Playlist-duration">Time</th>
+          <th id="Playlist-album">Album</th>
+        </thead>
+        <tbody id="Playlist-items">
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 

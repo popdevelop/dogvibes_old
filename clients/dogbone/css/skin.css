@@ -186,3 +186,50 @@ a, a:hover, a:active {
 #playback_control li#pb-play a:active { background-position: -31px -31px; }
 #playback_control li#pb-next a:active { background-position: -62px -31px; }
 
+
+#Search-content, #Playlist-content {
+  font-size: 11px;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#Search-content thead, 
+#Playlist-content thead {
+  background-image: url('img/skin-table-header-bg.gif');
+  background-repeat: repeat-x;
+  height: 19px;
+  font-weight: bold;
+}
+
+#Search-content thead th, 
+#Playlist-content thead th {
+  color: #000;
+  font-size: 11px;
+  text-align: left;
+  padding:1px 5px;
+  background-image: url("img/skin-table-header-sep-bg.gif");
+  background-repeat: no-repeat;
+}
+
+#Search-content tbody tr.odd, 
+#Playlist-content tbody tr.odd {
+  background-color: transparent;
+}
+
+#Search-content tbody tr, 
+#Playlist-content tbody tr {
+  background-color: #404040;
+}
+
+
+#Search-content tbody td, 
+#Playlist-content tbody td {
+  padding:1px 5px;
+  font-size: 11px;
+  color: #DDD;
+}
+
+#Search-content tbody td.time,
+#Playlist-content tbody td.time {
+  text-align: right;
+}

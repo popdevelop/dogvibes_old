@@ -9,7 +9,7 @@ var Config = {
 var UI = {
   titlebar: "#titlebar",
   navigation: "#navigation",
-  searchform: "#searchform",
+  searchform: "#Search-form",
   init: function() {
 
   }
@@ -20,6 +20,26 @@ var Titlebar = {
     $(UI.titlebar).empty();
     $(UI.titlebar).append($("<li class='selected'>"+text+"</li>"));
   }
+};
+
+String.prototype.removePrefix = function(prefix) {
+  if(this.indexOf(prefix) == 0) {
+    return this.substr(prefix.length);
+  }
+  return false;
+};
+
+/* Create a function for converting msec to time string */
+Number.prototype.msec2time = function() {
+  var ts = Math.floor(this / 1000);
+  if(!ts) { ts=0; }
+  if(ts===0) { return "0:00"; }
+  var m = Math.round(ts/60 - 0.5);
+  var s = Math.round(ts - m*60);
+  if (s<10 && s>=0){
+    s="0" + s;
+  }
+  return m + ":" + s;
 };
 
 var NavList = {
@@ -72,8 +92,29 @@ var Main = {
   }
 };
 
+var TrackInfo = {
+  myName: "#TrackInfo",
+  ui: {
+    artist: "#TrackInfo-artist",
+    title:  "#TrackInfo-title"    
+  },
+  init: function() {
+    if($(TrackInfo.ui.artist) && $(TrackInfo.ui.title)) {
+      $(document).bind("Status.songinfo", TrackInfo.set);
+    }
+  },
+  set: function() {
+    $(TrackInfo.ui.artist).val(Dogvibes.status.artist);
+    $(TrackInfo.ui.title).val(Dogvibes.status.title);    
+  }
+}
+
 var Playlist = {
-  ui: Array(),
+  ui: {
+    content: "#Playlist-content",
+    items:   "#Playlist-items"
+  },
+  fields: [],
   param: "",
   init: function() {
     Playlist.ui.list = new NavList.Section('playlists');
@@ -86,6 +127,18 @@ var Playlist = {
       }
     });
     Playlist.ui.newList.addItem('newlist', Playlist.ui.newBtn);
+    
+    /* Configure playlist item table fields by looking for table headers */
+    $(Playlist.ui.content + " th").each(function(i, el){
+      if("id" in el) {
+        var field = el.id.removePrefix("Playlist-");
+        if(field !== false) {
+          Playlist.fields.push(field);
+        }
+      }
+    });
+    
+    /* Setup events */
     $(document).bind("Page.playlist", Playlist.setPage);
     $(document).bind("Status.playlist", Playlist.fetchAll);
     $(document).bind("Server.connected", Playlist.fetchAll);     
@@ -95,7 +148,7 @@ var Playlist = {
     Titlebar.set(Dogbone.page.title);
     if(Playlist.param != Dogbone.page.param) {
       Playlist.param = Dogbone.page.param;
-      $('#playlist').empty();
+      $(Playlist.ui.items).empty();
       Dogvibes.getAllTracksInPlaylist(Playlist.param, Playlist.handleResponse);
     }
   },
@@ -112,23 +165,43 @@ var Playlist = {
       Playlist.ui.list.addItem(el.id, $('<a href="#playlist/'+el.id+'">'+el.name+'</a>'));
     });
   },
-  /* FIXME:  */
+
   handleResponse: function(json) {
     if(json.error !== 0) {
       alert("Couldn't get playlist");
       return;
     }
     Playlist.result = json.result;
-    var tbl = $("<table></table>");
+    Playlist.displayResult();
+  },
+  displayResult: function() {
     $(Playlist.result).each(function(i, el) {
-      tbl.append($("<tr><td>"+el.title+"</td></tr>"));
+      var tr = $("<tr></tr>");
+      for(var i in Playlist.fields) {
+        var content = $("<td></td>");
+        if(Playlist.fields[i] in el) {
+          var value = el[Playlist.fields[i]];
+          /* FIXME: assumption: Convert to time string if value is numeric */
+          if(typeof(value) == "number") {
+            value = value.msec2time();
+            content.addClass("time");
+          }        
+          content.append(value);
+        }
+        tr.append(content);
+      }
+      $(Playlist.ui.items).append(tr);
     });
-    $("#playlist").append(tbl);   
+    $(Playlist.ui.items + " tr:odd").addClass("odd");  
   }
 };
 
 var Search = {
-  ui: Array(),
+  ui: {
+    content: "#Search-content",
+    items:   "#Search-items"
+  },
+  fields: [],
   pages: ["search"],
   searches: Array(),
   param: "",
@@ -139,7 +212,7 @@ var Search = {
     
     $(document).bind("Page.search", Search.setPage);
     $(UI.searchform).submit(function(e) {
-      Search.doSearch($("#searchfield").val());
+      Search.doSearch($("#Search-input").val());
       e.preventDefault();
       return false;
     });
@@ -150,14 +223,25 @@ var Search = {
         Search.searches[i] = temp;
       }
     }
-    Search.draw();  
+    Search.draw(); 
+    
+    /* Configure search item table fields by looking for table headers */
+    $(Search.ui.content + " th").each(function(i, el){
+      if("id" in el) {
+        var field = el.id.removePrefix("Search-");
+        if(field !== false) {
+          Search.fields.push(field);
+        }
+      }
+    });     
+       
   },
   setPage: function() {
     /* See if search parameter has changed. If so, reload */
     if(Dogbone.page.param != Search.param) {
       Search.param = Dogbone.page.param;
       Search.searches.push(Search.param);
-      $("#search").empty();
+      $(Search.ui.items).empty();
       Search.addSearch(Search.param);
       Dogvibes.search(Search.param, Search.handleResponse);      
     }
@@ -195,18 +279,34 @@ var Search = {
   doSearch: function(keyword) {
     window.location.hash = "#search/"+keyword;
   },
-  /* FIXME:  */  
+ 
   handleResponse: function(json) {
     if(json.error !== 0) {
-      alert("Error in search: " + Search.param);
+      alert("Search error!");
       return;
     }
     Search.result = json.result;
-    var tbl = $("<table></table>");
+    Search.displayResult();
+  },
+  displayResult: function() {
     $(Search.result).each(function(i, el) {
-      tbl.append($("<tr><td>"+el.title+"</td></tr>"));
+      var tr = $("<tr></tr>");
+      for(var i in Search.fields) {
+        var content = $("<td></td>");
+        if(Search.fields[i] in el) {
+          var value = el[Search.fields[i]];
+          /* FIXME: assumption: Convert to time string if value is numeric */
+          if(typeof(value) == "number") {
+            value = value.msec2time();
+            content.addClass("time");
+          }
+          content.append(value);
+        }
+        tr.append(content);
+      }
+      $(Search.ui.items).append(tr);
     });
-    $("#search").append(tbl);
+    $(Search.ui.items + " tr:odd").addClass("odd");  
   }
 };
 
@@ -214,6 +314,7 @@ var Search = {
 $(document).ready(function() {
   UI.init();
   Dogbone.init("content");
+  TrackInfo.init();
   /* Init in correct order */
   Main.init();
   Search.init();

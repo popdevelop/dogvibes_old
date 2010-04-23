@@ -97,8 +97,8 @@ ul, li {
 #rightcol #content > div { 
   position: absolute;
   top: 10px;
-  left: 10px;
-  right: 10px;
+  left: 0;
+  right: 0;
   bottom: 0;
 }
 
