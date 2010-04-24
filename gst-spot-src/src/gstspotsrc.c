@@ -358,7 +358,7 @@ static gboolean spotify_create_session (GstSpotSrc *spot)
   error = sp_session_init (&config, &GST_SPOT_SRC_SPOTIFY_SESSION (spot));
 
   if (SP_ERROR_OK != error) {
-    GST_ERROR_OBJECT ("Failed to create spotify_session: %s", sp_error_message (error));
+    GST_ERROR_OBJECT (spot, "Failed to create spotify_session: %s", sp_error_message (error));
     return FALSE;
   }
 
