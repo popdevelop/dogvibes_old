@@ -3,8 +3,9 @@
  */
 
 window.Dogbone = {
+  defaultPage: "home",
   pageRoot: null,
-  pages: Array("dummyItem"),
+  pages: [],
   currentHash: "",
   page: { id: "", title: "", param: false},
   init: function(root) {
@@ -13,6 +14,10 @@ window.Dogbone = {
       Dogbone.pageRoot = rootObj;
       Dogbone.findPages();
       $(Dogbone.pages).each(function(id,el) { Dogbone.hidePage(el); });
+      if(location.hash.length == 0 &&
+         Dogbone.defaultPage.length > 0) {
+        location.hash = "#"+Dogbone.defaultPage;
+      }
       setInterval(Dogbone.checkLocation, 300);
     }
   },
@@ -26,7 +31,7 @@ window.Dogbone = {
   },
   showPage: function(pageID, param) {
     var pageObj = $("#"+pageID);
-    if(pageObj && ($.inArray(pageID, Dogbone.pages))) {
+    if(pageObj && ($.inArray(pageID, Dogbone.pages) !== -1)) {
       Dogbone.hidePage(Dogbone.page.id);
       Dogbone.page.id    = pageID;
       Dogbone.page.title = pageObj.attr('title');
@@ -60,7 +65,3 @@ window.Dogbone = {
     }    
   }
 };
-
-window.onload = function() {
-  Dogbone.init("content");
-}

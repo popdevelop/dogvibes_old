@@ -8,6 +8,7 @@
 <link rel="stylesheet" type="text/css" media="all" href="css/skin.css" />
 <script type='text/javascript' src='js/jquery-1.3.2.min.js'></script> 
 <script type='text/javascript' src='js/jquery.jsonp.min.js'></script>
+<script type='text/javascript' src='js/jquery.hotkeys-0.7.9.min.js'></script>
 <script type='text/javascript' src='js/cookies.js'></script>	  
 <script type='text/javascript' src='js/dogvibes-core.js'></script>	
 <script type='text/javascript' src='js/dogbone-core.js'></script>	
@@ -43,8 +44,29 @@
   <div id="content" class="theme-content">
   
     <!-- All the pages //-->
-    <div id="home" title="Home">Home</div>
-    <div id="playqueue" title="Play queue">Queue</div>
+    <div id="home" title="Home">
+    <img src="css/img/spotify-core-logo-64x64.png" alt="Spotify Core Logo" />    
+    <h2>Welcome to Dogvibes!</h2>
+    <p>
+    You're looking at Dogbone, the HTML client to Dogvibes.
+    </p>
+<span>
+<h3>What is dogvibes?</h3>
+<p>
+Dogvibes is social music. Music is output from one place but is controlled from any connected device. Such devices can be your laptop, phone, remote control or whatever solution that connects with our easy-to-use interface.
+</p>
+<p>
+The music player currently plays Spotify and more formats are on their way. Future plans include integrating services such as Last.fm and playback on Apple Airport Express.
+</p>
+</span>
+<span>
+<h3>How does it work?</h3>
+<p>
+For the tech guys: Dogvibes was the first Linux audio player to fully integrate Spotify using their released library. The Dogvibes project consists of a fully working Spotify GStreamer source, a Python server handling playback control via either REST or WebSocket requests and a web client, Dogbone, that imitates the Spotify UI (to lawyers: just for fun though, we won't sell it).
+</p>
+</span>
+    </div>
+    <div id="playqueue" title="Play queue"></div>
     <div id="search" title="Search">
 
       <!-- Template for search content //-->
@@ -92,7 +114,9 @@
     <div id="playback_time"></div>
     <div id="playback_seek"></div>
     <div id="playback_total"></div>
-  </div>  
+  </div> 
+  <div id="ConnectionIndicator-icon">
+  </div>
 </div>
 
 </body>

@@ -30,22 +30,25 @@ var AJAX = {
     AJAX.server = server;
     AJAX.timer = setTimeout(AJAX.getStatus, 0);
   },
-  stop: function() {
+  stop: function() {  
+    AJAX.connected = false;
     clearTimeout(AJAX.timer);
+    $(document).trigger("Server.error");    
   },
   send: function(URL, Success) {
+    /* Changing state? */
+    if(!AJAX.status.connected) {
+      $(document).trigger("Server.connecting");    
+    }
     $.jsonp({
       url: AJAX.server + URL,
-      error: AJAX.error,
+      error: AJAX.stop,
       success: Success,
-      callbackParameter: "callback"
+      callbackParameter: "callback",
+      timeout: 2000
     });
   },
   /* Private functions */
-  error: function() {
-    $(document).trigger("Server.error");
-    AJAX.stop();
-  },
   getStatus: function() {
     /* TODO: avoid forward reference */
     clearTimeout(AJAX.timeout);
@@ -181,6 +184,10 @@ window.Dogvibes =  {
   },
   getAllTracksInPlaylist:function(id, Success) {
     Dogvibes.server.send(Dogvibes.cmd.playlist + id, Success);  
+  },
+  playTrack: function(id, pid) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.playTrack + id + "&playlist_id=" + pid;
+    Dogvibes.server.send(URL, Dogvibes.server.getStatus);
   },
   createPlaylist: function(name, Success) {
   }

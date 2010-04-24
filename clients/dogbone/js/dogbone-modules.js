@@ -3,18 +3,19 @@
  */
 
 var Config = {
+  defaultServer: "http://192.168.0.60:2000",
   resizeable: true
 };
 
+/* TODO: remove when all dependencies are solved */
 var UI = {
   titlebar: "#titlebar",
   navigation: "#navigation",
-  searchform: "#Search-form",
-  init: function() {
-
-  }
+  trackinfo: "#trackinfo",
+  currentsong: "#currentsong"
 };
 
+/* TODO: Find out a good way to handle titlebar */
 var Titlebar = {
   set: function(text) {
     $(UI.titlebar).empty();
@@ -22,6 +23,11 @@ var Titlebar = {
   }
 };
 
+/**************************
+ * Prototype extensions
+ **************************/
+
+/* remove a prefix from a string */
 String.prototype.removePrefix = function(prefix) {
   if(this.indexOf(prefix) == 0) {
     return this.substr(prefix.length);
@@ -42,6 +48,10 @@ Number.prototype.msec2time = function() {
   return m + ":" + s;
 };
 
+/**************************
+ * Modules 
+ **************************/
+
 var NavList = {
   /* Store all sections globally */
   sections: Array(),
@@ -60,7 +70,9 @@ var NavList = {
       $(NavList.sections).each(function(i ,el) {
         el.deselect();
       });
-      this.items[id].addClass('selected');
+      if(typeof(this.items) != "undefined" && id in this.items) {
+        this.items[id].addClass('selected');
+      }
     };
     this.deselect = function() {
       for( var i in this.items) {
@@ -77,23 +89,59 @@ var NavList = {
 
 var Main = {
   ui: Array(),
-  pages: [{id: "home", title: "Home"}, 
-          {id: "playqueue", title: "Play queue"}],
   init: function() {
+    /* Bug in jQuery: you can't have same function attached to multiple events! */    
     Main.ui.list = new NavList.Section('');
-    $(Main.pages).each(function(i, el){
-      Main.ui.list.addItem(el.id, $("<a href='#"+el.id+"'>"+el.title+"</a>"));
-      $(document).bind("Page."+el.id, Main.setPage);
+    Main.ui.list.addItem("home", $("<a href='#home'>Home</a>"));
+    $(document).bind("Page.home", Main.setHome);        
+    Main.ui.list.addItem("playqueue", $("<a href='#playqueue'>Play queue</a>"));
+    $(document).bind("Page.playqueue", Main.setQueue); 
+    
+    /* Online / Offline */
+    $(document).bind("Server.error", function() {
+      $(Playlist.ui.content).hide();
+      $("#playqueue").addClass("disconnected");
     });
+    $(document).bind("Server.connected", function() {
+      $(Playlist.ui.content).show();
+      $("#playqueue").removeClass("disconnected");
+    });        
   },
-  setPage: function() {
+  setQueue: function() {
     Titlebar.set(Dogbone.page.title);
     Main.ui.list.selectItem(Dogbone.page.id);
+  },
+  setHome: function() {
+    Titlebar.set(Dogbone.page.title);
+    Main.ui.list.selectItem(Dogbone.page.id);
+  }  
+};
+
+var ConnectionIndicator = {
+  ui: {
+    icon: "#ConnectionIndicator-icon"
+  },
+  icon: false,
+  init: function() {
+    ConnectionIndicator.icon = $(ConnectionIndicator.ui.icon);
+    if(ConnectionIndicator.icon) {
+      $(document).bind("Server.connecting", function() {
+        ConnectionIndicator.icon.removeClass();
+        ConnectionIndicator.icon.addClass("connecting");
+      });
+      $(document).bind("Server.error", function() {
+        ConnectionIndicator.icon.removeClass();
+        ConnectionIndicator.icon.addClass("error");
+      });
+      $(document).bind("Server.connected", function() {
+        ConnectionIndicator.icon.removeClass();
+        ConnectionIndicator.icon.addClass("connected");
+      });       
+    }
   }
 };
 
 var TrackInfo = {
-  myName: "#TrackInfo",
   ui: {
     artist: "#TrackInfo-artist",
     title:  "#TrackInfo-title"    
@@ -127,6 +175,16 @@ var Playlist = {
       }
     });
     Playlist.ui.newList.addItem('newlist', Playlist.ui.newBtn);
+
+    /* Handle offline/online */
+    $(document).bind("Server.error", function() {
+      $(Playlist.ui.content).hide();
+      $("#playlist").addClass("disconnected");
+    });
+    $(document).bind("Server.connected", function() {
+      $(Playlist.ui.content).show();
+      $("#playlist").removeClass("disconnected");
+    });
     
     /* Configure playlist item table fields by looking for table headers */
     $(Playlist.ui.content + " th").each(function(i, el){
@@ -177,6 +235,7 @@ var Playlist = {
   displayResult: function() {
     $(Playlist.result).each(function(i, el) {
       var tr = $("<tr></tr>");
+      tr.attr("id", "Playlist-item-"+el.id);
       for(var i in Playlist.fields) {
         var content = $("<td></td>");
         if(Playlist.fields[i] in el) {
@@ -192,14 +251,30 @@ var Playlist = {
       }
       $(Playlist.ui.items).append(tr);
     });
-    $(Playlist.ui.items + " tr:odd").addClass("odd");  
+    /* Zebra stripes */
+    $(Playlist.ui.items + " tr:odd").addClass("odd");
+    
+    /* Attach behaviours */
+    var rows = $(Playlist.ui.items + " tr");
+    rows.click(function() {
+      $(Playlist.ui.items + " tr").removeClass("selected");
+      $(this).addClass("selected");
+    });
+    rows.dblclick(function() {
+      Playlist.playItem($(this).attr('id').removePrefix('Playlist-item-'));
+    });
+  },
+  playItem: function(id) {
+    Dogvibes.playTrack(id, Playlist.param);
   }
 };
 
 var Search = {
   ui: {
     content: "#Search-content",
-    items:   "#Search-items"
+    items:   "#Search-items",
+    form:    "#Search-form",
+    input:   "#Search-input"
   },
   fields: [],
   pages: ["search"],
@@ -209,13 +284,24 @@ var Search = {
   init: function() {
     /* Init search navigation section */
     Search.ui.list = new NavList.Section('search');
-    
     $(document).bind("Page.search", Search.setPage);
-    $(UI.searchform).submit(function(e) {
+    
+    /* Handle offline/online */
+    $(document).bind("Server.error", function() {
+      $(Search.ui.content).hide();
+      $("#search").addClass("disconnected");
+    });
+    $(document).bind("Server.connected", function() {
+      $(Search.ui.content).show();
+      $("#search").removeClass("disconnected");
+    });
+
+    $(Search.ui.form).submit(function(e) {
       Search.doSearch($("#Search-input").val());
       e.preventDefault();
       return false;
     });
+    
     /* Load searches from cookie */
     var temp;
     for(var i = 0; i < 6; i++){
@@ -291,6 +377,8 @@ var Search = {
   displayResult: function() {
     $(Search.result).each(function(i, el) {
       var tr = $("<tr></tr>");
+      tr.attr("id", el.uri);
+      
       for(var i in Search.fields) {
         var content = $("<td></td>");
         if(Search.fields[i] in el) {
@@ -306,19 +394,53 @@ var Search = {
       }
       $(Search.ui.items).append(tr);
     });
+    /* Zebra stripes */
     $(Search.ui.items + " tr:odd").addClass("odd");  
+    
+    /* Attach behaviours */
+    var rows = $(Search.ui.items + " tr");
+    rows.click(function() {
+      $(Search.ui.items + " tr").removeClass("selected");
+      $(this).addClass("selected");
+    });    
+    
+    rows.dblclick(function() {
+      alert("Queue and play uri: "+$(this).attr(id));
+    });
   }
 };
 
 
+/***************************
+ * Keybindings 
+ ***************************/
+ 
+/* CTRL+s for searching */ 
+$(document).bind("keyup", "ctrl+s", function() {
+  $(Search.ui.input).focus();
+});
+
+
+/***************************
+ * Startup 
+ ***************************/
 $(document).ready(function() {
-  UI.init();
   Dogbone.init("content");
+  ConnectionIndicator.init();
   TrackInfo.init();
   /* Init in correct order */
   Main.init();
   Search.init();
   Playlist.init();
   /* Start server connection */
-  Dogvibes.init('http://192.168.0.60:2000');
+  Dogvibes.init(Config.defaultServer);
+  
+  /****************************************
+   * Misc. behaviour. Application specific
+   ****************************************/
+  $(UI.trackinfo).click(function() {
+    $(UI.navigation).toggleClass('fullHeight');
+    $(UI.currentsong).toggleClass('minimized');
+  });  
+  
 });

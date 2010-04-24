@@ -166,6 +166,44 @@ a, a:hover, a:active {
 }
 
 
+div.disconnected {
+  background-image: url('img/skin-disconnected.gif');
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+}
+
+#home {
+  padding-left: 10px;
+  width: 620px;
+}
+#home img {
+  float: right;
+  margin: 20px 10px 0 0;
+}
+#home p {
+  margin: 0 0 1em 0;
+  font-size: 11px;
+}
+
+#home h2 {
+  color: #FFF;
+  font-size: 18px;
+  margin-bottom: 0.5em;
+}
+
+#home h3 {
+  color: #FFF;
+  font-size: 14px;
+  margin-bottom: 0.5em;
+}
+
+#home span {
+  display: inline-block;
+  width: 300px;
+  float: left;
+  margin-right: 10px;
+}
+
 /*
  *  TODO: fix these: Prev, Play, Next controls
  */
@@ -186,6 +224,21 @@ a, a:hover, a:active {
 #playback_control li#pb-play a:active { background-position: -31px -31px; }
 #playback_control li#pb-next a:active { background-position: -62px -31px; }
 
+
+#ConnectionIndicator-icon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 41px;
+  width: 41px;
+  text-indent: -9999px;
+}
+
+#ConnectionIndicator-icon.connecting {
+  background-image: url("img/skin-connecting.gif");
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+}
 
 #Search-content, #Playlist-content {
   font-size: 11px;
@@ -219,6 +272,16 @@ a, a:hover, a:active {
 #Search-content tbody tr, 
 #Playlist-content tbody tr {
   background-color: #404040;
+}
+
+#Search-content tbody tr.selected, 
+#Playlist-content tbody tr.selected {
+  background-color: #ADF;
+}
+
+#Search-content tbody tr.selected td, 
+#Playlist-content tbody tr.selected td{
+  color: #000;
 }
 
 

@@ -38,6 +38,10 @@ ul, li {
   float: none;
 }
 
+#leftcol #navigation.fullHeight {
+  bottom: 52px;
+}
+
 #leftcol #currentsong {
   position: absolute;
   left: 0;
