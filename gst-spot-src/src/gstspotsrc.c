@@ -19,7 +19,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <spotify/api.h>
+#include <libspotify/api.h>
 #include <gst/base/gstadapter.h>
 #include <gst/gst.h>
 
@@ -195,7 +195,7 @@ static void
 spotify_cb_logged_in (sp_session *spotify_session, sp_error error)
 {
   if (SP_ERROR_OK != error) {
-    GST_CAT_ERROR_OBJECT (gst_spot_src_debug_cb, ugly_spot, "Failed to log in to Spotify: %s\n", sp_error_message (error));
+    GST_CAT_ERROR_OBJECT (gst_spot_src_debug_cb, ugly_spot, "Failed to log in to Spotify: %s", sp_error_message (error));
     return;
   }
 
@@ -238,7 +238,7 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
   GST_SPOT_SRC_FORMAT (ugly_spot)->channels = channels;
   GST_SPOT_SRC_FORMAT (ugly_spot)->sample_type = format->sample_type;
 
-  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Start %p with %d frames with size=%d\n", frames, num_frames, bufsize);
+  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Start %p with %d frames with size=%d", frames, num_frames, bufsize);
 
   if (num_frames == 0) {
     /* we have a seek */
@@ -251,10 +251,10 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
 
   g_mutex_lock (GST_SPOT_SRC_ADAPTER_MUTEX (ugly_spot));
   availible = gst_adapter_available (GST_SPOT_SRC_ADAPTER (ugly_spot));
-  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Availiable before push = %d\n", availible);
+  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Availiable before push = %d", availible);
   /* see if we have buffertime of audio */
   if (availible >= (GST_SPOT_SRC_BUFFER_TIME (ugly_spot)/1000000) * sample_rate * 4) {
-    GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Return 0, adapter is full = %d\n", availible);
+    GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Return 0, adapter is full = %d", availible);
     gst_buffer_unref (buffer);
     /* data is available broadcast read thread */
     g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (ugly_spot));
@@ -264,11 +264,11 @@ spotify_cb_music_delivery (sp_session *spotify_session, const sp_audioformat *fo
 
   gst_adapter_push (GST_SPOT_SRC_ADAPTER (ugly_spot), buffer);
   availible = gst_adapter_available (GST_SPOT_SRC_ADAPTER (ugly_spot));
-  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Availiable after push = %d\n", availible);
+  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Availiable after push = %d", availible);
   /* data is available broadcast read thread */
   g_cond_broadcast (GST_SPOT_SRC_ADAPTER_COND (ugly_spot));
   g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (ugly_spot));
-  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Return num_frames=%d\n", num_frames);
+  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, ugly_spot, "Return num_frames=%d", num_frames);
   return num_frames;
 }
 
@@ -372,19 +372,20 @@ static gboolean spotify_login (GstSpotSrc *spot)
 {
   sp_error error;
   if (GST_SPOT_SRC_LOGGED_IN (spot)) {
-    GST_DEBUG_OBJECT (spot, "Already logged in\n");
+    GST_DEBUG_OBJECT (spot, "Already logged in");
     return TRUE;
   }
 
-  GST_DEBUG_OBJECT (spot, "Trying to login\n");
+  GST_DEBUG_OBJECT (spot, "Trying to login");
 
   /* login using the credentials given on the command line */
   error = sp_session_login (GST_SPOT_SRC_SPOTIFY_SESSION (spot), GST_SPOT_SRC_USER (spot), GST_SPOT_SRC_PASS (spot));
 
   if (SP_ERROR_OK != error) {
-    GST_ERROR_OBJECT (spot, "Failed to login: %s\n", sp_error_message (error));
+    GST_ERROR_OBJECT (spot, "Failed to login: %s", sp_error_message (error));
     return FALSE;
   }
+
   int timeout = -1;
 
   sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
@@ -393,7 +394,7 @@ static gboolean spotify_login (GstSpotSrc *spot)
     sp_session_process_events (GST_SPOT_SRC_SPOTIFY_SESSION (spot), &timeout);
   }
 
-  GST_DEBUG_OBJECT (spot, "Login ok!\n");
+  GST_DEBUG_OBJECT (spot, "Login ok!");
 
  return TRUE;
 }
@@ -519,7 +520,7 @@ spotify_thread_func (void *data)
 
       /* print all errors caught and propagate to calling thread */
       if (ret != SP_ERROR_OK) {
-            GST_ERROR_OBJECT (spot, "Failed with SPOT_CMD=%d, error=%s", spot_work->cmd, sp_error_message (ret));
+            GST_ERROR_OBJECT (spot, "Failed with SPOT_CMD=%d, ret=%d, error=%s", spot_work->cmd, ret, sp_error_message (ret));
       }
       spot_work->ret = ret;
 
@@ -677,7 +678,7 @@ gst_spot_src_init (GstSpotSrc * spot, GstSpotSrcClass * g_class)
   spot->process_events_thread = g_thread_create ((GThreadFunc)spotify_thread_func, spot, TRUE, &err);
 
   if (spot->process_events_thread == NULL) {
-     GST_CAT_ERROR_OBJECT (gst_spot_src_debug_threads, spot,"G_thread_create failed: %s!\n", err->message );
+     GST_CAT_ERROR_OBJECT (gst_spot_src_debug_threads, spot,"G_thread_create failed: %s!", err->message );
      g_error_free (err) ;
   }
 
@@ -813,10 +814,10 @@ gst_spot_src_create_read (GstSpotSrc * spot, guint64 offset, guint length, GstBu
     gint64 seek_usec = frames / ((float)sample_rate / 1000);
 
     GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_audio, spot,
-        "Seek_usec = (%" G_GINT64_FORMAT ") = frames (%" G_GINT64_FORMAT ") /  sample_rate (%d/1000)\n",
+        "Seek_usec = (%" G_GINT64_FORMAT ") = frames (%" G_GINT64_FORMAT ") /  sample_rate (%d/1000)",
         seek_usec, frames, sample_rate);
     GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_audio, spot,
-        "Perform seek to %" G_GINT64_FORMAT " bytes and %" G_GINT64_FORMAT " usec\n",
+        "Perform seek to %" G_GINT64_FORMAT " bytes and %" G_GINT64_FORMAT " usec",
         offset, seek_usec);
 
     error = run_spot_cmd (spot, SPOT_CMD_SEEK, seek_usec);
@@ -850,7 +851,7 @@ gst_spot_src_create_read (GstSpotSrc * spot, guint64 offset, guint length, GstBu
     if (spot->end_of_track) {
       g_mutex_unlock (GST_SPOT_SRC_ADAPTER_MUTEX (spot));
       do_end_of_track (spot);
-      GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_audio, spot, "End of track\n");
+      GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_audio, spot, "End of track");
       return GST_FLOW_WRONG_STATE;
     }
     //should be used in a tight conditional while
@@ -900,9 +901,23 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
   samplerate = GST_SPOT_SRC_FORMAT (spot)->sample_rate;
 
   switch (GST_QUERY_TYPE (query)) {
-    case GST_QUERY_URI:
-      gst_query_set_uri (query, spot->uri);
-    break;
+    case GST_QUERY_POSITION:
+      {
+      /*FIXME
+       * this one we get, answer it or propagate?
+       * seems like if we answer it we are not asked
+       * to convert, so i guess this is better? 
+
+      gint64 pos;
+      GstFormat format;
+      gst_query_parse_position (query, &format, &pos);
+      pos = GST_SPOT_SRC_READ_POS (GST_SPOT_SRC (basesrc));
+      GST_INFO_OBJECT (spot, "Query_position pos=%"G_GINT64_FORMAT);
+       
+      */
+      ret = FALSE;
+      }
+      break;
 
     case GST_QUERY_DURATION:{
       GstFormat format;
@@ -915,8 +930,8 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
       switch (format) {
         case GST_FORMAT_BYTES:
           {
-          guint64 duration_bytes = (duration/1000) * samplerate * 4;
-          GST_LOG_OBJECT (spot, "Query_duration, duration_bytes=%" G_GUINT64_FORMAT, duration_bytes);
+          guint64 duration_bytes = (duration / 1000) * samplerate * 4;
+          GST_INFO_OBJECT (spot, "Query_duration, duration_bytes=%" G_GUINT64_FORMAT, duration_bytes);
           gst_query_set_duration (query, format, duration_bytes);
           }
           break;
@@ -924,7 +939,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
           {
           /* set it to nanoseconds */
           guint64 duration_time = duration * 1000;
-          GST_LOG_OBJECT (spot, "Query_duration, duration_time=%" G_GUINT64_FORMAT, duration_time);
+          GST_INFO_OBJECT (spot, "Query_duration, duration_time=%" G_GUINT64_FORMAT, duration_time);
           gst_query_set_duration (query, format, duration_time);
           }
           break;
@@ -935,40 +950,82 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
       }
       break;
     }
+
+    /* FIXME: JUST FOR DEBUGING */
+
+    case GST_QUERY_LATENCY:
+      /* propagate to basesrc */
+      ret = FALSE;
+      GST_INFO_OBJECT (spot, "Query_latency");
+      break;
+
+    case GST_QUERY_RATE:
+      /* propagate to basesrc */
+      ret = FALSE;
+      GST_INFO_OBJECT (spot, "Query_latency");
+      break; 
+
+    case GST_QUERY_SEEKING:
+      /* propagate to basesrc */
+      ret = FALSE;
+      GST_INFO_OBJECT (spot, "Query_seeking");
+      break; 
+
+    case GST_QUERY_SEGMENT:
+      /* propagate to basesrc */
+      ret = FALSE;
+      GST_INFO_OBJECT (spot, "Query_segment");
+      break; 
+
+    case GST_QUERY_FORMATS:
+      /* propagate to basesrc */
+      ret = FALSE;
+      GST_INFO_OBJECT (spot, "Query_formats");
+      break; 
+
+    case GST_QUERY_BUFFERING:
+      /* propagate to basesrc */
+      ret = FALSE;
+      GST_INFO_OBJECT (spot, "Query_buffering");
+      break; 
+
     case GST_QUERY_CONVERT:
       {
         GstFormat src_fmt, dest_fmt;
 
         gst_query_parse_convert (query, &src_fmt, &src_val, &dest_fmt, &dest_val);
-        GST_LOG_OBJECT (spot, "Convert src_fmt %d dst_fmt %d", src_fmt, dest_fmt);
 
         if (src_fmt == dest_fmt) {
           dest_val = src_val;
+          GST_INFO_OBJECT (spot, "Convert done, dst_fmt == src_fmt");
           goto done;
         }
 
+        GST_INFO_OBJECT (spot, "Convert src_fmt=%s to dst_fmt=%s", gst_format_get_name (src_fmt), gst_format_get_name (dest_fmt));
+
         switch (src_fmt) {
         case GST_FORMAT_BYTES:
-          GST_LOG_OBJECT (spot,"Dst_fmt == %d == FORMAT_DEFAULT", dest_fmt);
           switch (dest_fmt) {
           case GST_FORMAT_TIME:
-            /* samples to time */
-            dest_val = src_val / ((float)samplerate * 4 / 1000000);
-            GST_LOG_OBJECT (spot,"Dst_val == %" G_GINT64_FORMAT, dest_val);
+            /* samples to time convertion 
+             *   - each sample has two channels with 16 bits, 4byte
+             *   - samplerate is usually 44100hz
+             *   - time is in nano seconds */
+            dest_val = (src_val * 1000000) / ((float)samplerate * 4);
+            GST_INFO_OBJECT (spot,"Convert src_val=%" G_GINT64_FORMAT " b, dst_val=%" G_GINT64_FORMAT " ns", src_val, dest_val);
             break;
-            default:
-              ret = FALSE;
-              g_assert_not_reached ();
-              break;
+          default:
+            ret = FALSE;
+            g_assert_not_reached ();
+            break;
           }
           break;
         case GST_FORMAT_TIME:
-          GST_LOG_OBJECT (spot,"Dst_fmt == %d == FORMAT_TIME", dest_fmt);
           switch (dest_fmt) {
           case GST_FORMAT_BYTES:
             /* time to samples */
-            dest_val = src_val/1000000 * samplerate * 4;
-            GST_LOG_OBJECT (spot,"Dst_val == %" G_GINT64_FORMAT, dest_val);
+            dest_val = (src_val * samplerate * 4) / 1000000;
+            GST_INFO_OBJECT (spot,"Convert src_val=%" G_GINT64_FORMAT " ns, dst_val=%" G_GINT64_FORMAT " b", src_val, dest_val);
             break;
           default:
             ret = FALSE;
@@ -981,20 +1038,23 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
           g_assert_not_reached ();
           break;
         }
-        GST_LOG_OBJECT (spot, "Done src_val %" G_GINT64_FORMAT " dst_val %" G_GINT64_FORMAT "\n", src_val, dest_val);
       done:
         gst_query_set_convert (query, src_fmt, src_val, dest_fmt, dest_val);
         break;
       }
-  default:
-    ret = FALSE;
-    GST_LOG_OBJECT (spot, "Query type unknown, default");
-    /* FIXME: add case for query type and remove comment
-       g_assert_not_reached (); */
+
+    case GST_QUERY_URI:
+      gst_query_set_uri (query, spot->uri);
     break;
+
+    default:
+      GST_LOG_OBJECT (spot, "Query type unknown, default, type=%s", GST_QUERY_TYPE_NAME (query));
+      g_assert_not_reached ();
+      break;
   }
 
   if (!ret) {
+    GST_LOG_OBJECT (spot, "Let basesrc handle query type=%s", GST_QUERY_TYPE_NAME (query));
     ret = GST_BASE_SRC_CLASS (parent_class)->query (basesrc, query);
   }
 
@@ -1027,7 +1087,7 @@ gst_spot_src_get_size (GstBaseSrc * basesrc, guint64 * size)
   }
 
   *size = (duration/1000) * 44100 * 4;
-  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, spot, "Duration=%d => size=%" G_GUINT64_FORMAT "\n", duration, *size);
+  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, spot, "Duration=%d => size=%" G_GUINT64_FORMAT, duration, *size);
 
   return TRUE;
 
@@ -1151,12 +1211,12 @@ gst_spot_src_uri_set_uri (GstURIHandler * handler, const gchar * uri)
   gchar *location, *hostname = NULL;
   gboolean ret = FALSE;
   GstSpotSrc *spot = GST_SPOT_SRC (handler);
-  GST_DEBUG_OBJECT (spot, "URI '%s' for filesrc", uri);
+  GST_DEBUG_OBJECT (spot, "URI '%s' for spotsrc", uri);
 
   location = g_filename_from_uri (uri, &hostname, NULL);
 
   if (!location) {
-    GST_WARNING_OBJECT (spot, "Invalid URI '%s' for filesrc", uri);
+    GST_WARNING_OBJECT (spot, "Invalid URI '%s' for spotsrc", uri);
     goto beach;
   }
 
