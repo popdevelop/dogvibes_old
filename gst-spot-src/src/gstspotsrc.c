@@ -204,6 +204,8 @@ spotify_cb_logged_in (sp_session *spotify_session, sp_error error)
                          sp_user_display_name (me) :
                          sp_user_canonical_name (me));
   GST_CAT_DEBUG_OBJECT (gst_spot_src_debug_cb, ugly_spot, "Logged_in callback, user=%s", my_name);
+  /* set default bitrate to audiofility */
+  sp_session_preferred_bitrate(spotify_session, SP_BITRATE_320k);
   GST_SPOT_SRC_LOGGED_IN (ugly_spot) = TRUE;
 }
 
