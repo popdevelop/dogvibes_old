@@ -1,7 +1,6 @@
 import gst
 import hashlib
 import random
-import config
 import time
 import logging
 
@@ -16,7 +15,6 @@ class DogError(Exception):
 
 class Amp():
     def __init__(self, dogvibes, id):
-        cfg = config.load("dogvibes.conf")
         self.dogvibes = dogvibes
         self.pipeline = gst.Pipeline ("amppipeline")
 
