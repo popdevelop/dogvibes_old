@@ -5,17 +5,5 @@ cp gst-spot-src/src/.libs/libgstspot.lai debian/usr/lib/gstreamer-0.10/libgstspo
 cp gst-spot-src/src/.libs/libgstspot.so debian/usr/lib/gstreamer-0.10/libgstspot.so
 
 # Python Server
-cp dogvibes2/src/albumart.py debian/usr/lib/dogvibes
-cp dogvibes2/src/apexspeaker.py debian/usr/lib/dogvibes
-cp dogvibes2/src/config.py debian/usr/lib/dogvibes
-cp dogvibes2/src/devicespeaker.py debian/usr/lib/dogvibes
-cp dogvibes2/src/filesource.py debian/usr/lib/dogvibes
-cp dogvibes2/src/server.py debian/usr/lib/dogvibes/dogvibesserver.py
-cp dogvibes2/src/track.py debian/usr/lib/dogvibes
-cp dogvibes2/src/amp.py debian/usr/lib/dogvibes
-cp dogvibes2/src/collection.py debian/usr/lib/dogvibes
-cp dogvibes2/src/database.py debian/usr/lib/dogvibes
-cp dogvibes2/src/dogvibes.py debian/usr/lib/dogvibes
-cp dogvibes2/src/playlist.py debian/usr/lib/dogvibes
-cp dogvibes2/src/spotifysource.py debian/usr/lib/dogvibes
-cp dogvibes2/src/dogvibes.conf debian/etc
+rm debian/usr/lib/dogvibes/*
+cp dogvibes/src/*.py debian/usr/lib/dogvibes
