@@ -240,10 +240,12 @@ var Playqueue = {
   set: function() {
     if(Dogvibes.status.state == "playing" &&
        Dogvibes.status.playlist_id == -1) {
+      $("li.playqueue").addClass('playing'); 
       $(Playqueue.table.ui.items + " tr:first").addClass("playing");
       $(Playqueue.table.ui.items + " tr:first td:first").addClass("playing");      
     } 
     else {
+      $("li.playqueue").removeClass('playing');    
       $(Playqueue.table.ui.items + " tr:first").removeClass("playing");
       $(Playqueue.table.ui.items + " tr:first td:first").removeClass("playing");      
     }
@@ -283,6 +285,17 @@ var PlayControl = {
         });
         break;
     }
+  },
+  toggle: function() {
+    switch(Dogvibes.status.state) {
+      case "playing":
+        Dogvibes.pause();
+        break;
+      default:
+        Dogvibes.play();
+        break;
+    }
+    PlayControl.set();
   }
 };
 
@@ -296,7 +309,7 @@ var ConnectionIndicator = {
     if(ConnectionIndicator.icon) {
       $(document).bind("Server.connecting", function() {
         ConnectionIndicator.icon.removeClass();
-        ConnectionIndicator.icon.addClass("connecting");
+        //ConnectionIndicator.icon.addClass("connecting");
       });
       $(document).bind("Server.error", function() {
         ConnectionIndicator.icon.removeClass();
@@ -370,8 +383,8 @@ var Playlist = {
     $(document).bind("Status.playlist", Playlist.fetchAll);
     $(document).bind("Server.connected", Playlist.fetchAll);
     
-    $(document).bind("Status.state", function() { Playlist.set() });    
-    $(document).bind("Status.playlist", function() { Playlist.set() });              
+    $(document).bind("Status.state", function() { Playlist.set(); });    
+    $(document).bind("Status.playlist", function() { Playlist.set(); });              
   },
   setPage: function() {
     Playlist.ui.list.selectItem(Dogbone.page.param);
@@ -404,6 +417,7 @@ var Playlist = {
     }
     Playlist.table.items = json.result;
     Playlist.table.display();
+    Playlist.set();
   },
   playItem: function(id) {
     if(parseInt(id)) {
@@ -416,10 +430,10 @@ var Playlist = {
   set: function() {
     if(Dogvibes.status.state == "playing" &&
        Dogvibes.status.playlist_id != -1) {
-      $(Playlist.table.ui.items + " tr:first td:first").addClass("listplaying");      
+      $('tr[name="Playlist-item-no-'+Dogvibes.status.index+'"] td:first').addClass("listplaying");      
     } 
     else {
-      $(Playlist.table.ui.items + " tr:first td:first").removeClass("listplaying");      
+      $('tr td').removeClass("listplaying");      
     }
   } 
 };
@@ -543,6 +557,10 @@ var Search = {
 /* CTRL+s for searching */ 
 $(document).bind("keyup", "ctrl+s", function() {
   $(Search.ui.input).focus();
+});
+
+$(document).bind("keyup", "space", function() {
+  PlayControl.toggle();
 });
 
 $(document).dblclick(function() {

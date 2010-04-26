@@ -101,6 +101,10 @@ a, a:hover, a:active {
   background-image:url("img/skin-icon-plus.gif");
 }
 
+.theme-navigation ul li.playing {
+  background-image:url("img/skin-icon-playing.gif");
+}
+
 .theme-currentsong {
   background-image: url('img/skin-no-albumart-bg.gif');
   background-repeat: no-repeat;
@@ -338,5 +342,5 @@ div.loading {
   background-image: url("img/skin-icon-playing.gif");
   background-repeat: no-repeat;
   background-position: 50% 50%;
-  width: 33px;
+  width: 14px;
 }
