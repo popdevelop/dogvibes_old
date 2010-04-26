@@ -24,7 +24,11 @@
 </div>
 
 <div id="leftcol" class="theme-leftcol">
-  <div id="navigation" class="theme-navigation">        
+  <div id="navigation" class="theme-navigation"> 
+    <ul id="Main-section"></ul>
+    <ul id="Search-section"></ul>
+    <ul id="Playlist-section"></ul>
+    <ul id="Newlist-section"></ul>    
   </div>
   <div id="currentsong" class="theme-currentsong">
     <ul id="trackinfo" class="theme-trackinfo">
@@ -66,11 +70,24 @@ For the tech guys: Dogvibes was the first Linux audio player to fully integrate 
 </p>
 </span>
     </div>
-    <div id="playqueue" title="Play queue"></div>
+    <div id="playqueue" title="Play queue">
+      <!-- Template for play queue content //-->
+      <table id="Playqueue-content" class="theme-tracktable">
+        <thead>
+          <th id="Playqueue-space">&nbsp;</th>
+          <th id="Playqueue-title">Track</th>
+          <th id="Playqueue-artist">Artist</th>
+          <th id="Playqueue-duration">Time</th>
+          <th id="Playqueue-album">Album</th>
+        </thead>
+        <tbody id="Playqueue-items">
+        </tbody>
+      </table>    
+    </div>
     <div id="search" title="Search">
 
       <!-- Template for search content //-->
-      <table id="Search-content">
+      <table id="Search-content" class="theme-tracktable">
         <thead>
           <th id="Search-space">&nbsp;</th>
           <th id="Search-title">Track</th>
@@ -85,7 +102,7 @@ For the tech guys: Dogvibes was the first Linux audio player to fully integrate 
     <div id="playlist" title="Playlist">
 
       <!-- Template for playlist content //-->
-      <table id="Playlist-content">
+      <table id="Playlist-content" class="theme-tracktable">
         <thead>
           <th id="Playlist-space">&nbsp;</th>
           <th id="Playlist-title">Track</th>

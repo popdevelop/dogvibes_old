@@ -36,8 +36,7 @@ window.Dogbone = {
       Dogbone.page.id    = pageID;
       Dogbone.page.title = pageObj.attr('title');
       Dogbone.page.param = param;
-      pageObj.show();
-      
+      pageObj.show();      
       $(document).trigger("Page."+pageID);
     }
   },

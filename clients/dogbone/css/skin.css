@@ -61,7 +61,7 @@ a, a:hover, a:active {
   text-shadow: rgba(0,0,0,0.6) 0 1px 0;
   display: inline-block;
   width: 90%;
-   
+  cursor: default;   
 }
 
 .theme-navigation ul li.selected {
@@ -240,22 +240,20 @@ div.disconnected {
   background-position: 50% 50%;
 }
 
-#Search-content, #Playlist-content {
+.theme-tracktable {
   font-size: 11px;
   border-collapse: collapse;
   width: 100%;
 }
 
-#Search-content thead, 
-#Playlist-content thead {
+.theme-tracktable thead {
   background-image: url('img/skin-table-header-bg.gif');
   background-repeat: repeat-x;
   height: 19px;
   font-weight: bold;
 }
-
-#Search-content thead th, 
-#Playlist-content thead th {
+ 
+.theme-tracktable thead th {
   color: #000;
   font-size: 11px;
   text-align: left;
@@ -264,35 +262,30 @@ div.disconnected {
   background-repeat: no-repeat;
 }
 
-#Search-content tbody tr.odd, 
-#Playlist-content tbody tr.odd {
+.theme-tracktable tbody tr.odd {
   background-color: transparent;
 }
 
-#Search-content tbody tr, 
-#Playlist-content tbody tr {
+.theme-tracktable tbody tr {
   background-color: #404040;
 }
 
-#Search-content tbody tr.selected, 
-#Playlist-content tbody tr.selected {
+.theme-tracktable tbody tr.selected {
   background-color: #ADF;
 }
 
-#Search-content tbody tr.selected td, 
-#Playlist-content tbody tr.selected td{
+.theme-tracktable tbody tr.selected td{
   color: #000;
 }
 
 
-#Search-content tbody td, 
-#Playlist-content tbody td {
+.theme-tracktable tbody td {
   padding:1px 5px;
   font-size: 11px;
   color: #DDD;
+  cursor: default;
 }
 
-#Search-content tbody td.time,
-#Playlist-content tbody td.time {
+.theme-tracktable tbody td.time {
   text-align: right;
 }

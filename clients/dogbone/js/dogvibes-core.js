@@ -55,6 +55,7 @@ var AJAX = {
     AJAX.send(Dogvibes.defAmp + Dogvibes.cmd.status, AJAX.handleStatus);
   },
   handleStatus: function(data) {
+    /* Changing state? */
     if(!AJAX.connected) {
       AJAX.connected = true;
       $(document).trigger("Server.connected");
@@ -117,6 +118,7 @@ window.Dogvibes =  {
     albumArt: "/dogvibes/getAlbumArt?size=320&uri=",
     playlists: "/dogvibes/getAllPlaylists",
     playlist: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
+    createPlaylist: "/dogvibes/createPlaylist?name=",
     playqueue: "/getAllTracksInQueue",
     search: "/dogvibes/search?query="
   },
@@ -187,8 +189,10 @@ window.Dogvibes =  {
   },
   playTrack: function(id, pid) {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.playTrack + id + "&playlist_id=" + pid;
-    Dogvibes.server.send(URL, Dogvibes.server.getStatus);
+    Dogvibes.server.send(URL, function() {});
   },
   createPlaylist: function(name, Success) {
+    var URL = Dogvibes.cmd.createPlaylist + name;
+    Dogvibes.server.send(URL, Success);  
   }
 };
