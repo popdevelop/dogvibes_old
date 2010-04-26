@@ -106,12 +106,33 @@ a, a:hover, a:active {
   background-repeat: no-repeat;
   background-position: 50% bottom;
   background-color: #474747;
+  margin: 0;
+  overflow: hidden;
 }
 
 .theme-trackinfo {
   background-image: url('img/skin-trackinfo-bg.gif');
   background-repeat: no-repeat;
   background-position: right top;
+  padding-top: 8px;
+  
+}
+
+.theme-trackinfo li {
+  color: #000;
+  text-align: center;
+  width: 100%;
+  text-shadow: rgba(255,255,255,0.4) 0 1px 0;    
+}
+
+.theme-trackinfo li#TrackInfo-title {
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 1px;
+}
+
+.theme-trackinfo li#TrackInfo-artist {
+  font-size: 9px;
 }
 
 .minimized #trackinfo {
@@ -172,6 +193,12 @@ div.disconnected {
   background-position: 50% 50%;
 }
 
+div.loading {
+  background-image: url('img/skin-loading.gif');
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+}
+
 #home {
   padding-left: 10px;
   width: 620px;
@@ -208,21 +235,21 @@ div.disconnected {
  *  TODO: fix these: Prev, Play, Next controls
  */
  
-#playback_control { margin: 6px 0 0 10px; padding: 0; width: 110px;}
-#playback_control li { display: inline; }
-#playback_control li a { float: left; width: 31px; height: 0; padding: 31px 0 0 0; overflow: hidden; }
-#playback_control li a { background-image: url('img/skin-playctrl-bg.gif');  background-repeat: no-repeat; }
-#playback_control li a.playing { background-image: url('img/skin-playctrl-stop-bg.gif'); }
+#PlayControl { margin: 6px 0 0 10px; padding: 0; width: 110px;}
+#PlayControl li { display: inline; }
+#PlayControl li a { float: left; width: 31px; height: 0; padding: 31px 0 0 0; overflow: hidden; }
+#PlayControl li a { background-image: url('img/skin-playctrl-bg.gif');  background-repeat: no-repeat; }
+#PlayControl.playing li a { background-image: url('img/skin-playctrl-stop-bg.gif'); }
 
 /* BUTTONS */
-#playback_control li#pb-prev a { background-position: 0px 0px; }
-#playback_control li#pb-play a { background-position: -31px 0; }
-#playback_control li#pb-next a { background-position: -62px 0; }
+#PlayControl li#pb-prev a { background-position: 0px 0px; }
+#PlayControl li#pb-play a { background-position: -31px 0; }
+#PlayControl li#pb-next a { background-position: -62px 0; }
 
 /* PRESSED STATES */
-#playback_control li#pb-prev a:active { background-position: 0 -31px; }
-#playback_control li#pb-play a:active { background-position: -31px -31px; }
-#playback_control li#pb-next a:active { background-position: -62px -31px; }
+#PlayControl li#pb-prev a:active { background-position: 0 -31px; }
+#PlayControl li#pb-play a:active { background-position: -31px -31px; }
+#PlayControl li#pb-next a:active { background-position: -62px -31px; }
 
 
 #ConnectionIndicator-icon {
@@ -280,7 +307,7 @@ div.disconnected {
 
 
 .theme-tracktable tbody td {
-  padding:1px 5px;
+  padding:2px 5px;
   font-size: 11px;
   color: #DDD;
   cursor: default;
@@ -288,4 +315,28 @@ div.disconnected {
 
 .theme-tracktable tbody td.time {
   text-align: right;
+}
+
+.theme-tracktable tbody tr.playing {
+  background-image: url("img/skin-table-item-playing-bg.gif");
+  background-repeat: repeat-x;
+  height: 37px;
+}
+
+.theme-tracktable tbody tr.playing td{
+  color: #000;
+}
+
+.theme-tracktable tbody tr td.playing {
+  background-image: url("img/skin-table-item-playing.gif");
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  width: 33px;
+}
+
+.theme-tracktable tbody tr td.listplaying {
+  background-image: url("img/skin-icon-playing.gif");
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  width: 33px;
 }

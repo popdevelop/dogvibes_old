@@ -45,7 +45,7 @@ var AJAX = {
       error: AJAX.stop,
       success: Success,
       callbackParameter: "callback",
-      timeout: 2000
+      timeout: 5000
     });
   },
   /* Private functions */
@@ -111,6 +111,7 @@ window.Dogvibes =  {
     prev:   "/previousTrack",
     play:   "/play",
     playTrack: "/playTrack?nbr=",
+    queue:  "/queue?uri=",
     pause:  "/pause",
     next:   "/nextTrack",
     seek:   "/seek?mseconds=",
@@ -167,10 +168,13 @@ window.Dogvibes =  {
       $(document).trigger("Status.time");
     }
 
-    if(Dogvibes.status.playlist_id != oldStatus.playlist_id ||
-       Dogvibes.status.playqueuehash != oldStatus.playqueuehash) {
+    if(Dogvibes.status.playlist_id != oldStatus.playlist_id) {
       $(document).trigger("Status.playlist");
     }  
+    
+    if(Dogvibes.status.playqueuehash != oldStatus.playqueuehash) {
+      $(document).trigger("Status.playqueue");
+    }     
     
     /* TODO: add more */
   },
@@ -191,6 +195,30 @@ window.Dogvibes =  {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.playTrack + id + "&playlist_id=" + pid;
     Dogvibes.server.send(URL, function() {});
   },
+  getAllTracksInQueue: function(Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.playqueue;
+    Dogvibes.server.send(URL, Success);  
+  },
+  queue: function(uri, Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.queue + uri;
+    Dogvibes.server.send(URL, Success);     
+  },
+  play: function(Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.play;
+    Dogvibes.server.send(URL, Success)
+  },
+  prev: function(Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.prev;
+    Dogvibes.server.send(URL, Success)
+  },
+  next: function(Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.next;
+    Dogvibes.server.send(URL, Success)
+  },    
+  pause: function(Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.pause;
+    Dogvibes.server.send(URL, Success)
+  },  
   createPlaylist: function(name, Success) {
     var URL = Dogvibes.cmd.createPlaylist + name;
     Dogvibes.server.send(URL, Success);  
