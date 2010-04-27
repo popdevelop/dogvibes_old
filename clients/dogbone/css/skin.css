@@ -133,10 +133,14 @@ a, a:hover, a:active {
   font-size: 11px;
   font-weight: bold;
   margin-bottom: 1px;
+  height: 16px;
+  overflow:hidden;
 }
 
 .theme-trackinfo li#TrackInfo-artist {
   font-size: 9px;
+  height: 13px;
+  overflow:hidden;
 }
 
 .minimized #trackinfo {
@@ -331,14 +335,14 @@ div.loading {
   color: #000;
 }
 
-.theme-tracktable tbody tr td.playing {
+.theme-tracktable tbody tr.playing td:first-child {
   background-image: url("img/skin-table-item-playing.gif");
   background-repeat: no-repeat;
   background-position: 50% 50%;
   width: 33px;
 }
 
-.theme-tracktable tbody tr td.listplaying {
+.theme-tracktable tbody tr.listplaying td:first-child {
   background-image: url("img/skin-icon-playing.gif");
   background-repeat: no-repeat;
   background-position: 50% 50%;

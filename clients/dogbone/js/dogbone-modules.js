@@ -3,7 +3,7 @@
  */
 
 var Config = {
-  defaultServer: "http://192.168.1.87:2000",
+  defaultServer: "http://localhost:2000",
   resizeable: true
 };
 
@@ -62,6 +62,7 @@ function ResultTable(name) {
   this.selectedItem = false;
   this.fields = [];
   this.idTag = "id";
+  this.highlightClass = "playing";
   /* Methods */
   this.display = function() {
     for(var i in this.items) {
@@ -104,6 +105,13 @@ function ResultTable(name) {
       this.selectedItem = $('tr[name="'+this.name+'-item-no-'+index+'"]');
       this.selectedItem.addClass("selected");
     }  
+  };
+  this.clearHighlight = function() {
+    $(this.ui.items + " tr").removeClass(this.highlightClass);  
+  };
+  this.highlightItem = function(index) {
+    var item = $('tr[name="'+this.name+'-item-no-'+index+'"]');
+    item.addClass(this.highlightClass);
   };
   
   /* Default click handler */
@@ -225,7 +233,7 @@ var Playqueue = {
       Playqueue.hash = Dogvibes.status.playqueuehash;
       Playqueue.table.empty();
       $(Playqueue.ui.page).addClass("loading");
-      Dogvibes.getAllTracksInQueue(Playqueue.update);
+      Dogvibes.getAllTracksInQueue("Playqueue.update");
     }
   },
   update: function(json) {
@@ -241,13 +249,11 @@ var Playqueue = {
     if(Dogvibes.status.state == "playing" &&
        Dogvibes.status.playlist_id == -1) {
       $("li.playqueue").addClass('playing'); 
-      $(Playqueue.table.ui.items + " tr:first").addClass("playing");
-      $(Playqueue.table.ui.items + " tr:first td:first").addClass("playing");      
+      Playqueue.table.highlightItem(Dogvibes.status.index);      
     } 
     else {
       $("li.playqueue").removeClass('playing');    
-      $(Playqueue.table.ui.items + " tr:first").removeClass("playing");
-      $(Playqueue.table.ui.items + " tr:first td:first").removeClass("playing");      
+      Playqueue.table.clearHighlight();     
     }
   }
 };
@@ -265,6 +271,11 @@ var PlayControl = {
     $(PlayControl.ui.nextBtn).click(function() {
       Dogvibes.next();
     });
+
+    $(PlayControl.ui.playBtn).click(function() {
+      PlayControl.toggle();
+    });
+    
     $(PlayControl.ui.prevBtn).click(function() {
       Dogvibes.prev();
     });    
@@ -272,19 +283,6 @@ var PlayControl = {
   set: function() {
     $(PlayControl.ui.controls).removeClass();
     $(PlayControl.ui.controls).addClass(Dogvibes.status.state);
-    switch(Dogvibes.status.state) {
-      case "playing":
-        $(PlayControl.ui.playBtn).click(function() {
-          Dogvibes.pause();
-        });
-        break;
-      case "paused":
-      case "stopped":
-        $(PlayControl.ui.playBtn).click(function() {
-          Dogvibes.play();
-        });
-        break;
-    }
   },
   toggle: function() {
     switch(Dogvibes.status.state) {
@@ -353,7 +351,7 @@ var Playlist = {
     Playlist.ui.newBtn.click(function() {
       var name = prompt("Enter new playlist name");
       if(name) {
-        Dogvibes.createPlaylist(name, Playlist.fetchAll);
+        Dogvibes.createPlaylist(name, "Playlist.fetchAll");
       }
     });
     Playlist.ui.newList.addItem('newlist', Playlist.ui.newBtn);
@@ -369,13 +367,15 @@ var Playlist = {
     });
     
     Playlist.table = new ResultTable('Playlist');
+    Playlist.table.highlightClass = "listplaying";
     /* Setup table behaviours */
     Playlist.table.click = function() {
       var index = $(this).attr("name").removePrefix('Playlist-item-no-');
       Playlist.table.selectItem(index);    
     };
     Playlist.table.dblclick = function() {
-      Playlist.playItem($(this).attr('id').removePrefix('Playlist-item-id-'));   
+      var index = $(this).attr('name').removePrefix('Playlist-item-no-');
+      Playlist.playItem(index);
     };
 
     /* Setup events */
@@ -384,6 +384,7 @@ var Playlist = {
     $(document).bind("Server.connected", Playlist.fetchAll);
     
     $(document).bind("Status.state", function() { Playlist.set(); });    
+    $(document).bind("Status.songinfo", function() { Playlist.set(); });    
     $(document).bind("Status.playlist", function() { Playlist.set(); });              
   },
   setPage: function() {
@@ -393,12 +394,12 @@ var Playlist = {
       Playlist.param = Dogbone.page.param;
       $(Playlist.table.ui.items).empty();
       Playlist.selectedItem = false;
-      Dogvibes.getAllTracksInPlaylist(Playlist.param, Playlist.handleResponse);
+      Dogvibes.getAllTracksInPlaylist(Playlist.param, "Playlist.handleResponse");
     }
   },
   fetchAll: function() {
     Playlist.ui.list.empty();
-    Dogvibes.getAllPlaylists(Playlist.update);
+    Dogvibes.getAllPlaylists("Playlist.update");
   },
   update: function(json) {
     if(json.error !== 0) {
@@ -420,21 +421,19 @@ var Playlist = {
     Playlist.set();
   },
   playItem: function(id) {
-    if(parseInt(id)) {
+    if(parseInt(id) != NaN) {
       Dogvibes.playTrack(id, Playlist.param);
     }
     else if(Playlist.selectedItem) {
       Playlist.selectedItem.dblclick();
     }
   },
-  set: function() {
+  set: function() {  
+    Playlist.table.clearHighlight();
     if(Dogvibes.status.state == "playing" &&
-       Dogvibes.status.playlist_id != -1) {
-      $('tr[name="Playlist-item-no-'+Dogvibes.status.index+'"] td:first').addClass("listplaying");      
+       Dogvibes.status.playlist_id != -1) {    
+       Playlist.table.highlightItem(Dogvibes.status.index);       
     } 
-    else {
-      $('tr td').removeClass("listplaying");      
-    }
   } 
 };
 
@@ -501,7 +500,7 @@ var Search = {
       $(Search.ui.page).addClass("loading");
       Search.addSearch(Search.param);
       
-      Dogvibes.search(Search.param, Search.handleResponse);      
+      Dogvibes.search(Search.param, "Search.handleResponse");
     }
     Search.setTitle();    
     Search.ui.list.selectItem(Dogbone.page.param);
@@ -559,7 +558,7 @@ $(document).bind("keyup", "ctrl+s", function() {
   $(Search.ui.input).focus();
 });
 
-$(document).bind("keyup", "space", function() {
+$(document).bind("keyup", "ctrl+p", function() {
   PlayControl.toggle();
 });
 

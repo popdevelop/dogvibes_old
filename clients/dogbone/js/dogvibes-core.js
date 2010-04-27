@@ -24,6 +24,7 @@ var AJAX = {
   status: Array(),
   connected: false,
   interval: 1000,
+  request: false,
   timer: false,
   
   start: function(server) {
@@ -33,17 +34,18 @@ var AJAX = {
   stop: function() {  
     AJAX.connected = false;
     clearTimeout(AJAX.timer);
-    $(document).trigger("Server.error");    
+    $(document).trigger("Server.error"); 
+    AJAX.request.abort();
   },
   send: function(URL, Success) {
     /* Changing state? */
     if(!AJAX.status.connected) {
       $(document).trigger("Server.connecting");    
     }
-    $.jsonp({
+    AJAX.request = $.jsonp({
       url: AJAX.server + URL,
       error: AJAX.stop,
-      success: Success,
+      success: eval(Success),
       callbackParameter: "callback",
       timeout: 5000
     });
@@ -60,10 +62,9 @@ var AJAX = {
       AJAX.connected = true;
       $(document).trigger("Server.connected");
     }
-    /* Reload timer if not disconnected */
-    if(data.result.state != "disconnected") {
-      AJAX.timer = setTimeout(AJAX.getStatus, AJAX.interval);
-    }
+    
+    AJAX.timer = setTimeout(AJAX.getStatus, AJAX.interval);
+    
     AJAX.status = data;
     $(document).trigger("Server.status");
   }
@@ -72,27 +73,31 @@ var AJAX = {
 
 /* TODO: Websockets connection type */
 var WSocket = {
-  status: Array(),
+  status: {},
   ws: false,
   start: function(server) {
     if("WebSocket" in window) {
-      ws = new WebSocket(server);
-      ws.onopen = function() { $(document).trigger("Server.connected"); };
-      ws.onmessage = function(e){ eval(e.data); };
-      ws.onclose = function(){ $(document).trigger("Server.error"); }
+      WSocket.ws = new WebSocket(server);
+      WSocket.ws.onopen = function() { $(document).trigger("Server.connected"); };
+      WSocket.ws.onmessage = function(e){ eval(e.data); };
+      WSocket.ws.onclose = function(){ $(document).trigger("Server.error"); }
     }
   },
   stop: function() {
   },
   send: function(URL, Success, Error) {
+    Success = typeof(Success) == "undefined" ? "" : Success;
     if (URL.indexOf('?') == -1) {
-      WSocket.ws.send(URL + "?callback=" + Success);
+      WSocket.ws.send(URL + "?callback="+Success);
     } else {
-      WSocket.ws.send(URL + "&callback=" + Success);
+      WSocket.ws.send(URL + "&callback="+Success);
     }  
   },
   /* Private functions */
   handleStatus: function(json) {
+    WSocket.status = json;
+    $(document).trigger("Server.status");
+    
   }
 };
 /* Workaround for server hard coded callback */
@@ -128,7 +133,7 @@ window.Dogvibes =  {
    *****************/
   init: function(server) {
     $(document).bind("Server.status", Dogvibes.handleStatus);
-    Dogvibes.server = AJAX;
+    Dogvibes.server = server.substring(0, 2) == 'ws' ? WSocket : AJAX;
     Dogvibes.server.start(server);
   },
   /* Handle new status event from connection object and dispatch events */
@@ -136,6 +141,7 @@ window.Dogvibes =  {
     var data = Dogvibes.server.status;
     if(data.error != 0) {
       /* TODO: Notify */
+      return;
     }
     var oldStatus = Dogvibes.status;
     Dogvibes.status = data.result;
