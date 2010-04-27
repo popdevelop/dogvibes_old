@@ -27,15 +27,15 @@ class Dogvibes():
         #       hacks in the rest of the code.
 
         self.sources = [None,None]
-        if("ENABLE_SPOTIFY_SOURCE" in cfg):
-            spot_user = os.environ.get('SPOTIFY_USER') or cfg["SPOTIFY_USER"]
-            spot_pass = os.environ.get('SPOTIFY_PASS') or cfg["SPOTIFY_PASS"]
+        if(cfg['ENABLE_SPOTIFY_SOURCE'] == '1'):
+            spot_user = cfg["SPOTIFY_USER"]
+            spot_pass = cfg["SPOTIFY_PASS"]
             self.sources[0] = (SpotifySource("spotify", spot_user, spot_pass))
             # FIXME: this logs in to the spotify source for the moment
             self.sources[0].get_src()
             self.sources[0].create_playlists(spot_user, spot_pass)
 
-        if("ENABLE_FILE_SOURCE" in cfg):
+        if(cfg['ENABLE_FILE_SOURCE'] == '1'):
             self.sources[1] = (FileSource("filesource", cfg["FILE_SOURCE_ROOT"]))
 
         # add all speakers
