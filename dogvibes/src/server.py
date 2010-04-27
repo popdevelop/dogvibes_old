@@ -19,7 +19,11 @@ import gobject
 import gst
 import cgi
 import inspect
+import urllib
+import config
+import time
 
+API_VERSION = '0.1'
 
 LOG_LEVELS = {'0': logging.CRITICAL,
               '1': logging.ERROR,
@@ -28,6 +32,43 @@ LOG_LEVELS = {'0': logging.CRITICAL,
               '4': logging.DEBUG}
 
 lock = threading.Lock()
+
+
+def register_dog():
+    DEFAULT_EXT_IP = '0.0.0.0'
+
+    int_ip = socket.gethostbyname(socket.gethostname())
+
+    # Try fetching external IP more than once. Sometimes it fails
+    for i in range(0,3):
+        try:
+            response = urllib.urlopen('http://whatismyip.org')
+            ext_ip = response.read()
+            continue
+        except:
+            ext_ip = DEFAULT_EXT_IP
+            if i < 2:
+                time.sleep(1)
+
+    if ext_ip == DEFAULT_EXT_IP:
+        print 'Could not get external IP. No connection to Internet?'
+
+    try:
+        response = urllib.urlopen('http://dogvibes.com/registerDog?name=%s&password=%s&int_ip=%s&exp_ip=%s&ws_port=%s&http_port=%s&api_version=%s' % (cfg['DOGVIBES_USER'], cfg['DOGVIBES_PASS'], int_ip, ext_ip, cfg['WS_PORT'], cfg['HTTP_PORT'], API_VERSION))
+    except:
+        print 'Could access dogvibes.com'
+        return
+
+    reply = response.read()
+    if reply == '0':
+        print 'Registered a client at http://dogvibes.com/%s' % cfg['DOGVIBES_USER']
+    elif reply == '1':
+        print "Must specify a password to update client '%s'" % cfg['DOGVIBES_USER']
+    elif reply == '2':
+        print "Password do not match the registered one for client '%s'" % cfg['DOGVIBES_USER']
+    else:
+        print 'Unknown error when registering client'
+
 
 class AlbumArtServer(resource.Resource):
     isLeaf = True
@@ -273,13 +314,19 @@ if __name__ == "__main__":
                         format='%(asctime)s %(levelname)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
 
+
+    # Load configuration
+    cfg = config.load("dogvibes.conf")
+
     global dogvibes
     dogvibes = Dogvibes()
 
     factory = Factory()
     factory.protocol = WebSocket
-    reactor.listenTCP(9999, factory)
+    reactor.listenTCP(int(cfg['WS_PORT']), factory)
 
-    reactor.listenTCP(2000, server.Site(HTTPServer()))
+    reactor.listenTCP(int(cfg['HTTP_PORT']), server.Site(HTTPServer()))
+
+    register_dog()
 
     reactor.run()
