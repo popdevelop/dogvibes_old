@@ -23,7 +23,7 @@ var AJAX = {
   server: "",
   status: Array(),
   connected: false,
-  interval: 1000,
+  interval: 500,
   request: false,
   timer: false,
   
@@ -54,7 +54,7 @@ var AJAX = {
   getStatus: function() {
     /* TODO: avoid forward reference */
     clearTimeout(AJAX.timeout);
-    AJAX.send(Dogvibes.defAmp + Dogvibes.cmd.status, AJAX.handleStatus);
+    AJAX.send(Dogvibes.defAmp + Dogvibes.cmd.status, "AJAX.handleStatus");
   },
   handleStatus: function(data) {
     /* Changing state? */
@@ -75,23 +75,38 @@ var AJAX = {
 var WSocket = {
   status: {},
   ws: false,
+  connected: false,
   start: function(server) {
     if("WebSocket" in window) {
       WSocket.ws = new WebSocket(server);
-      WSocket.ws.onopen = function() { $(document).trigger("Server.connected"); };
+      WSocket.ws.onopen = function() { 
+        WSocket.connected = true;
+        $(document).trigger("Server.connected"); 
+      };
       WSocket.ws.onmessage = function(e){ eval(e.data); };
-      WSocket.ws.onclose = function(){ $(document).trigger("Server.error"); }
+      WSocket.ws.onclose = WSocket.stop;
+      WSocket.ws.onerror = WSocket.stop;
     }
   },
   stop: function() {
+    WSocket.connected = false;
+    $(document).trigger("Server.error");
   },
   send: function(URL, Success, Error) {
-    Success = typeof(Success) == "undefined" ? "" : Success;
-    if (URL.indexOf('?') == -1) {
-      WSocket.ws.send(URL + "?callback="+Success);
-    } else {
-      WSocket.ws.send(URL + "&callback="+Success);
-    }  
+    Success = typeof(Success) == "undefined" ? "WSocket.getStatus" : Success;
+    try {
+      if (URL.indexOf('?') == -1) {
+        WSocket.ws.send(URL + "?callback="+Success);
+      } else {
+        WSocket.ws.send(URL + "&callback="+Success);
+      }
+    }
+    catch (e){
+      
+    }
+  },
+  getStatus: function() {
+    WSocket.send(Dogvibes.defAmp + Dogvibes.cmd.status, "WSocket.handleStatus");
   },
   /* Private functions */
   handleStatus: function(json) {
@@ -124,9 +139,12 @@ window.Dogvibes =  {
     albumArt: "/dogvibes/getAlbumArt?size=320&uri=",
     playlists: "/dogvibes/getAllPlaylists",
     playlist: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
+    addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",    
     createPlaylist: "/dogvibes/createPlaylist?name=",
     playqueue: "/getAllTracksInQueue",
-    search: "/dogvibes/search?query="
+    search: "/dogvibes/search?query=",
+    setVolume: "/setVolume?level=",
+    seek: "/seek?mseconds="
   },
   /*****************
    * Initialization
@@ -180,7 +198,12 @@ window.Dogvibes =  {
     
     if(Dogvibes.status.playqueuehash != oldStatus.playqueuehash) {
       $(document).trigger("Status.playqueue");
-    }     
+    }
+
+    if(Dogvibes.status.elapsedmseconds != oldStatus.elapsedmseconds) {
+      $(document).trigger("Status.elapsed");
+    }
+     
     
     /* TODO: add more */
   },
@@ -195,11 +218,15 @@ window.Dogvibes =  {
     Dogvibes.server.send(Dogvibes.cmd.playlists, Success);
   },
   getAllTracksInPlaylist:function(id, Success) {
-    Dogvibes.server.send(Dogvibes.cmd.playlist + id, Success);  
+    Dogvibes.server.send(Dogvibes.cmd.playlist + id, Success);
   },
-  playTrack: function(id, pid) {
+  addToPlaylist: function(id, uri, Success) {
+    var URL = Dogvibes.cmd.addtoplaylist + id + "&uri=" + uri;
+    Dogvibes.server.send(URL, Success);
+  },
+  playTrack: function(id, pid, Success) {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.playTrack + id + "&playlist_id=" + pid;
-    Dogvibes.server.send(URL, function() {});
+    Dogvibes.server.send(URL, Success);
   },
   getAllTracksInQueue: function(Success) {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.playqueue;
@@ -228,5 +255,13 @@ window.Dogvibes =  {
   createPlaylist: function(name, Success) {
     var URL = Dogvibes.cmd.createPlaylist + name;
     Dogvibes.server.send(URL, Success);  
-  }
+  },
+  setVolume: function(vol, Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.setVolume + vol;
+    Dogvibes.server.send(URL, Success);
+  },
+  seek: function(time, Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.seek + time;
+    Dogvibes.server.send(URL, Success);
+  }  
 };

@@ -65,6 +65,7 @@ function ResultTable(name) {
   this.highlightClass = "playing";
   /* Methods */
   this.display = function() {
+    $(this.ui.items).empty();
     for(var i in this.items) {
       var el = this.items[i];
       var tr = $("<tr></tr>");
@@ -175,6 +176,7 @@ var NavList = {
 
 var Main = {
   ui: {
+    page   : "#playqueue",
     section: "#Main-section"
   },
   init: function() {
@@ -187,10 +189,11 @@ var Main = {
     
     /* Online / Offline */
     $(document).bind("Server.error", function() {
-      $("#playqueue").addClass("disconnected");
+      $(Main.ui.page).removeClass();
+      $(Main.ui.page).addClass("disconnected");
     });
     $(document).bind("Server.connected", function() {
-      $("#playqueue").removeClass("disconnected");
+      $(Main.ui.page).removeClass("disconnected");
     });       
   },
   setQueue: function() {
@@ -224,12 +227,15 @@ var Playqueue = {
     };
     
     $(document).bind("Status.playqueue", Playqueue.fetch);
-    $(document).bind("Status.state", function() { Playqueue.set() });    
-    $(document).bind("Status.playlist", function() { Playqueue.set() });        
+    $(document).bind("Status.state", function() { Playqueue.set() });
+    $(document).bind("Status.playlist", function() { Playqueue.set() });
+    $(document).bind("Server.connected", Playqueue.fetch);
     
   },
   fetch: function() {
-    if(Dogvibes.status.playqueuehash != Playqueue.hash) {
+    if(Dogbone.page.id != "playqueue") return;
+    if(Dogvibes.server.connected) { // &&
+       //Dogvibes.status.playqueuehash != Playqueue.hash) {
       Playqueue.hash = Dogvibes.status.playqueuehash;
       Playqueue.table.empty();
       $(Playqueue.ui.page).addClass("loading");
@@ -263,10 +269,34 @@ var PlayControl = {
     controls: "#PlayControl",
     prevBtn : "#pb-prev",
     playBtn : "#pb-play",
-    nextBtn : "#pb-next"
+    nextBtn : "#pb-next",
+    volume  : "#Volume-slider",
+    seek    : "#TimeInfo-slider",
+    elapsed : "#TimeInfo-elapsed",
+    duration: "#TimeInfo-duration"
   },
+  volSliding: false,
+  seekSlideing: false,
   init: function() {
     $(document).bind("Status.state", PlayControl.set);
+    $(document).bind("Status.volume", PlayControl.setVolume);
+    $(document).bind("Status.elapsed", PlayControl.setTime);
+    
+    $(PlayControl.ui.volume).slider( {
+      start: function(e, ui) { PlayControl.volSliding = true; },
+      stop: function(e, ui) { PlayControl.volSliding = false; },
+      change: function(event, ui) { 
+        Dogvibes.setVolume(ui.value/100);
+      }
+    });
+    
+    $(PlayControl.ui.seek).slider( {
+      start: function(e, ui) { PlayControl.seekSliding = true; },
+      stop: function(e, ui) { PlayControl.seekSliding = false; },
+      change: function(event, ui) { 
+        Dogvibes.seek(Math.round((ui.value*Dogvibes.status.duration)/100));
+      }
+    });    
     
     $(PlayControl.ui.nextBtn).click(function() {
       Dogvibes.next();
@@ -278,11 +308,12 @@ var PlayControl = {
     
     $(PlayControl.ui.prevBtn).click(function() {
       Dogvibes.prev();
-    });    
+    });
   },
   set: function() {
     $(PlayControl.ui.controls).removeClass();
     $(PlayControl.ui.controls).addClass(Dogvibes.status.state);
+    //$(PlayControl.ui.duration).text(Dogvibes.status.duration.msec2time());    
   },
   toggle: function() {
     switch(Dogvibes.status.state) {
@@ -294,7 +325,16 @@ var PlayControl = {
         break;
     }
     PlayControl.set();
-  }
+  },
+  setVolume: function() {
+    if(PlayControl.volSliding) return;
+    $(PlayControl.ui.volume).slider('option', 'value', Dogvibes.status.volume*100);  
+  },
+  setTime: function() {
+    //$(PlayControl.ui.elapsed).text(Dogvibes.status.elapsedmseconds.msec2time());
+    if(PlayControl.seekSliding) return;
+    $(PlayControl.ui.seek).slider('option', 'value', (Dogvibes.status.elapsedmseconds/Dogvibes.status.duration)*100);  
+  }  
 };
 
 var ConnectionIndicator = {
@@ -380,35 +420,46 @@ var Playlist = {
 
     /* Setup events */
     $(document).bind("Page.playlist", Playlist.setPage);
-    $(document).bind("Status.playlist", Playlist.fetchAll);
-    $(document).bind("Server.connected", Playlist.fetchAll);
+    $(document).bind("Server.connected", function() { Playlist.fetchAll(); });
     
     $(document).bind("Status.state", function() { Playlist.set(); });    
     $(document).bind("Status.songinfo", function() { Playlist.set(); });    
     $(document).bind("Status.playlist", function() { Playlist.set(); });              
   },
   setPage: function() {
+    if(Dogbone.page.id != "playlist") return;
     Playlist.ui.list.selectItem(Dogbone.page.param);
     Titlebar.set(Dogbone.page.title);
-    if(Playlist.param != Dogbone.page.param) {
+    
+    if(Dogvibes.server.connected) {
+      /* Save which list that is selected */
       Playlist.param = Dogbone.page.param;
-      $(Playlist.table.ui.items).empty();
-      Playlist.selectedItem = false;
+      /* Load new items */
       Dogvibes.getAllTracksInPlaylist(Playlist.param, "Playlist.handleResponse");
     }
   },
   fetchAll: function() {
-    Playlist.ui.list.empty();
     Dogvibes.getAllPlaylists("Playlist.update");
   },
   update: function(json) {
+    Playlist.ui.list.empty();
     if(json.error !== 0) {
       alert("Couldn't get playlists");
       return;
     }
     $(json.result).each(function(i, el) {
-      Playlist.ui.list.addItem(el.id, $('<a href="#playlist/'+el.id+'">'+el.name+'</a>'));
+      var item = $('<a id="Playlist-id-'+el.id+'" href="#playlist/'+el.id+'">'+el.name+'</a>');
+      item.droppable({
+        hoverClass: 'drophover',
+        drop: function(event, ui) {
+          id = $(this).attr("id").removePrefix("Playlist-id-");
+          uri = ui.draggable.attr("id").removePrefix("Search-item-id-");
+          Dogvibes.addToPlaylist(id, uri);
+        }
+      });
+      Playlist.ui.list.addItem(el.id, item);
     });
+    Playlist.setPage();
   },
 
   handleResponse: function(json) {
@@ -418,7 +469,7 @@ var Playlist = {
     }
     Playlist.table.items = json.result;
     Playlist.table.display();
-    Playlist.set();
+    Playlist.set();    
   },
   playItem: function(id) {
     if(parseInt(id) != NaN) {
@@ -431,7 +482,7 @@ var Playlist = {
   set: function() {  
     Playlist.table.clearHighlight();
     if(Dogvibes.status.state == "playing" &&
-       Dogvibes.status.playlist_id != -1) {    
+       Dogvibes.status.playlist_id == Playlist.param) {    
        Playlist.table.highlightItem(Dogvibes.status.index);       
     } 
   } 
@@ -459,6 +510,7 @@ var Search = {
       $(Search.ui.page).addClass("disconnected");
     });
     $(document).bind("Server.connected", function() {
+      Search.setPage();
       $(Search.table.ui.content).show();
       $(Search.ui.page).removeClass("disconnected");
     });
@@ -492,8 +544,10 @@ var Search = {
        
   },
   setPage: function() {
+    if(Dogbone.page.id != "search") return;
     /* See if search parameter has changed. If so, reload */
-    if(Dogbone.page.param != Search.param) {
+    if(Dogvibes.server.connected &&
+       Dogbone.page.param != Search.param) {
       Search.param = Dogbone.page.param;
       Search.searches.push(Search.param);
       Search.table.empty();
@@ -545,6 +599,9 @@ var Search = {
     }
     Search.table.items = json.result;
     Search.table.display();
+    $(function() {
+      $(Search.table.ui.items + " tr").draggable({ revert: 'invalid', scroll: false, revertDuration: 100, helper: 'clone', appendTo: "body", zIndex: 1000 });
+    });    
   }
 };
 
@@ -596,6 +653,6 @@ $(document).ready(function() {
   $(UI.trackinfo).click(function() {
     $(UI.navigation).toggleClass('fullHeight');
     $(UI.currentsong).toggleClass('minimized');
-  });  
+  }); 
   
 });
