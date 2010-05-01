@@ -348,6 +348,7 @@ div.loading {
   padding:1px 5px;
   background-image: url("img/skin-table-header-sep-bg.gif");
   background-repeat: no-repeat;
+  cursor: default;
 }
 
 .theme-tracktable thead th.headerSortUp,

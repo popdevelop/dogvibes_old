@@ -52,30 +52,62 @@ Number.prototype.msec2time = function() {
  * Helper classes
  ******************/
 
-function ResultTable(name) {
-  this.name = name;
-  this.ui = {
-    content: "#" + name + "-content",
-    items  : "#" + name + "-items"
+var ResultTable = function(config) {
+  var self = this;
+  /* Default configuration */
+  this.options = {
+    name: "Table",
+    idTag: "id",
+    highlightClass: "playing",
+    sortable: false,
+    click: function() {},
+    dblclick: function() {}
   };
+  
+  /* Set user configuration */
+  for(var cfg in config) {
+    if(cfg in self.options) {
+      self.options[cfg] = config[cfg];
+    }
+  }
+  
+  this.ui = {
+    content: "#" + self.options.name + "-content",
+    items  : "#" + self.options.name + "-items"
+  };  
+  
+  /* Some properties */
   this.items = [];
   this.selectedItem = false;
   this.fields = [];
-  this.idTag = "id";
-  this.highlightClass = "playing";
   this.selectMulti = false;
-  /* Methods */
+  
+  /* Configure table fields by looking for table headers */
+  $("th", self.ui.content).each(function(i, el) {
+    if("id" in el) {
+      var field = el.id.removePrefix(self.options.name + "-");
+      if(field !== false) {
+        self.fields.push(field);
+      }
+    }
+  });
+  
+  if(self.options.sortable) {
+    $(self.ui.content).tablesorter();
+  }
+  
+  /***** Methods *****/
   this.display = function() {
-    $(this.ui.items).empty();
-    for(var i in this.items) {
-      var el = this.items[i];
+    var self = this;
+    $(self.ui.items).empty();
+    $(self.items).each(function(i, el) {
       var tr = $("<tr></tr>");
-      tr.attr("id", this.name+"-item-id-"+el[this.idTag]);
-      tr.attr("name", this.name+"-item-no-"+i);
-      for(var j in this.fields) {
+      tr.attr("id", self.options.name+"-item-id-"+el[self.options.idTag]);
+      tr.attr("name", self.options.name+"-item-no-"+i);
+      $(self.fields).each(function(i, field) {
         var content = $("<td></td>");
-        if(this.fields[j] in el) {
-          var value = el[this.fields[j]];
+        if(field in el) {
+          var value = el[field];
           /* FIXME: assumption: Convert to time string if value is numeric */
           if(typeof(value) == "number") {
             value = value.msec2time();
@@ -84,19 +116,19 @@ function ResultTable(name) {
           content.append(value);
         }
         tr.append(content);
-      }
-      $(this.ui.items).append(tr);
-    }
+      });
+      $(self.ui.items).append(tr);
+    });
     
     $("tr:visible",this.ui.items).filter(":odd").addClass("odd");
     
     /* Attach behaviours */
-    var rows = $(this.ui.items + " tr");
-    rows.click(this.click);
-    rows.dblclick(this.dblclick);
+    var rows = $("tr", self.ui.items);
+    rows.click(self.options.click);
+    rows.dblclick(self.options.dblclick);
     
     /* Update tablesorter */
-    $(this.ui.content).trigger("update");
+    $(self.ui.content).trigger("update");
   };
   
   this.empty = function() {
@@ -104,57 +136,34 @@ function ResultTable(name) {
   };
   
   this.selectItem = function(index) {
-    var min, max;
     index = parseInt(index);
-    $(this.ui.items + " tr").removeClass("selected");
+    this.deselectAll();
     if(index > this.items.length) return;
     
     if(!this.selectMulti ||
        !this.selectedItem) {
       this.selectedItem = index;
     }
+    
+    /* Create the selection range */
+    var min = this.selectedItem < index ? this.selectedItem : index;
+    var max = this.selectedItem < index ? index : this.selectedItem;
 
-    if(this.selectedItem < index) {
-      min = this.selectedItem;
-      max = index;
-    } else {
-      min = index;
-      max = this.selectedItem;
-    }
     for(var i = min; i <= max; i++) {
-      $('tr[name="'+this.name+'-item-no-'+i+'"]').addClass("selected");
+      $('tr[name="'+this.options.name+'-item-no-'+i+'"]').addClass("selected");
     }
   };
   this.deselectAll = function() {
     this.selectedItem = false;
-    $(this.ui.items + " tr").removeClass("selected");
+    $("tr", this.ui.items).removeClass("selected");
   };
   this.clearHighlight = function() {
-    $(this.ui.items + " tr").removeClass(this.highlightClass);  
+    $("tr", this.ui.items).removeClass(this.options.highlightClass);  
   };
   this.highlightItem = function(index) {
-    var item = $('tr[name="'+this.name+'-item-no-'+index+'"]');
-    item.addClass(this.highlightClass);
+    var item = $('tr[name="'+this.options.name+'-item-no-'+index+'"]');
+    item.addClass(this.options.highlightClass);
   };
-  
-  /* Default click handler */
-  this.click = function() {    
-  };
-  
-  this.dblclick = function() {
-  };
-  
-  /* Configure playlist item table fields by looking for table headers */
-  var cols = $(this.ui.content + " th");
-  for(var i = 0; i < cols.length; i++) {
-    var el = cols[i];
-    if("id" in el) {
-      var field = el.id.removePrefix(this.name + "-");
-      if(field !== false) {
-        this.fields.push(field);
-      }
-    }
-  }
 }
 
 var NavList = {
@@ -181,7 +190,7 @@ var NavList = {
       }
     };
     this.deselect = function() {
-      for( var i in this.items) {
+      for(var i in this.items) {
         this.items[i].removeClass('selected');
       }
     };
@@ -191,6 +200,7 @@ var NavList = {
     };
   }
 };
+
 
 /**************************
  * Modules 
@@ -205,7 +215,8 @@ var Main = {
     /* Bug in jQuery: you can't have same function attached to multiple events! */    
     Main.ui.list = new NavList.Section(Main.ui.section, '');
     Main.ui.list.addItem("home", $("<a href='#home'>Home</a>"));
-    $(document).bind("Page.home", Main.setHome);        
+    $(document).bind("Page.home", Main.setHome);
+            
     Main.ui.list.addItem("playqueue", $("<a href='#playqueue'>Play queue</a>"));
     $(document).bind("Page.playqueue", Main.setQueue); 
     
@@ -236,17 +247,20 @@ var Playqueue = {
   table: false,
   hash: false,
   init: function() {
-    Playqueue.table = new ResultTable('Playqueue');
-    Playqueue.table.idTag = "uri";
-    Playqueue.table.click = function() {
-      var index = $(this).attr("name").removePrefix('Playqueue-item-no-');
-      Playqueue.table.selectItem(index);       
-    };
-    
-    Playqueue.table.dblclick = function() {
-      var id = $(this).attr("name").removePrefix('Playqueue-item-no-');
-      Dogvibes.playTrack(id, "-1");
-    };
+    /* Create a table for our tracks */
+    Playqueue.table = new ResultTable(
+    {
+      name: 'Playqueue', 
+      idTag: "uri",
+      click: function() {
+        var index = $(this).attr("name").removePrefix('Playqueue-item-no-');
+        Playqueue.table.selectItem(index);       
+      },
+      dblclick: function() {
+        var id = $(this).attr("name").removePrefix('Playqueue-item-no-');
+        Dogvibes.playTrack(id, "-1");
+      }
+    });
     
     $(document).bind("Status.playqueue", Playqueue.fetch);
     $(document).bind("Status.state", function() { Playqueue.set() });
@@ -385,8 +399,8 @@ var ConnectionIndicator = {
 
 var TrackInfo = {
   ui: {
-    artist: "#TrackInfo-artist",
-    title:  "#TrackInfo-title",
+    artist  : "#TrackInfo-artist",
+    title   : "#TrackInfo-title",
     albumArt: "#TrackInfo-albumArt"
   },
   init: function() {
@@ -404,7 +418,7 @@ var TrackInfo = {
 
 var Playlist = {
   ui: {
-    section:  "#Playlist-section",
+    section : "#Playlist-section",
     newPlist: "#Newlist-section"
   },
   table: false,
@@ -431,17 +445,20 @@ var Playlist = {
       $("#playlist").removeClass("disconnected");
     });
     
-    Playlist.table = new ResultTable('Playlist');
-    Playlist.table.highlightClass = "listplaying";
-    /* Setup table behaviours */
-    Playlist.table.click = function() {
-      var index = $(this).attr("name").removePrefix('Playlist-item-no-');
-      Playlist.table.selectItem(index);    
-    };
-    Playlist.table.dblclick = function() {
-      var index = $(this).attr('name').removePrefix('Playlist-item-no-');
-      Playlist.playItem(index);
-    };
+    /* Create a table for the tracks */
+    Playlist.table = new ResultTable(
+    {
+      name: 'Playlist',
+      highlightClass: "listplaying",
+      click: function() {
+        var index = $(this).attr("name").removePrefix('Playlist-item-no-');
+        Playlist.table.selectItem(index);    
+      },
+      dblclick: function() {
+        var index = $(this).attr('name').removePrefix('Playlist-item-no-');
+        Playlist.playItem(index);
+      }
+    });
 
     /* Setup events */
     $(document).bind("Page.playlist", Playlist.setPage);
@@ -543,23 +560,25 @@ var Search = {
       return false;
     });
     
-    /* Create result table and setup click handlers */
-    Search.table = new ResultTable("Search");
-    Search.table.idTag = "uri";
-    Search.table.click = function() {
-      var index = $(this).attr("name").removePrefix('Search-item-no-');
-      Search.table.selectItem(index);     
-    };
-    Search.table.dblclick = function() {
-      var uri = $(this).attr("id").removePrefix('Search-item-id-');
-      Dogvibes.queue(uri);
-      Search.table.deselectAll();
-      $(this).effect("highlight");
-      $(this).addClass("queued");
-    };
+    /* Create result table */
+    Search.table = new ResultTable(
+    {
+      name: "Search",
+      idTag: "uri",
+      sortable: true,
+      click: function() {
+        var index = $(this).attr("name").removePrefix('Search-item-no-');
+        Search.table.selectItem(index);     
+      },
+      dblclick: function() {
+        var uri = $(this).attr("id").removePrefix('Search-item-id-');
+        Dogvibes.queue(uri);
+        Search.table.deselectAll();
+        $(this).effect("highlight");
+        $(this).addClass("queued");
+      }
+    });
   
-    $("#Search-content").tablesorter();
-        
     /* Load searches from cookie */
     var temp;
     for(var i = 0; i < 6; i++){
@@ -686,4 +705,5 @@ $(document).ready(function() {
     $(UI.currentsong).toggleClass('minimized');
   }); 
   
-});
+  
+}); 
