@@ -527,6 +527,7 @@ var CurrentList = {
     var items = json.result;
     var li, a, cnt = 0;
     CurrentList.nbrOfItems = items.length;
+    $(UI.currentlist).empty();    
     for(var i in items) {
       a  = UI.newElement('a', items[i].title);
       a.href = "#player";
