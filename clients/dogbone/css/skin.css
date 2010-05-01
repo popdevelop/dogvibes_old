@@ -21,7 +21,6 @@
 
 tr.ui-draggable-dragging,
 tr.ui-sortable-helper {
-  margin-top: -15px;
   background-color: #FFF6BF;
   filter:alpha(opacity=50);
 	-moz-opacity:0.5;

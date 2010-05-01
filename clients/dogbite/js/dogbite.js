@@ -535,9 +535,7 @@ var CurrentList = {
       a._id = cnt++;
       a.onclick = CurrentList.playItem;
       li = UI.newElement('li', a);
-      if(a._id == Status.data.index) {
-        li.setAttribute('selected','true');
-      }
+      li.id = "CurrentList-item-" + a._id;
       UI.currentlist.appendChild(li);
     }
     CurrentList.set();    
@@ -547,7 +545,9 @@ var CurrentList = {
     Server.request(Server.cmd.playTrack + item + "&playlist_id=" + Status.data.playlist_id);
   },
   set: function() {
-    UI.setText(CurrentList.ui.trackNo, (Status.data.index + 1) + " of " + CurrentList.nbrOfItems);  
+    $("li", UI.currentlist).removeClass('toggle');
+    UI.setText(CurrentList.ui.trackNo, (Status.data.index + 1) + " of " + CurrentList.nbrOfItems);
+    $("#CurrentList-item-"+Status.data.index).addClass('toggle');
   }
 };
 

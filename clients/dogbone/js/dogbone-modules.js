@@ -17,7 +17,7 @@ var Config = {
     start: function() { $(this).click(); }
   },
   sortableOptions: {
-    revert: 'invalid', 
+    revert: 100, 
     scroll: false, 
     helper: 'clone', 
     appendTo: "#drag-dummy", 
