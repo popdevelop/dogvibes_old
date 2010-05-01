@@ -59,7 +59,7 @@ class AlbumArt():
 
     @classmethod
     def get_standard_image(self, size = 0):
-        f = open(art_dir + '/dogvibes.jpg', 'rb')
+        f = open(art_dir + '/default.png', 'rb')
         img_data = f.read()
         f.close()
         return img_data
