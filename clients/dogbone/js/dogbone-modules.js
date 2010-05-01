@@ -117,16 +117,13 @@ var ResultTable = function(config) {
         }
         tr.append(content);
       });
+      tr.click(self.options.click);
+      tr.dblclick(self.options.dblclick);
       $(self.ui.items).append(tr);
     });
     
     $("tr:visible",this.ui.items).filter(":odd").addClass("odd");
-    
-    /* Attach behaviours */
-    var rows = $("tr", self.ui.items);
-    rows.click(self.options.click);
-    rows.dblclick(self.options.dblclick);
-    
+        
     /* Update tablesorter */
     $(self.ui.content).trigger("update");
   };
@@ -493,6 +490,7 @@ var Playlist = {
       var item = $('<a id="Playlist-id-'+el.id+'" href="#playlist/'+el.id+'">'+el.name+'</a>');
       item.droppable({
         hoverClass: 'drophover',
+        tolerance: 'pointer',
         drop: function(event, ui) {
           id = $(this).attr("id").removePrefix("Playlist-id-");
           uri = ui.draggable.attr("id").removePrefix("Search-item-id-");
@@ -568,7 +566,7 @@ var Search = {
       sortable: true,
       click: function() {
         var index = $(this).attr("name").removePrefix('Search-item-no-');
-        Search.table.selectItem(index);     
+        Search.table.selectItem(index);
       },
       dblclick: function() {
         var uri = $(this).attr("id").removePrefix('Search-item-id-');
@@ -587,7 +585,6 @@ var Search = {
       }
     }
     Search.draw();
-       
   },
   setPage: function() {
     if(Dogbone.page.id != "search") return;
@@ -646,7 +643,15 @@ var Search = {
     Search.table.items = json.result;
     Search.table.display();
     $(function() {
-      $(Search.table.ui.items + " tr").draggable({ revert: 'invalid', scroll: false, revertDuration: 100, helper: 'clone', appendTo: "body", zIndex: 1000 });
+      $(Search.table.ui.items + " tr").draggable({
+        revert: 'invalid', 
+        scroll: false,
+        revertDuration: 100, 
+        helper: 'clone', 
+        appendTo: "body", 
+        zIndex: 1000,
+        addClasses: false 
+      });
     });    
   }
 };

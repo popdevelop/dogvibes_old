@@ -6,8 +6,23 @@
  * #373737 - Right (main) column background
  */
  
- * { font: 13px/1.5 Lucida Grande,Helvetica,Arial,'Liberation Sans',FreeSans,sans-serif; }
+ * { font: 11px/1.8 Lucida Grande,Helvetica,Arial,'Liberation Sans',FreeSans,sans-serif; }
 
+tr.ui-draggable-dragging {
+  margin-top: -15px;
+  background-color: #FFF6BF;
+  filter:alpha(opacity=50);
+	-moz-opacity:0.5;
+	-khtml-opacity: 0.5;
+	opacity: 0.5;  
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+}
+tr.ui-draggable-dragging td {
+  cursor: default;
+  color: #000;
+  padding: 1px 10px; 
+}
 
 a, a:hover, a:active {
   text-decoration: none;
@@ -89,6 +104,13 @@ a, a:hover, a:active {
   background-image:url("img/skin-icon-playlist.gif");
 }
 
+.theme-navigation ul.playlists li a.drophover {
+  background-color: #666;
+  -moz-border-radius: 3px;
+  -webkit-border-raduis: 3px;
+  text-shadow: none;
+}
+
 .theme-navigation ul li.playqueue {
   background-image:url("img/skin-icon-playqueue.gif");
 }
@@ -119,7 +141,7 @@ a, a:hover, a:active {
   background-repeat: no-repeat;
   background-position: right top;
   padding-top: 8px;
-  
+  z-index: 1000;
 }
 
 .theme-trackinfo li {
@@ -385,7 +407,7 @@ div.loading {
 
 
 .theme-tracktable tbody td {
-  padding:2px 5px;
+  padding:1px 5px;
   font-size: 11px;
   color: #DDD;
   cursor: default;
