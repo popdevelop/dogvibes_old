@@ -150,7 +150,7 @@ class Playlist():
         if row == None:
             raise ValueError('Could not find track with id=%d in playlist with id=%d' % (id, self.id))
         old_position = row['position']
-        logging.debug("Move track from " + old_position + " to " + position)
+        logging.debug("Move track from %s to %s" % (old_position,position))
 
         self.db.commit_statement('''select max(position) from playlist_tracks where playlist_id = ?''', [self.id])
         row = self.db.fetchone()
