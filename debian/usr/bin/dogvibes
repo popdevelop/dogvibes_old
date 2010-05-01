@@ -26,5 +26,5 @@
 import sys
 sys.path += [ "/usr/lib/dogvibes"]
 
-import dogvibesserver
-dogvibesserver.main()
+import server
+server.main()
