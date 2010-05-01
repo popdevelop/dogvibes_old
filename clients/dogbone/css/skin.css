@@ -80,12 +80,11 @@ a, a:hover, a:active {
 }
 
 .theme-navigation ul li.selected {
-  background-color: #a9d9fe;
+  background-color: #777;
 }
 
 .theme-navigation ul li.selected a {
-  color: #000;  
-  text-shadow: none;
+  color: #DDD;
 }
 
 .theme-navigation ul li:hover a {
@@ -104,11 +103,14 @@ a, a:hover, a:active {
   background-image:url("img/skin-icon-playlist.gif");
 }
 
-.theme-navigation ul.playlists li a.drophover {
+.theme-navigation ul playlists li.playing {
+  background-image:url("img/skin-icon-playing.gif");
+}
+
+.theme-navigation ul.playlists li.drophover {
   background-color: #666;
   -moz-border-radius: 3px;
   -webkit-border-raduis: 3px;
-  text-shadow: none;
 }
 
 .theme-navigation ul li.playqueue {

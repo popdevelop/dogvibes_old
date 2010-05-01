@@ -174,8 +174,8 @@ var NavList = {
     this.items = Array();
     $(UI.navigation).append(this.ul);    
     this.addItem = function(id, item) {
-      this.items[id] = $('<li class="'+id+'"></li>');
-      this.items[id].append(item);
+      //this.items[id] = $('<li class="'+id+'"></li>');
+      this.items[id] = $(item);
       this.ul.append(this.items[id]);
     };
     this.selectItem= function(id) {
@@ -211,10 +211,10 @@ var Main = {
   init: function() {
     /* Bug in jQuery: you can't have same function attached to multiple events! */    
     Main.ui.list = new NavList.Section(Main.ui.section, '');
-    Main.ui.list.addItem("home", $("<a href='#home'>Home</a>"));
+    Main.ui.list.addItem("home", $("<li class='home'><a href='#home'>Home</a><li>"));
     $(document).bind("Page.home", Main.setHome);
             
-    Main.ui.list.addItem("playqueue", $("<a href='#playqueue'>Play queue</a>"));
+    Main.ui.list.addItem("playqueue", $("<li class='playqueue'><a href='#playqueue'>Play queue</a></li>"));
     $(document).bind("Page.playqueue", Main.setQueue); 
     
     /* Online / Offline */
@@ -423,7 +423,7 @@ var Playlist = {
   init: function() {
     Playlist.ui.list =    new NavList.Section(Playlist.ui.section, 'playlists');
     Playlist.ui.newList = new NavList.Section(Playlist.ui.newPlist, 'last');
-    Playlist.ui.newBtn  = $("<a>New playlist</a>");
+    Playlist.ui.newBtn  = $("<li class='newlist'><a>New playlist</a></li>");
     Playlist.ui.newBtn.click(function() {
       var name = prompt("Enter new playlist name");
       if(name) {
@@ -487,15 +487,19 @@ var Playlist = {
       return;
     }
     $(json.result).each(function(i, el) {
-      var item = $('<a id="Playlist-id-'+el.id+'" href="#playlist/'+el.id+'">'+el.name+'</a>');
+      var item = $('<li id="Playlist-'+el.id+'"><a href="#playlist/'+el.id+'">'+el.name+'</a></li>');
       item.droppable({
         hoverClass: 'drophover',
         tolerance: 'pointer',
         drop: function(event, ui) {
-          id = $(this).attr("id").removePrefix("Playlist-id-");
+          id = $(this).attr("id").removePrefix("Playlist-");
           uri = ui.draggable.attr("id").removePrefix("Search-item-id-");
           Dogvibes.addToPlaylist(id, uri);
         }
+      });
+      item.dblclick(function() {
+        id = $(this).attr("id").removePrefix("Playlist-id-");
+        Dogvibes.playTrack(0, id);
       });
       Playlist.ui.list.addItem(el.id, item);
     });
@@ -518,10 +522,14 @@ var Playlist = {
   },
   set: function() {  
     Playlist.table.clearHighlight();
-    if(Dogvibes.status.state == "playing" &&
-       Dogvibes.status.playlist_id == Playlist.selectedList) {    
-       Playlist.table.highlightItem(Dogvibes.status.index);       
-    } 
+    $('li', Playlist.ui.list.ul).removeClass('playing');    
+    if(Dogvibes.status.state == "playing") {
+       $("#Playlist-"+Dogvibes.status.playlist_id).addClass('playing');
+       
+      if(Dogvibes.status.playlist_id == Playlist.selectedList) {    
+        Playlist.table.highlightItem(Dogvibes.status.index);       
+      }
+    }
   } 
 };
 
@@ -622,7 +630,7 @@ var Search = {
   draw: function() {
     Search.ui.list.empty();
     $(Search.searches).each(function(i, el) {
-      Search.ui.list.addItem(el,"<a href='#search/"+el+"'>"+el+"</a>");
+      Search.ui.list.addItem(el,"<li class='"+el+"'><a href='#search/"+el+"'>"+el+"</a></li>");
     });
   },
   setTitle: function() {
@@ -709,6 +717,8 @@ $(document).ready(function() {
     $(UI.navigation).toggleClass('fullHeight');
     $(UI.currentsong).toggleClass('minimized');
   }); 
-  
-  
 }); 
+
+window.onbeforeunlod = function() {
+  return "Are you sure you want to leave?";
+}
