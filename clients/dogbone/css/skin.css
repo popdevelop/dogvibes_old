@@ -19,16 +19,6 @@
   width: 100%;
 }
 
-#Shade {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background-color: #FFF;
-  z-index: 9999;
-}
-
 tr.ui-draggable-dragging {
   margin-top: -15px;
   background-color: #FFF6BF;
@@ -128,7 +118,7 @@ a, a:hover, a:active {
   background-image:url("img/skin-icon-playing.png");
 }
 
-.theme-navigation ul.playlists li.drophover {
+.theme-navigation ul li.drophover {
   background-color: #666;
   -moz-border-radius: 3px;
   -webkit-border-raduis: 3px;

@@ -214,6 +214,14 @@ var Main = {
     Main.ui.list.addItem("home", $("<li class='home'><a href='#home'>Home</a><li>"));
     $(document).bind("Page.home", Main.setHome);
     Main.ui.playqueue = $("<li class='playqueue'><a href='#playqueue'>Play queue</a></li>");
+    Main.ui.playqueue.droppable({
+      hoverClass: 'drophover',
+      tolerance: 'pointer',
+      drop: function(event, ui) {
+        uri = ui.draggable.attr("id").removePrefix("Search-item-id-");
+        Dogvibes.queue(uri);
+      }
+    });
     Main.ui.list.addItem("playqueue", Main.ui.playqueue);
     $(document).bind("Page.playqueue", Main.setQueue); 
     
@@ -724,13 +732,6 @@ $(document).ready(function() {
     $(UI.navigation).toggleClass('fullHeight');
     $(UI.currentsong).toggleClass('minimized');
   });
-  
-  /* Reveal the goodies */
-  setTimeout( function() {
-    $("#Shade").fadeOut("fast");
-  }, 200);
-
-  
 }); 
 
 window.onbeforeunlod = function() {
