@@ -4,8 +4,28 @@
 
 var Config = {
   defaultServer: "http://localhost:2000",
-  resizeable: true
+  resizeable: true,
+  draggableOptions: {
+    revert: 'invalid', 
+    scroll: false,
+    revertDuration: 100, 
+    helper: 'clone', 
+    cursorAt: { left: 5 },
+    appendTo: "#drag-dummy", 
+    zIndex: 1000,
+    addClasses: false,
+    start: function() { $(this).click(); }
+  },
+  sortableOptions: {
+    revert: 'invalid', 
+    scroll: false, 
+    helper: 'clone', 
+    appendTo: "#drag-dummy", 
+    zIndex: 1000,
+    addClasses: false,
+  }  
 };
+
 
 /* TODO: remove when all dependencies are solved */
 var UI = {
@@ -102,8 +122,11 @@ var ResultTable = function(config) {
     $(self.ui.items).empty();
     $(self.items).each(function(i, el) {
       var tr = $("<tr></tr>");
-      tr.attr("id", self.options.name+"-item-id-"+el[self.options.idTag]);
+      var id = self.options.idTag in el ? el[self.options.idTag] : i;
+      tr.attr("id", self.options.name+"-item-id-"+id);
       tr.attr("name", self.options.name+"-item-no-"+i);
+      /* always add uri */
+      if("uri" in el) { tr.attr("uri", el.uri); }
       $(self.fields).each(function(i, field) {
         var content = $("<td></td>");
         if(field in el) {
@@ -174,7 +197,6 @@ var NavList = {
     this.items = Array();
     $(UI.navigation).append(this.ul);    
     this.addItem = function(id, item) {
-      //this.items[id] = $('<li class="'+id+'"></li>');
       this.items[id] = $(item);
       this.ul.append(this.items[id]);
     };
@@ -218,7 +240,7 @@ var Main = {
       hoverClass: 'drophover',
       tolerance: 'pointer',
       drop: function(event, ui) {
-        uri = ui.draggable.attr("id").removePrefix("Search-item-id-");
+        uri = ui.draggable.attr("uri");
         Dogvibes.queue(uri);
       }
     });
@@ -260,7 +282,6 @@ var Playqueue = {
     Playqueue.table = new ResultTable(
     {
       name: 'Playqueue', 
-      idTag: "uri",
       click: function() {
         var index = $(this).attr("name").removePrefix('Playqueue-item-no-');
         Playqueue.table.selectItem(index);       
@@ -275,7 +296,6 @@ var Playqueue = {
     $(document).bind("Status.state", function() { Playqueue.set() });
     $(document).bind("Status.playlist", function() { Playqueue.set() });
     $(document).bind("Server.connected", Playqueue.fetch);
-    
   },
   fetch: function() {
     if(Dogbone.page.id != "playqueue") return;
@@ -295,6 +315,10 @@ var Playqueue = {
     Playqueue.table.items = json.result;
     Playqueue.table.display();
     Playqueue.set();
+    /* Make draggable/sortable */
+    $(function() {
+      $("tr", Playqueue.table.ui.items).draggable(Config.draggableOptions);
+    });     
   },
   set: function() {
     if(Dogvibes.status.state == "playing" &&
@@ -475,7 +499,21 @@ var Playlist = {
     
     $(document).bind("Status.state", function() { Playlist.set(); });    
     $(document).bind("Status.songinfo", function() { Playlist.set(); });    
-    $(document).bind("Status.playlist", function() { Playlist.set(); });              
+    $(document).bind("Status.playlist", function() { Playlist.set(); });   
+    /* Handle sorts */
+    $(Playlist.table.ui.items).bind("sortupdate", function(event, ui) {
+      var items = $(this).sortable('toArray');
+      var trackID = $(ui.item).attr("id");
+      var position;
+      for(var i = 0; i < items.length; i++) {
+        if(items[i] == trackID) {
+          position = i;
+          break;
+        }
+      }
+      trackID = trackID.removePrefix("Playlist-item-id-");
+      Dogvibes.move(Playlist.selectedList, trackID, (position+1), "Playlist.setPage");
+    });               
   },
   setPage: function() {
     if(Dogbone.page.id != "playlist") return;
@@ -506,7 +544,7 @@ var Playlist = {
         tolerance: 'pointer',
         drop: function(event, ui) {
           id = $(this).attr("id").removePrefix("Playlist-");
-          uri = ui.draggable.attr("id").removePrefix("Search-item-id-");
+          uri = ui.draggable.attr("uri");
           Dogvibes.addToPlaylist(id, uri);
         }
       });
@@ -525,8 +563,11 @@ var Playlist = {
       return;
     }
     Playlist.table.items = json.result;
-    Playlist.table.display();
-    Playlist.set();    
+    Playlist.table.display();    
+    Playlist.set();
+    $(function() {
+      $(Playlist.table.ui.items).sortable(Config.sortableOptions);
+    });     
   },
   playItem: function(id) {
     if(parseInt(id) != NaN) {
@@ -664,17 +705,7 @@ var Search = {
     Search.table.items = json.result;
     Search.table.display();
     $(function() {
-      $(Search.table.ui.items + " tr").draggable({
-        revert: 'invalid', 
-        scroll: false,
-        revertDuration: 100, 
-        helper: 'clone', 
-        cursorAt: { left: 5 },
-        appendTo: "#drag-dummy", 
-        zIndex: 1000,
-        addClasses: false,
-        start: function() { $(this).click(); }
-      });
+      $(Search.table.ui.items + " tr").draggable(Config.draggableOptions);
     });    
   }
 };

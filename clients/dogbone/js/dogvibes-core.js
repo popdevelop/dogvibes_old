@@ -138,6 +138,7 @@ window.Dogvibes =  {
     seek:   "/seek?mseconds=",
     volume: "/setVolume?level=",
     albumArt: "/dogvibes/getAlbumArt?size=180&uri=",
+    moveInPlaylist: "/dogvibes/moveTrackInPlaylist?playlist_id=",
     playlists: "/dogvibes/getAllPlaylists",
     playlist: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
     addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",    
@@ -264,6 +265,10 @@ window.Dogvibes =  {
   },
   seek: function(time, Success) {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.seek + time;
+    Dogvibes.server.send(URL, Success);
+  },
+  move: function(pid, tid, pos, Success) {
+    var URL = Dogvibes.cmd.moveInPlaylist + pid + "&track_id=" + tid + "&position=" + pos;
     Dogvibes.server.send(URL, Success);
   },
   /* Returns an URL to the album art */
