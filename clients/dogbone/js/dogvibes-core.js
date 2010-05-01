@@ -124,6 +124,7 @@ var pushHandler = WSocket.handleStatus;
  ********************************/
 window.Dogvibes =  {
   server: false,
+  serverURL: false,
   status: false,
   defAmp: "/amp/0" , /* TODO: dynamic */
   cmd: {
@@ -136,7 +137,7 @@ window.Dogvibes =  {
     next:   "/nextTrack",
     seek:   "/seek?mseconds=",
     volume: "/setVolume?level=",
-    albumArt: "/dogvibes/getAlbumArt?size=320&uri=",
+    albumArt: "/dogvibes/getAlbumArt?size=180&uri=",
     playlists: "/dogvibes/getAllPlaylists",
     playlist: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
     addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",    
@@ -153,6 +154,7 @@ window.Dogvibes =  {
     $(document).bind("Server.status", Dogvibes.handleStatus);
     Dogvibes.server = server.substring(0, 2) == 'ws' ? WSocket : AJAX;
     Dogvibes.server.start(server);
+    Dogvibes.serverURL = server;
   },
   /* Handle new status event from connection object and dispatch events */
   handleStatus: function() {
@@ -263,5 +265,9 @@ window.Dogvibes =  {
   seek: function(time, Success) {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.seek + time;
     Dogvibes.server.send(URL, Success);
-  }  
+  },
+  /* Returns an URL to the album art */
+  albumArt: function(uri) {
+    return Dogvibes.serverURL + Dogvibes.cmd.albumArt + uri;
+  }
 };

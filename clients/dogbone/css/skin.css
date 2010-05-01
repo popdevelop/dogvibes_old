@@ -65,7 +65,7 @@ a, a:hover, a:active {
 }
 
 .theme-navigation ul li.selected {
-  background-color: #a9d9ff;
+  background-color: #a9d9fe;
 }
 
 .theme-navigation ul li.selected a {
@@ -143,8 +143,18 @@ a, a:hover, a:active {
   overflow:hidden;
 }
 
+#TrackInfo-albumArt {
+  position: absolute;
+  bottom: 0;
+  width: 180px;
+}
+
 .minimized #trackinfo {
   background-image: url('img/skin-trackinfo-min-bg.png');
+}
+
+.minimized #TrackInfo-albumArt {
+  top: -1000px;
 }
 
 .theme-separator {
@@ -179,6 +189,7 @@ a, a:hover, a:active {
   color: #000;
   font-weight: bold;
   float: right;
+  width: auto;
 }
 
 .theme-titlebar li.selected {
@@ -333,9 +344,16 @@ div.loading {
   color: #000;
   font-size: 11px;
   text-align: left;
+  text-shadow: rgba(255,255,255,0.4) 0 1px 0;  
   padding:1px 5px;
   background-image: url("img/skin-table-header-sep-bg.gif");
   background-repeat: no-repeat;
+}
+
+.theme-tracktable thead th.headerSortUp,
+.theme-tracktable thead th.headerSortDown {
+  background-image: url("img/skin-table-header-selected-bg.gif");
+  background-repeat: repeat-x;
 }
 
 .theme-tracktable tbody tr.odd {
@@ -347,8 +365,18 @@ div.loading {
 }
 
 .theme-tracktable tbody tr.selected {
-  background-color: #ADF;
+  background-color: #a9d9fe;
 }
+
+.theme-tracktable tbody tr.queued td {
+  color: #8effb0;
+}
+.theme-tracktable tbody tr.queued td:first-child {
+  background-image: url('img/skin-icon-queued.png');
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+}
+
 
 .theme-tracktable tbody tr.selected td{
   color: #000;

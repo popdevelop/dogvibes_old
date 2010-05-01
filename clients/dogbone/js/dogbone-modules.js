@@ -63,6 +63,7 @@ function ResultTable(name) {
   this.fields = [];
   this.idTag = "id";
   this.highlightClass = "playing";
+  this.selectMulti = false;
   /* Methods */
   this.display = function() {
     $(this.ui.items).empty();
@@ -86,13 +87,16 @@ function ResultTable(name) {
       }
       $(this.ui.items).append(tr);
     }
-    /* Zebra stripes */
-    $(this.ui.items + " tr:odd").addClass("odd");
+    
+    $("tr:visible",this.ui.items).filter(":odd").addClass("odd");
     
     /* Attach behaviours */
     var rows = $(this.ui.items + " tr");
     rows.click(this.click);
-    rows.dblclick(this.dblclick);  
+    rows.dblclick(this.dblclick);
+    
+    /* Update tablesorter */
+    $(this.ui.content).trigger("update");
   };
   
   this.empty = function() {
@@ -100,12 +104,30 @@ function ResultTable(name) {
   };
   
   this.selectItem = function(index) {
-    $(this.ui.items + " tr").removeClass("selected");  
-    Playlist.selectedItem = false;
-    if(index < this.items.length) {
-      this.selectedItem = $('tr[name="'+this.name+'-item-no-'+index+'"]');
-      this.selectedItem.addClass("selected");
-    }  
+    var min, max;
+    index = parseInt(index);
+    $(this.ui.items + " tr").removeClass("selected");
+    if(index > this.items.length) return;
+    
+    if(!this.selectMulti ||
+       !this.selectedItem) {
+      this.selectedItem = index;
+    }
+
+    if(this.selectedItem < index) {
+      min = this.selectedItem;
+      max = index;
+    } else {
+      min = index;
+      max = this.selectedItem;
+    }
+    for(var i = min; i <= max; i++) {
+      $('tr[name="'+this.name+'-item-no-'+i+'"]').addClass("selected");
+    }
+  };
+  this.deselectAll = function() {
+    this.selectedItem = false;
+    $(this.ui.items + " tr").removeClass("selected");
   };
   this.clearHighlight = function() {
     $(this.ui.items + " tr").removeClass(this.highlightClass);  
@@ -132,7 +154,7 @@ function ResultTable(name) {
         this.fields.push(field);
       }
     }
-  }  
+  }
 }
 
 var NavList = {
@@ -364,7 +386,8 @@ var ConnectionIndicator = {
 var TrackInfo = {
   ui: {
     artist: "#TrackInfo-artist",
-    title:  "#TrackInfo-title"    
+    title:  "#TrackInfo-title",
+    albumArt: "#TrackInfo-albumArt"
   },
   init: function() {
     if($(TrackInfo.ui.artist) && $(TrackInfo.ui.title)) {
@@ -373,7 +396,9 @@ var TrackInfo = {
   },
   set: function() {
     $(TrackInfo.ui.artist).text(Dogvibes.status.artist);
-    $(TrackInfo.ui.title).text(Dogvibes.status.title);    
+    $(TrackInfo.ui.title).text(Dogvibes.status.title);
+    var img = Dogvibes.albumArt(Dogvibes.status.uri);
+    $(TrackInfo.ui.albumArt).attr("src", img);
   }
 };
 
@@ -383,7 +408,7 @@ var Playlist = {
     newPlist: "#Newlist-section"
   },
   table: false,
-  param: "",
+  selectedList: "",
   init: function() {
     Playlist.ui.list =    new NavList.Section(Playlist.ui.section, 'playlists');
     Playlist.ui.newList = new NavList.Section(Playlist.ui.newPlist, 'last');
@@ -433,9 +458,9 @@ var Playlist = {
     
     if(Dogvibes.server.connected) {
       /* Save which list that is selected */
-      Playlist.param = Dogbone.page.param;
+      Playlist.selectedList = Dogbone.page.param;
       /* Load new items */
-      Dogvibes.getAllTracksInPlaylist(Playlist.param, "Playlist.handleResponse");
+      Dogvibes.getAllTracksInPlaylist(Playlist.selectedList, "Playlist.handleResponse");
     }
   },
   fetchAll: function() {
@@ -473,16 +498,13 @@ var Playlist = {
   },
   playItem: function(id) {
     if(parseInt(id) != NaN) {
-      Dogvibes.playTrack(id, Playlist.param);
-    }
-    else if(Playlist.selectedItem) {
-      Playlist.selectedItem.dblclick();
+      Dogvibes.playTrack(id, Playlist.selectedList);
     }
   },
   set: function() {  
     Playlist.table.clearHighlight();
     if(Dogvibes.status.state == "playing" &&
-       Dogvibes.status.playlist_id == Playlist.param) {    
+       Dogvibes.status.playlist_id == Playlist.selectedList) {    
        Playlist.table.highlightItem(Dogvibes.status.index);       
     } 
   } 
@@ -531,8 +553,13 @@ var Search = {
     Search.table.dblclick = function() {
       var uri = $(this).attr("id").removePrefix('Search-item-id-');
       Dogvibes.queue(uri);
+      Search.table.deselectAll();
+      $(this).effect("highlight");
+      $(this).addClass("queued");
     };
-    
+  
+    $("#Search-content").tablesorter();
+        
     /* Load searches from cookie */
     var temp;
     for(var i = 0; i < 6; i++){
@@ -635,6 +662,10 @@ $(document).dblclick(function() {
  * Startup 
  ***************************/
 $(document).ready(function() {
+  
+  /* Zebra stripes for all tables */
+  $.tablesorter.defaults.widgets = ['zebra'];
+
   Dogbone.init("content");
   ConnectionIndicator.init();
   PlayControl.init();
