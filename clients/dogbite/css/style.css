@@ -1,3 +1,11 @@
+body, html { 
+  background-color: #000;
+}
+
+#home, #playlist, #currentlist {
+  background-color: #FFF;
+}
+
 #player * { color:#FFF; font-family: helvetica, verdana, sans-serif; margin: 0; padding: 0;}
 
 #player ul, #player li { display: inline-block; list-style-type: none; }
