@@ -513,6 +513,7 @@ var CurrentList = {
     UI.track.appendChild(CurrentList.ui.trackNo);
 
     $(document).bind("Status.playlist", CurrentList.fetch);
+    $(document).bind("Status.songinfo", CurrentList.set);    
   },
   fetch: function() {
     var pid = Status.data.playlist_id;
@@ -539,11 +540,14 @@ var CurrentList = {
       }
       UI.currentlist.appendChild(li);
     }
-    UI.setText(CurrentList.ui.trackNo, (Status.data.index + 1) + " of " + CurrentList.nbrOfItems);
+    CurrentList.set();    
   },
   playItem: function() {
     var item = this._id;
     Server.request(Server.cmd.playTrack + item + "&playlist_id=" + Status.data.playlist_id);
+  },
+  set: function() {
+    UI.setText(CurrentList.ui.trackNo, (Status.data.index + 1) + " of " + CurrentList.nbrOfItems);  
   }
 };
 
