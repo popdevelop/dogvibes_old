@@ -213,8 +213,8 @@ var Main = {
     Main.ui.list = new NavList.Section(Main.ui.section, '');
     Main.ui.list.addItem("home", $("<li class='home'><a href='#home'>Home</a><li>"));
     $(document).bind("Page.home", Main.setHome);
-            
-    Main.ui.list.addItem("playqueue", $("<li class='playqueue'><a href='#playqueue'>Play queue</a></li>"));
+    Main.ui.playqueue = $("<li class='playqueue'><a href='#playqueue'>Play queue</a></li>");
+    Main.ui.list.addItem("playqueue", Main.ui.playqueue);
     $(document).bind("Page.playqueue", Main.setQueue); 
     
     /* Online / Offline */
@@ -224,7 +224,11 @@ var Main = {
     });
     $(document).bind("Server.connected", function() {
       $(Main.ui.page).removeClass("disconnected");
-    });       
+    });
+    /* Flash the playqueue item when something happens */
+    $(document).bind("Status.playqueue", function() {
+      $(Main.ui.playqueue).effect('highlight'); 
+    });
   },
   setQueue: function() {
     Titlebar.set(Dogbone.page.title);
@@ -682,7 +686,7 @@ $(document).bind("keyup", "ctrl+p", function() {
 });
 
 $(document).dblclick(function() {
-  var sel ;
+  var sel;
   if(document.selection && document.selection.empty){
     document.selection.empty() ;
   } else if(window.getSelection) {
@@ -719,7 +723,14 @@ $(document).ready(function() {
   $(UI.trackinfo).click(function() {
     $(UI.navigation).toggleClass('fullHeight');
     $(UI.currentsong).toggleClass('minimized');
-  }); 
+  });
+  
+  /* Reveal the goodies */
+  setTimeout( function() {
+    $("#Shade").fadeOut("fast");
+  }, 200);
+
+  
 }); 
 
 window.onbeforeunlod = function() {

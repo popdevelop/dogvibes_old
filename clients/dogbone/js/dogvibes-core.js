@@ -213,7 +213,7 @@ window.Dogvibes =  {
    * API functions 
    ****************/
   search: function(keyword, Success) {
-    var URL = Dogvibes.cmd.search + keyword;
+    var URL = Dogvibes.cmd.search + escape(keyword);
     Dogvibes.server.send(URL, Success);
   },
   getAllPlaylists: function(Success) {
