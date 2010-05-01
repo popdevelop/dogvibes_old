@@ -658,10 +658,10 @@ var Search = {
         revertDuration: 100, 
         helper: 'clone', 
         cursorAt: { left: 5 },
-        iframeFix: true,
         appendTo: "#drag-dummy", 
         zIndex: 1000,
-        addClasses: false 
+        addClasses: false,
+        start: function() { $(this).click(); }
       });
     });    
   }
