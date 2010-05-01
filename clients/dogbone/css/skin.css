@@ -8,6 +8,14 @@
  
  * { font: 11px/1.65 Lucida Grande,Helvetica,Arial,'Liberation Sans',FreeSans,sans-serif; }
 
+#drag-dummy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 0;
+  width: 100%;
+}
+
 tr.ui-draggable-dragging {
   margin-top: -15px;
   background-color: #FFF6BF;

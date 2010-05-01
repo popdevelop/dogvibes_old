@@ -487,7 +487,8 @@ var Playlist = {
       return;
     }
     $(json.result).each(function(i, el) {
-      var item = $('<li id="Playlist-'+el.id+'"><a href="#playlist/'+el.id+'">'+el.name+'</a></li>');
+      /* FIXME: remove inline onclick */
+      var item = $('<li id="Playlist-'+el.id+'"><a onclick="javascript: this.blur();" href="#playlist/'+el.id+'">'+el.name+'</a></li>');
       item.droppable({
         hoverClass: 'drophover',
         tolerance: 'pointer',
@@ -656,7 +657,9 @@ var Search = {
         scroll: false,
         revertDuration: 100, 
         helper: 'clone', 
-        appendTo: "body", 
+        cursorAt: { left: 5 },
+        iframeFix: true,
+        appendTo: "#drag-dummy", 
         zIndex: 1000,
         addClasses: false 
       });
