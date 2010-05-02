@@ -382,6 +382,14 @@ var PlayControl = {
   set: function() {
     $(PlayControl.ui.controls).removeClass();
     $(PlayControl.ui.controls).addClass(Dogvibes.status.state);
+    switch(Dogvibes.status.state) {
+      case "stopped":
+        $(PlayControl.ui.seek).slider( "option", "disabled", true );
+        break;
+      default:
+        $(PlayControl.ui.seek).slider( "option", "disabled", false );
+        break;
+    }
     //$(PlayControl.ui.duration).text(Dogvibes.status.duration.msec2time());    
   },
   toggle: function() {

@@ -34,7 +34,9 @@ var AJAX = {
   stop: function() {  
     AJAX.connected = false;
     clearTimeout(AJAX.timer);
-    $(document).trigger("Server.error"); 
+    AJAX.status = Dogvibes.defaultStatus;
+    $(document).trigger("Server.error");
+    $(document).trigger("Server.status");
     AJAX.request.abort();
   },
   send: function(URL, Success) {
@@ -90,7 +92,9 @@ var WSocket = {
   },
   stop: function() {
     WSocket.connected = false;
+    WSocket.status = Dogvibes.defaultStatus;
     $(document).trigger("Server.error");
+    $(document).trigger("Server.status");    
   },
   send: function(URL, Success, Error) {
     Success = typeof(Success) == "undefined" ? "WSocket.getStatus" : Success;
@@ -275,4 +279,16 @@ window.Dogvibes =  {
   albumArt: function(uri) {
     return Dogvibes.serverURL + Dogvibes.cmd.albumArt + uri;
   }
+};
+
+window.Dogvibes.defaultStatus = {
+  result: {
+    artist: "",
+    title: "",
+    album: "",
+    uri: "",
+    state: "stopped",
+    playlist_id: ""
+  },
+  error: "0"
 };
