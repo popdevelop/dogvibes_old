@@ -179,10 +179,19 @@ a, a:hover, a:active {
   overflow:hidden;
 }
 
+
+#TrackInfo-newAlbumArt {
+  position: absolute;
+  bottom: 0;
+  width: 180px;
+  display: none;
+  z-index: 2000;
+}
 #TrackInfo-albumArt {
   position: absolute;
   bottom: 0;
   width: 180px;
+  z-index: 1000;
 }
 
 .minimized #trackinfo {

@@ -445,7 +445,19 @@ var TrackInfo = {
     $(TrackInfo.ui.artist).text(Dogvibes.status.artist);
     $(TrackInfo.ui.title).text(Dogvibes.status.title);
     var img = Dogvibes.albumArt(Dogvibes.status.uri);
-    $(TrackInfo.ui.albumArt).attr("src", img);
+    /* Create a new image and crossfade over */
+    var newImg = new Image();
+    newImg.src = img;
+    newImg.id  = 'TrackInfo-newAlbumArt';
+    /* Don't show image until fully loaded */
+    $(newImg).load(function() {
+      $(newImg)
+        .appendTo('#currentsong')
+        .fadeIn(2000, function() {
+          $(TrackInfo.ui.albumArt).remove();
+          $(newImg).attr("id", "TrackInfo-albumArt");
+        });
+    });
   }
 };
 
