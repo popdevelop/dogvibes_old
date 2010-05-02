@@ -155,7 +155,10 @@ window.Dogvibes =  {
   /*****************
    * Initialization
    *****************/
-  init: function(server) {
+  init: function(server, user) {
+    if(typeof(user) != "undefined" && user.length > 0) {
+      server = server + "/" + user;
+    }  
     $(document).bind("Server.status", Dogvibes.handleStatus);
     Dogvibes.server = server.substring(0, 2) == 'ws' ? WSocket : AJAX;
     Dogvibes.server.start(server);

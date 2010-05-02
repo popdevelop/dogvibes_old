@@ -3,6 +3,7 @@
  */
 
 var Config = {
+  defaultUser: "",
   defaultServer: "http://localhost:2000",
   resizeable: true,
   draggableOptions: {
@@ -774,7 +775,7 @@ $(document).ready(function() {
   Search.init();
   Playlist.init();
   /* Start server connection */
-  Dogvibes.init(Config.defaultServer);
+  Dogvibes.init(Config.defaultServer, Config.defaultUser);
   
   /****************************************
    * Misc. behaviour. Application specific
