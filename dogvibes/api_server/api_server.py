@@ -30,19 +30,24 @@ LOG_LEVELS = {'0': logging.CRITICAL,
               '3': logging.INFO,
               '4': logging.DEBUG}
 
-lock = threading.Lock()
+DOG_LOCK = threading.Lock()
 
 dogs = []
 
+# A connection to a Dog
 class Dog():
     def __init__(self, sock, username):
         self.sock = sock
         self.username = username
+
         dog = Dog.find(username)
+        DOG_LOCK.acquire()
         if dog != None:
             dogs.remove(dog)
         dogs.append(self)
+        DOG_LOCK.release()
 
+    # Send a command on a socket and wait for reply, blocking
     def send_cmd(self, cmd):
         self.sock.send(cmd)
         tmp = ''
@@ -51,7 +56,9 @@ class Dog():
         try:
             tmp += self.sock.recv(4000)
         except:
+            DOG_LOCK.acquire()
             dogs.remove(self)
+            DOG_LOCK.release()
             print "Dog '%s' has disconnected" % self.username
             return "{error: 4}" # Yuck!
 
@@ -67,9 +74,12 @@ class Dog():
 
     @classmethod
     def find(self, username):
+        DOG_LOCK.acquire()
         for dog in dogs:
             if dog.username == username:
+                DOG_LOCK.release()
                 return dog
+        DOG_LOCK.release()
 
 
 def handle_request(path):
@@ -94,9 +104,10 @@ def handle_request(path):
 
     dog = Dog.find(username)
     if (dog == None):
-        raise Exception # TODO
+        raise Exception
     else:
         if raw:
+            # FIXME: need to get real album and artist here
             data = AlbumArt.get_image("oasis", "wonderwall", 300)
         else:
             data = dog.send_cmd(cmd)
@@ -119,7 +130,7 @@ class HTTPServer(resource.Resource):
         return data
 
 
-server_handshake = '\
+SERVER_HANDSHAKE = '\
 HTTP/1.1 101 Web Socket Protocol Handshake\r\n\
 Upgrade: WebSocket\r\n\
 Connection: Upgrade\r\n\
@@ -127,19 +138,10 @@ WebSocket-Origin: %s\r\n\
 WebSocket-Location: %s/\r\n\r\n\
 '
 
-clients = []
-
 class WebSocket(Protocol):
 
     handshaken = False # Indicates if initial setup has been done
     buf = '' # Save unprocessed data between reads
-
-    def connectionMade(self):
-        clients.append(self)
-        #self.transport.write(server_handshake)
-
-    def connectionLost(self, reason):
-        c = clients.remove(self)
 
     def handshake(self, data):
 
@@ -158,7 +160,7 @@ class WebSocket(Protocol):
             self.transport.loseConnection()
 
         # compile an answer and send back to the client
-        new_handshake = server_handshake % (origin[0], "ws://" + host[0])
+        new_handshake = SERVER_HANDSHAKE % (origin[0], "ws://" + host[0])
 
         self.transport.write(new_handshake)
 
@@ -199,8 +201,10 @@ class WebSocket(Protocol):
             (data, raw, error) = handle_request(cmd)
             self.sendWS(data);
 
+# Loop over all registered sockets and remove them if dead
 def clean_sockets():
     while True:
+        DOG_LOCK.acquire()
         for dog in dogs:
             try:
                 pass
@@ -208,9 +212,10 @@ def clean_sockets():
             except:
                 "Dog %s has disconnected" % dog.username
                 dogs.remove(dog)
+        DOG_LOCK.release()
         time.sleep(0.25)
 
-
+# Responsible for accepting new connections from Dogs
 class CliThread(Thread):
     def __init__(self):
         Thread.__init__( self )
