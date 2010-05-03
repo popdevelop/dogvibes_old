@@ -23,7 +23,7 @@ import urllib
 import config
 import time
 
-API_VERSION = '0.1'
+API_VERSION = '0.2'
 
 LOG_LEVELS = {'0': logging.CRITICAL,
               '1': logging.ERROR,
