@@ -1090,7 +1090,7 @@ gst_spot_src_get_size (GstBaseSrc * basesrc, guint64 * size)
   }
 
   *size = (duration/1000000000) * 44100 * 4;
-  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, spot, "Duration=%d => size=%" G_GUINT64_FORMAT, duration, *size);
+  GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, spot, "Duration=%" G_GUINT64_FORMAT " => size=%" G_GUINT64_FORMAT, duration, *size);
 
   return TRUE;
 
