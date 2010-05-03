@@ -104,12 +104,14 @@ class Amp():
     def API_getPlayedMilliSeconds(self):
         (pending, state, timeout) = self.pipeline.get_state ()
         if (state == gst.STATE_NULL):
+            logging.debug ("getPlayedMilliseconds in state==NULL")
             return 0
         try:
             pos = (pos, form) = self.pipeline.query_position(gst.FORMAT_TIME)
         except:
             pos = 0
-        return pos / 1000 # / gst.MSECOND # FIXME: something fishy here...
+        # We get nanoseconds from gstreamer elements, convert to ms
+        return pos / 1000000
 
     def API_getStatus(self):
         status = {}
@@ -230,8 +232,9 @@ class Amp():
     def API_seek(self, mseconds):
         if self.src == None:
             return 0
-        # FIXME: this *1000-hack only works for Spotify?
-        self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_FLUSH, int(mseconds) * 1000);
+        ns = int(mseconds) * 1000000
+        logging.debug("Seek with time to ns=%d" %ns)
+        self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_FLUSH, ns)
         self.needs_push_update = True
 
     def API_setPlayQueueMode(self, mode):

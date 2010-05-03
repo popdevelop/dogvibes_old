@@ -921,24 +921,24 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
 
     case GST_QUERY_DURATION:{
       GstFormat format;
-      gint duration;
+      guint64 duration;
       gint64 value;
       gst_query_parse_duration (query, &format, &value);
       /* duration in ms */
-
       duration = run_spot_cmd (spot, SPOT_CMD_DURATION, 0);
+      /* duration in ns */
+      duration = 1000000 * duration;
       switch (format) {
         case GST_FORMAT_BYTES:
           {
-          guint64 duration_bytes = (duration / 1000) * samplerate * 4;
+          guint64 duration_bytes = (duration / 1000000000) * samplerate * 4;
           GST_INFO_OBJECT (spot, "Query_duration, duration_bytes=%" G_GUINT64_FORMAT, duration_bytes);
           gst_query_set_duration (query, format, duration_bytes);
           }
           break;
         case GST_FORMAT_TIME:
           {
-          /* set it to nanoseconds */
-          guint64 duration_time = duration * 1000;
+          guint64 duration_time = duration;
           GST_INFO_OBJECT (spot, "Query_duration, duration_time=%" G_GUINT64_FORMAT, duration_time);
           gst_query_set_duration (query, format, duration_time);
           }
@@ -1011,7 +1011,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
              *   - each sample has two channels with 16 bits, 4byte
              *   - samplerate is usually 44100hz
              *   - time is in nano seconds */
-            dest_val = (src_val * 1000000) / ((float)samplerate * 4);
+            dest_val = (src_val * 1000000000) / ((float)samplerate * 4);
             GST_INFO_OBJECT (spot,"Convert src_val=%" G_GINT64_FORMAT " b, dst_val=%" G_GINT64_FORMAT " ns", src_val, dest_val);
             break;
           default:
@@ -1024,7 +1024,7 @@ gst_spot_src_query (GstBaseSrc * basesrc, GstQuery * query)
           switch (dest_fmt) {
           case GST_FORMAT_BYTES:
             /* time to samples */
-            dest_val = (src_val * samplerate * 4) / 1000000;
+            dest_val = (src_val * samplerate * 4) / 1000000000;
             GST_INFO_OBJECT (spot,"Convert src_val=%" G_GINT64_FORMAT " ns, dst_val=%" G_GINT64_FORMAT " b", src_val, dest_val);
             break;
           default:
@@ -1076,17 +1076,20 @@ static gboolean
 gst_spot_src_get_size (GstBaseSrc * basesrc, guint64 * size)
 {
   GstSpotSrc *spot;
-  int duration = 0;
+  guint64 duration = 0;
 
   spot = GST_SPOT_SRC (basesrc);
+  /* duration in ms */
   duration = run_spot_cmd (spot, SPOT_CMD_DURATION, 0);
+  /* duration in ns */
+  duration = 1000000 * duration;
 
   if (!duration) {
     GST_CAT_ERROR_OBJECT (gst_spot_src_debug_audio, spot, "No duration error");
     goto no_duration;
   }
 
-  *size = (duration/1000) * 44100 * 4;
+  *size = (duration/1000000000) * 44100 * 4;
   GST_CAT_LOG_OBJECT (gst_spot_src_debug_audio, spot, "Duration=%d => size=%" G_GUINT64_FORMAT, duration, *size);
 
   return TRUE;
@@ -1188,8 +1191,6 @@ gst_spot_src_set_spotifyuri (GstSpotSrc * spot, const gchar * uri)
   g_free (GST_SPOT_SRC_URI (spot));
 
   GST_SPOT_SRC_URI (spot) = g_strdup (uri);
-  printf ("save spot->uri=%s\n", spot->uri);
-//  GST_SPOT_SRC_URI (spot) = gst_uri_construct ("spotify", spotify_uri);
   
   g_object_notify (G_OBJECT (spot), "uri"); /* why? */
   gst_uri_handler_new_uri (GST_URI_HANDLER (spot), spot->uri);
