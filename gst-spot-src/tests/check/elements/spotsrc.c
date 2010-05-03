@@ -35,9 +35,9 @@ static GstPad *mysinkpad;
     "depth = (int) 16, "                \
     "signed = (bool) TRUE"
 
-#define SPOTIFY_URI "spotify:track:0E4rbyLYVCGLu75H3W6O67"
-#define SPOTIFY_URI_2 "spotify:track:13GSFj7uIxqL9eNItNob3p"
-#define SPOTIFY_URI_ERROR "spotify:track:deadbeefdeadbeefdeadbeef"
+#define SPOTIFY_URI "spotify://spotify:track:0E4rbyLYVCGLu75H3W6O67"
+#define SPOTIFY_URI_2 "spotify://spotify:track:13GSFj7uIxqL9eNItNob3p"
+#define SPOTIFY_URI_ERROR "spotify://spotify:track:deadbeefdeadbeefdeadbeef"
 
 #define SPOTIFY_USER "user"
 #define SPOTIFY_PASS "pass"
@@ -46,8 +46,8 @@ static GstPad *mysinkpad;
  * load them, for example the awesome song by reflection eternal:
  * In This World - Amended Album Version uri=spotify:track:2FEyrK5QyboZLgfG6BPmYM
  */
-#define SPOTIFY_URI_TALIB_KWELI "spotify:track:2FEyrK5QyboZLgfG6BPmYM"
-#define SPOTIFY_URI_JUST_BAD "spotify:track:2FEyaaaaaaaaaaaaaaaa"
+#define SPOTIFY_URI_TALIB_KWELI "spotify://spotify:track:2FEyrK5QyboZLgfG6BPmYM"
+#define SPOTIFY_URI_JUST_BAD "spotify://spotify:track:2FEyaaaaaaaaaaaaaaaa"
 /* FIXME: add test with longer uri, add two more a's and it fails */
 
 static GstStaticPadTemplate sinktemplate = GST_STATIC_PAD_TEMPLATE ("sink",
@@ -193,8 +193,12 @@ GST_START_TEST (test_eos_events_push)
   g_print ("*** wait for one EOS event, seen as '#'\n\n");
 
   pipe = gst_pipeline_new ("pipeline");
+  fail_unless (pipe != NULL, "Failed to create pipeline element");
   sink = gst_element_factory_make ("fakesink", "sink");
+  fail_unless (sink != NULL, "Failed to create sink element");
   src = gst_element_factory_make ("spot", "src");
+  fail_unless (src != NULL, "Failed to create src element");
+
   g_object_set (G_OBJECT (src), "user", SPOTIFY_USER, NULL);
   g_object_set (G_OBJECT (src), "pass", SPOTIFY_PASS, NULL);
   g_object_set (G_OBJECT (src), "uri", SPOTIFY_URI, NULL);

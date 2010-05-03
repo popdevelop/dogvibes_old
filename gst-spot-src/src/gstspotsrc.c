@@ -583,8 +583,8 @@ gst_spot_src_base_init (gpointer g_class)
 
   gst_element_class_set_details_simple (gstelement_class,
       "Spot Source",
-      "Source/spot",
-      "Read from arbitrary point in a file with raw audio",
+      "SPOTSRC, SPOTSRC_THREADS, SPOTSRC_AUDIO, SPOTSRC_CB",
+      "Spotify source element",
       "tilljoel@gmail.com (http://hackr.se) & johan.gyllenspetz@gmail.com");
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&srctemplate));
@@ -1149,33 +1149,60 @@ gst_spot_src_unlock_stop (GstBaseSrc *bsrc)
 }
 
 static gboolean
-gst_spot_src_set_spotifyuri (GstSpotSrc * spot, const gchar * spotify_uri)
+gst_spot_src_set_spotifyuri (GstSpotSrc * spot, const gchar * uri)
 {
   GstState state;
+  gchar *protocol = NULL;
+  gchar *location;
 
   /* hopefully not possible */
-  g_assert (spotify_uri);
+  g_assert (uri);
 
   /* the element must be stopped in order to do this */
   state = GST_STATE (spot);
   if (state != GST_STATE_READY && state != GST_STATE_NULL) {
+    GST_WARNING_OBJECT (spot, "Setting spotify_uri in wrong state");
     goto wrong_state;
   }
 
-  g_free (GST_SPOT_SRC_URI (spot));
+  if (!gst_uri_is_valid (uri)) {
+    GST_WARNING_OBJECT (spot, "Invalid URI '%s' for spotsrc", uri);
+    goto invalid_uri;
+  }
+
+  protocol = gst_uri_get_protocol (uri);
+  if (strcmp (protocol, "spotify") != 0) {
+     GST_WARNING_OBJECT (spot, "Setting spotify_uri with wrong protocol");
+     goto wrong_protocol;
+  }
+  g_free (protocol);
+
+  location = gst_uri_get_location (uri);
+  if (!location) {
+    GST_WARNING_OBJECT (spot, "Setting spotify_uri with wrong/no location");
+    goto wrong_location;
+  }
 
   /* we store the spotify_uri as received by the application. On Windoes this
    * should be UTF8 */
-  GST_SPOT_SRC_URI (spot) = gst_uri_construct ("spotify", spotify_uri);
+  g_free (GST_SPOT_SRC_URI (spot));
 
+  GST_SPOT_SRC_URI (spot) = g_strdup (uri);
+  printf ("save spot->uri=%s\n", spot->uri);
+//  GST_SPOT_SRC_URI (spot) = gst_uri_construct ("spotify", spotify_uri);
+  
   g_object_notify (G_OBJECT (spot), "uri"); /* why? */
   gst_uri_handler_new_uri (GST_URI_HANDLER (spot), spot->uri);
 
   return TRUE;
 
   /* ERROR */
+invalid_uri:
+
+wrong_protocol:
+  g_free (protocol);
 wrong_state:
-  GST_DEBUG_OBJECT (spot, "Setting spotify_uri in wrong state");
+wrong_location:
   return FALSE;
 }
 
@@ -1208,29 +1235,9 @@ gst_spot_src_uri_get_uri (GstURIHandler * handler)
 static gboolean
 gst_spot_src_uri_set_uri (GstURIHandler * handler, const gchar * uri)
 {
-  gchar *location, *hostname = NULL;
-  gboolean ret = FALSE;
   GstSpotSrc *spot = GST_SPOT_SRC (handler);
-  GST_DEBUG_OBJECT (spot, "URI '%s' for spotsrc", uri);
-
-  location = g_filename_from_uri (uri, &hostname, NULL);
-
-  if (!location) {
-    GST_WARNING_OBJECT (spot, "Invalid URI '%s' for spotsrc", uri);
-    goto beach;
-  }
-
-  ret = gst_spot_src_set_spotifyuri (spot, location);
-
-beach:
-  if (location) {
-    g_free (location);
-  }
-  if (hostname) {
-    g_free (hostname);
-  }
-
-  return ret;
+  GST_DEBUG_OBJECT (spot, "New URI for interface: '%s' for spotsrc", uri);
+  return gst_spot_src_set_spotifyuri (spot, uri);
 }
 
 static void

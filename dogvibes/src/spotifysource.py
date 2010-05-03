@@ -30,7 +30,7 @@ class SpotifySource:
         album = e.find('.//{%s}album/{%s}name' % (ns, ns)).text
         duration = int(float(e.find('.//{%s}length' % ns).text) * 1000)
 
-        track = Track(uri)
+        track = Track("spotify://"+uri)
         track.title = title
         track.artist = artist
         track.album = album
@@ -96,7 +96,7 @@ class SpotifySource:
         self.spotify.set_property ("uri", track.uri)
 
     def uri_matches(self, uri):
-        return (uri[0:7] == "spotify")
+        return (uri[0:10] == "spotify://")
 
     def play_token_lost(self, data):
         # Pause connected amp if play_token_lost is recieved

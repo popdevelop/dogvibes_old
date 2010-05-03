@@ -69,10 +69,10 @@ class Amp():
         if nbr > len(self.dogvibes.speakers) - 1:
             logging.warning ("Connect speaker - speaker does not exist")
 
-        speaker = self.dogvibes.speakers[nbr];
+        speaker = self.dogvibes.speakers[nbr]
 
         if self.pipeline.get_by_name(speaker.name) == None:
-            self.sink = self.dogvibes.speakers[nbr].get_speaker();
+            self.sink = self.dogvibes.speakers[nbr].get_speaker()
             self.pipeline.add(self.sink)
             self.tee.link(self.sink)
         else:
@@ -332,7 +332,7 @@ class Amp():
         self.set_state(gst.STATE_PLAYING)
 
     def set_state(self, state):
-        logging.debug("set state try")
+        logging.debug("set state try: "+str(state))
         res = self.pipeline.set_state(state)
         if res != gst.STATE_CHANGE_FAILURE:
             (pending, res, timeout) = self.pipeline.get_state()
@@ -340,9 +340,9 @@ class Amp():
                 print res
                 time.sleep(0.1)
                 (pending, res, timeout) = self.pipeline.get_state()
-            logging.debug("set state success")
+            logging.debug("set state success: "+ str(state))
         else:
-            logging.warning("set state failure")
+            logging.warning("set state failure: "+ str(state))
         return res
 
 
