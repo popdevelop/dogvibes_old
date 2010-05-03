@@ -117,10 +117,9 @@ class Playlist():
             # TODO: replace with an SQL statement that instantly creates a Track object
             self.db.commit_statement('''select * from tracks where id = ?''', [track[1]])
             row = self.db.fetchone()
-            id = row['id']
             del row['id']
             t = Track(**row)
-            t.id = id
+            t.id = track[0]
             ret_tracks.append(t)
 
         return ret_tracks
