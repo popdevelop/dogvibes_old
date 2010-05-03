@@ -117,9 +117,10 @@ class Playlist():
             # TODO: replace with an SQL statement that instantly creates a Track object
             self.db.commit_statement('''select * from tracks where id = ?''', [track[1]])
             row = self.db.fetchone()
+            id = row['id']
             del row['id']
             t = Track(**row)
-            t.id = track[0] # add the playlist-to-track id instead
+            t.id = id
             ret_tracks.append(t)
 
         return ret_tracks
@@ -128,20 +129,30 @@ class Playlist():
         self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? order by position limit ?,1''', [int(self.id), nbr])
 
         row = self.db.fetchone()
-
-        # There is probably a much smarter way to fetch a specific row number
-#        i = 0
-#        while i < nbr:
-#            row = self.db.fetchone()
-#            i = i + 1
-
         tid = row['track_id']
+        ptid = row['id']
 
         self.db.commit_statement('''select * from tracks where id = ?''', [row['track_id']])
         row = self.db.fetchone()
         del row['id']
         t = Track(**row)
         t.id = tid
+        t.ptid = ptid
+        return t
+
+    def get_track_id(self, id):
+        self.db.commit_statement('''select * from playlist_tracks where id = ?''', [id])
+
+        row = self.db.fetchone()
+        tid = row['track_id']
+        position = row['position']
+
+        self.db.commit_statement('''select * from tracks where id = ?''', [row['track_id']])
+        row = self.db.fetchone()
+        del row['id']
+        t = Track(**row)
+        t.id = tid
+        t.position = position
         return t
 
     def move_track(self, id, position):
@@ -173,6 +184,18 @@ class Playlist():
         row = self.db.fetchone()
         if row == None:
             raise ValueError('Could not find track with id=%s' % (int(nbr)))
+
+        id = row['id']
+        self.db.commit_statement('''delete from playlist_tracks where id = ?''', [row['id']])
+        self.db.commit_statement('''update playlist_tracks set position = position - 1 where playlist_id = ? and position > ?''', [self.id, row['position']])
+
+    def remove_track_id(self, id):
+#        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? limit ?,1''', [int(self.id), int(id)-1])
+        self.db.commit_statement('''select * from playlist_tracks where id = ?''', [id])
+
+        row = self.db.fetchone()
+        if row == None:
+            raise ValueError('Could not find track with id=%s' % (int(id)))
 
         id = row['id']
         self.db.commit_statement('''delete from playlist_tracks where id = ?''', [row['id']])

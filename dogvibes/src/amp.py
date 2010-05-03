@@ -27,17 +27,25 @@ class Amp():
         self.bus.add_signal_watch()
         self.bus.connect('message', self.pipeline_message)
 
-        self.tmpqueue = []
-        self.intmpqueue = True
+        # Create amps playqueue
+        if Playlist.name_exists(dogvibes.ampdbname + id) == False:
+            self.dogvibes.API_createPlaylist(dogvibes.ampdbname + id)
+        tqplaylist = Playlist.get_by_name(dogvibes.ampdbname + id)
+        self.tmpqueue_id = tqplaylist.id
+
+        self.active_playlist_id = self.tmpqueue_id
+        if (tqplaylist.length() > 0):
+            self.active_playlists_track_id = tqplaylist.get_track_nbr(0).ptid
+        else:
+            self.active_playlists_track_id = -1
+        self.fallback_playlist_id = -1
+        self.fallback_playlists_track_id = -1
 
         # sources connected to the amp
         self.sources = []
 
         # the gstreamer source that is currently used for playback
         self.src = None
-
-        self.active_playlist_id = -1
-        self.active_playlist_position = 0
 
         self.needs_push_update = False
 
@@ -49,9 +57,11 @@ class Amp():
         nbr = int(nbr)
         if nbr > len(self.dogvibes.sources) - 1:
             logging.warning ("Connect source - source does not exist")
+            return
 
         if self.dogvibes.sources[nbr].amp != None:
             logging.warning ("Connect source - source is already connected to amp")
+            return
 
         # Add amp as owner of source
         self.dogvibes.sources[nbr].amp = self
@@ -61,7 +71,16 @@ class Amp():
         nbr = int(nbr)
         if nbr > len(self.dogvibes.sources) - 1:
             logging.warning ("Disonnect source - source does not exist")
-        # FIXME implament me
+            return
+
+        if self.dogvibes.sources[nbr].amp == None:
+            logging.warning ("Source has no owner")
+            return      
+        if self.dogvibes.sources[nbr].amp != self:
+            logging.warning ("Amp not owner of this source")
+            return
+
+        self.sources.remove(self.dogvibes.sources[nbr])
 
     # API
     def API_connectSpeaker(self, nbr):
@@ -99,7 +118,7 @@ class Amp():
         self.needs_push_update = True
 
     def API_getAllTracksInQueue(self):
-        return [track.__dict__ for track in self.tmpqueue]
+        return self.dogvibes.API_getAllTracksInPlaylist(self.tmpqueue_id)
 
     def API_getPlayedMilliSeconds(self):
         (pending, state, timeout) = self.pipeline.get_state ()
@@ -122,17 +141,16 @@ class Amp():
 
         track = None
 
-        if self.intmpqueue:
-            if len(self.tmpqueue) > 0:
-                track = self.tmpqueue[0]
-                status['index'] = 0
-                status['playlist_id'] = -1
-        else:
-            playlist = Playlist.get(self.active_playlist_id)
-            if self.active_playlist_id != -1 and playlist.length() > 0:
-                track = playlist.get_track_nbr(self.active_playlist_position)
-                status['index'] = self.active_playlist_position
-                status['playlist_id'] = self.active_playlist_id
+        playlist = Playlist.get(self.active_playlist_id)
+        if playlist.length() > 0:
+            if self.active_playlists_track_id != -1:
+                track = playlist.get_track_id(self.active_playlists_track_id)
+                # FIXME remove when no longer needed in client
+                status['index'] = playlist.get_track_id(self.active_playlists_track_id).position - 1
+                if self.is_in_tmpqueue():
+                    status['playlist_id'] = -1
+                else:
+                    status['playlist_id'] = self.active_playlist_id
 
         status['uri'] = "dummy"
 
@@ -143,6 +161,7 @@ class Amp():
             status['album'] = track.album
             status['duration'] = int(track.duration)
             status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
+            status['id'] = self.active_playlists_track_id
 
         (pending, state, timeout) = self.pipeline.get_state()
         if state == gst.STATE_PLAYING:
@@ -154,63 +173,34 @@ class Amp():
 
         return status
 
-    def API_getQueuePosition(self):
-        return self.active_playlist_position
-
     def API_nextTrack(self):
-        if (len(self.tmpqueue) > 0 and self.intmpqueue):
-            self.tmpqueue.remove(self.tmpqueue[0])
-
-        if (len(self.tmpqueue) > 0):
-            self.intmpqueue = True
-            (pending, state, timeout) = self.pipeline.get_state()
-            self.set_state(gst.STATE_NULL)
-            self.play_only_if_null(self.tmpqueue[0])
-        else:
-            if (self.active_playlist_id != -1):
-                self.change_track(self.active_playlist_position + 1)
-            else:
-                self.API_stop()
+        self.change_track(1, True)
         self.needs_push_update = True
 
     def API_playTrack(self, playlist_id, nbr):
-        # playlist_id=-1 means play queue
         nbr = int(nbr)
         playlist_id = int(playlist_id)
-        if playlist_id == -1:
-            if (nbr > (len(self.tmpqueue) - 1)):
-                raise DogError, 'Trying to play none existing track from tmpqueue'
-            self.intmpqueue = True
-            for i in range(0, nbr):
-                self.tmpqueue.remove(self.tmpqueue[0])
-            self.set_state(gst.STATE_NULL)
-            self.play_only_if_null(self.tmpqueue[0])
+
+        # -1 is tmpqueue
+        if (playlist_id == -1):
+            # Save last known playlist that is not the tmpqueue
+            if (not self.is_in_tmpqueue()):
+                self.fallback_playlist_id = self.active_playlist_id
+                self.fallback_playlists_track_id = self.active_playlists_track_id
+            self.active_playlist_id = self.tmpqueue_id
         else:
             self.active_playlist_id = playlist_id
-            self.change_track(nbr)
-            self.set_state(gst.STATE_PLAYING)
+
+        self.change_track(nbr, False)
         self.needs_push_update = True
 
     def API_previousTrack(self):
-        # TODO: stay on same place if in play queue?
-        if (self.intmpqueue):
-            self.change_track(self.active_playlist_position)
-        else:
-            self.change_track(self.active_playlist_position - 1)
+        self.change_track(-1, True)
         self.needs_push_update = True
 
     def API_play(self):
-        if (len(self.tmpqueue) > 0 and (self.intmpqueue or self.active_playlist_id == -1)):
-            self.intmpqueue = True
-            self.play_only_if_null(self.tmpqueue[0])
-        else:
-            playlist = Playlist.get(self.active_playlist_id)
-            if self.active_playlist_id == -1:
-                pass
-            elif self.active_playlist_position > playlist.length() - 1:
-                raise DogError, 'Trying to play an empty tmpqueue'
-            else:
-                self.play_only_if_null(playlist.get_track_nbr(self.active_playlist_position))
+        playlist = Playlist.get(self.active_playlist_id)
+        self.play_only_if_null(playlist.get_track_id(self.active_playlists_track_id))
         self.needs_push_update = True
 
     def API_pause(self):
@@ -219,14 +209,14 @@ class Amp():
 
     def API_queue(self, uri):
         track = self.dogvibes.create_track_from_uri(uri)
-        self.tmpqueue.append(track)
+        playlist = Playlist.get(self.tmpqueue_id)
+        playlist.add_track(track)
         self.needs_push_update = True
 
     def API_removeTrack(self, nbr):
         nbr = int(nbr)
-        if nbr > len(self.tmpqueue):
-            raise DogError, 'Track not removed, tmpqueue is not that big'
-        self.tmpqueue.remove(self.tmpqueue[nbr])
+        playlist = Playlist.get(self.active_playlist_id)
+        playlist.remove_track_id(self.active_playlist_id, nbr)
         self.needs_push_update = True
 
     def API_seek(self, mseconds):
@@ -260,40 +250,85 @@ class Amp():
         logging.debug("Lets add a speaker we found suitable elements to decode")
         pad.link(self.tee.get_pad("sink"))
 
-    def change_track(self, tracknbr):
+    def change_track(self, tracknbr, relative):
         tracknbr = int(tracknbr)
 
-        self.intmpqueue = False
+        if relative and (tracknbr > 1 or tracknbr < -1 or tracknbr == 0):
+            raise DogError, "Relative change track greater/less than 1 not implemented"
 
         playlist = Playlist.get(self.active_playlist_id)
+        if self.active_playlists_track_id != -1:
+            next_position = playlist.get_track_id(self.active_playlists_track_id).position - 1
+        else:
+            next_postion = 0
 
-        if playlist == None:
-            self.set_state(gst.STATE_NULL)
-            return
+        if relative:
+            next_position = next_position + tracknbr
+        else:
+            next_position = playlist.get_track_id(tracknbr).position - 1
+
+        # If we are in tmpqueue either removetrack or push it to the top
+        if self.is_in_tmpqueue():
+            if relative and (tracknbr == 1):
+                # Remove track and goto next track
+                playlist.remove_track_id(self.active_playlists_track_id)
+                next_position = 0
+            elif relative and (tracknbr == -1):
+                # Do nothing since we are always on top in playqueue
+                return
+            else:
+                # Move requested track to top of tmpqueue and play it
+                self.active_playlists_track_id = tracknbr
+                playlist.move_track(self.active_playlists_track_id, 1)
+                next_position = 0
+
+            # Check if tmpqueue no longer exists (all tracks has been removed)
+            if playlist.length() <= 0:
+                # Check if we used to be in a playlist
+                if self.fallback_playlist_id != -1:
+                    # Change one track forward in the playlist we used to be in
+                    self.active_playlist_id = self.fallback_playlist_id
+                    self.active_playlists_track_id = self.fallback_playlists_track_id
+                    playlist = Playlist.get(self.active_playlist_id)
+                    next_position = playlist.get_track_id(self.active_playlists_track_id).position - 1
+                    next_position = next_position + 1
+                    if next_position >= playlist.length():
+                        # We were the last song in the playlist we used to be in, just stop everyting
+                        self.set_state(gst.STATE_NULL)
+                        return
+                else:
+                    # We have not entered any playlist yet, just stop playback
+                    self.set_state(gst.STATE_NULL)
+                    return
+        elif (Playlist.get(self.tmpqueue_id).length() > 0) and relative:
+            # Save the playlist that we curently are playing in for later use
+            self.fallback_playlist_id = self.active_playlist_id
+            self.fallback_playlists_track_id = self.active_playlists_track_id
+            # Switch to playqueue
+            self.active_playlist_id = self.tmpqueue_id
+            playlist = Playlist.get(self.active_playlist_id)
+            next_position = 0
         elif (self.playlist_mode == "random"):
-            self.active_playlist_position = random.randint(0, playlist.length() - 1)
+            next_position = random.randint(0, playlist.length() - 1)
         elif (self.playlist_mode == "repeattrack"):
             pass
-        elif (tracknbr >= 0) and (tracknbr < playlist.length()):
-            self.active_playlist_position = tracknbr
-        elif tracknbr < 0:
-            self.active_playlist_position = 0
-        elif (tracknbr >= playlist.length()) and (self.playlist_mode == "repeat"):
-            self.active_playlist_position = 0
+        elif (next_position >= 0) and (next_position < playlist.length()):
+            pass
+        elif (next_position < 0):
+            next_position = 0
+        elif (next_position >= playlist.length()) and (self.playlist_mode == "repeat"):
+            next_position = 0
         else:
-            self.active_playlist_position = (playlist.length() - 1)
             self.set_state(gst.STATE_NULL)
             return
 
-        (pending, state, timeout) = self.pipeline.get_state()
+        self.active_playlists_track_id = playlist.get_track_nbr(next_position).ptid
         self.set_state(gst.STATE_NULL)
-        self.play_only_if_null(playlist.get_track_nbr(self.active_playlist_position))
+        self.play_only_if_null(playlist.get_track_id(self.active_playlists_track_id))
 
     def get_hash_from_play_queue(self):
-        ret = "dummy"
-        for track in self.tmpqueue:
-            ret += track.uri
-        return hashlib.md5(ret).hexdigest()
+        ret = "dummy" #FIXME
+        return ret
 
     def pipeline_message(self, bus, message):
         t = message.type
@@ -348,4 +383,5 @@ class Amp():
             logging.warning("set state failure: "+ str(state))
         return res
 
-
+    def is_in_tmpqueue(self):
+        return (self.tmpqueue_id == self.active_playlist_id)

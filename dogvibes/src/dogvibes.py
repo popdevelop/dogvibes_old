@@ -17,7 +17,11 @@ from devicespeaker import DeviceSpeaker
 from track import Track
 from playlist import Playlist
 
+
+
 class Dogvibes():
+    ampdbname = "qurkloxuiikkolkjhhf"
+
     def __init__(self):
         try: cfg = config.load("dogvibes.conf")
         except Exception, e:
@@ -118,7 +122,9 @@ class Dogvibes():
         self.needs_push_update = True
 
     def API_getAllPlaylists(self):
-        return [playlist.to_dict() for playlist in Playlist.get_all()]
+        all_playlists = [playlist.to_dict() for playlist in Playlist.get_all()]
+        all_playlists = filter(lambda x:x['name'][0:len(self.ampdbname)] != self.ampdbname,all_playlists)
+        return all_playlists 
 
     def API_getAllTracksInPlaylist(self, playlist_id):
         try:
