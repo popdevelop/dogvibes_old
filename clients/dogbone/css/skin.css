@@ -404,6 +404,7 @@ div.loading {
   background-repeat: repeat-x;
 }
 
+/* Zebra stripes */
 .theme-tracktable tbody tr.odd {
   background-color: transparent;
 }
@@ -412,25 +413,7 @@ div.loading {
   background-color: #404040;
 }
 
-.theme-tracktable tbody tr.selected {
-  background-color: #a9d9fe;
-}
-
-.theme-tracktable tbody tr.queued td {
-  color: #8effb0;
-}
-.theme-tracktable tbody tr.queued td:first-child {
-  background-image: url('img/skin-icon-queued.png');
-  background-position: 50% 50%;
-  background-repeat: no-repeat;
-}
-
-
-.theme-tracktable tbody tr.selected td{
-  color: #000;
-}
-
-
+/* Default cell props */
 .theme-tracktable tbody td {
   padding:1px 5px;
   font-size: 11px;
@@ -442,16 +425,23 @@ div.loading {
   text-align: right;
 }
 
-.theme-tracktable tbody tr.playing {
-  background-image: url("img/skin-table-item-playing-bg.gif");
-  background-repeat: repeat-x;
-  height: 37px;
+/* Selected (clicked) rows */
+.theme-tracktable tbody tr.selected {
+  background-color: #a9d9fe;
 }
 
-.theme-tracktable tbody tr.playing td {
+.theme-tracktable tbody tr.selected td{
   color: #000;
-  height: 37px;
-  background-position: 
+}
+
+/* Indicate that a track has been queued (from search) */
+.theme-tracktable tbody tr.queued td {
+  color: #8effb0;
+}
+.theme-tracktable tbody tr.queued td:first-child {
+  background-image: url('img/skin-icon-queued.png');
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
 }
 
 .theme-tracktable tbody tr td:first-child {
@@ -459,6 +449,18 @@ div.loading {
   padding: 0;
 }
 
+/* Indicate that a track is playing */
+.theme-tracktable tbody tr.playing {
+  background-image: url("img/skin-table-item-playing-bg.gif");
+  background-repeat: repeat-x;
+  height: 37px;
+}
+
+.theme-tracktable tbody tr.playing td {
+  padding: 0 5px;
+  color: #000;
+  height: 37px;
+}
 .theme-tracktable tbody tr.playing td:first-child {
   background-image: url("img/skin-table-item-playing.gif");
   background-repeat: no-repeat;
@@ -470,9 +472,9 @@ div.loading {
   background-image: url("img/skin-icon-playing.png");
   background-repeat: no-repeat;
   background-position: 50% 50%;
-  width: 14px;
 }
 
+/* Remove-icon */
 .theme-tracktable tbody tr td span {  
   display: inline-block;
   width: 18px;
@@ -483,6 +485,10 @@ div.loading {
   text-indent: -999px;
 }
 
+.theme-tracktable tbody tr.playing td:first-child span,
+.theme-tracktable tbody tr.listplaying td:first-child span {
+  display: none;
+}
 .theme-tracktable tbody tr:hover td span { 
   background-image: url("img/skin-icon-remove-weak.png");
 }
