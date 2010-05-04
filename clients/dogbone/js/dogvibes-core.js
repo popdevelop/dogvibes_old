@@ -137,6 +137,7 @@ window.Dogvibes =  {
     play:   "/play",
     playTrack: "/playTrack?nbr=",
     queue:  "/queue?uri=",
+    removeTrack : "/removeTrack?nbr=",
     pause:  "/pause",
     next:   "/nextTrack",
     seek:   "/seek?mseconds=",
@@ -145,7 +146,8 @@ window.Dogvibes =  {
     moveInPlaylist: "/dogvibes/moveTrackInPlaylist?playlist_id=",
     playlists: "/dogvibes/getAllPlaylists",
     playlist: "/dogvibes/getAllTracksInPlaylist?playlist_id=",
-    addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",    
+    addtoplaylist: "/dogvibes/addTrackToPlaylist?playlist_id=",
+    removeFromPlaylist: "/dogvibes/removeTrackFromPlaylist?track_id=",   
     createPlaylist: "/dogvibes/createPlaylist?name=",
     playqueue: "/getAllTracksInQueue",
     search: "/dogvibes/search?query=",
@@ -234,6 +236,10 @@ window.Dogvibes =  {
     var URL = Dogvibes.cmd.addtoplaylist + id + "&uri=" + uri;
     Dogvibes.server.send(URL, Success);
   },
+  removeFromPlaylist: function(id, pid, Success) {
+    var URL = Dogvibes.cmd.removeFromPlaylist + id + "&playlist_id=" + pid;
+    Dogvibes.server.send(URL, Success);
+  },  
   playTrack: function(id, pid, Success) {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.playTrack + id + "&playlist_id=" + pid;
     Dogvibes.server.send(URL, Success);
@@ -246,6 +252,10 @@ window.Dogvibes =  {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.queue + uri;
     Dogvibes.server.send(URL, Success);     
   },
+  removeTrack: function(id, Success) {
+    var URL = Dogvibes.defAmp + Dogvibes.cmd.removeTrack + id;
+    Dogvibes.server.send(URL, Success);
+  },  
   play: function(Success) {
     var URL = Dogvibes.defAmp + Dogvibes.cmd.play;
     Dogvibes.server.send(URL, Success)

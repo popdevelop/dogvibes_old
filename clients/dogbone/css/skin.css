@@ -142,9 +142,6 @@ a, a:hover, a:active {
 }
 
 .theme-currentsong {
-  background-image: url('img/skin-no-albumart-bg.gif');
-  background-repeat: no-repeat;
-  background-position: 50% bottom;
   background-color: #474747;
   margin: 0;
   overflow: hidden;
@@ -183,15 +180,15 @@ a, a:hover, a:active {
 #TrackInfo-newAlbumArt {
   position: absolute;
   bottom: 0;
-  width: 180px;
+  width: 100%;
   display: none;
-  z-index: 2000;
+  z-index: 200;
 }
 #TrackInfo-albumArt {
   position: absolute;
   bottom: 0;
-  width: 180px;
-  z-index: 1000;
+  width: 100%;
+  z-index: 100;
 }
 
 .minimized #trackinfo {
@@ -204,6 +201,7 @@ a, a:hover, a:active {
 
 .theme-separator {
   background-color: #292929;
+  cursor: col-resize;
 }
 
 .theme-rightcol {
@@ -450,8 +448,15 @@ div.loading {
   height: 37px;
 }
 
-.theme-tracktable tbody tr.playing td{
+.theme-tracktable tbody tr.playing td {
   color: #000;
+  height: 37px;
+  background-position: 
+}
+
+.theme-tracktable tbody tr td:first-child {
+  width: 18px;
+  padding: 0;
 }
 
 .theme-tracktable tbody tr.playing td:first-child {
@@ -466,4 +471,21 @@ div.loading {
   background-repeat: no-repeat;
   background-position: 50% 50%;
   width: 14px;
+}
+
+.theme-tracktable tbody tr td span {  
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background-image: none;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  text-indent: -999px;
+}
+
+.theme-tracktable tbody tr:hover td span { 
+  background-image: url("img/skin-icon-remove-weak.png");
+}
+.theme-tracktable tbody tr:hover td span:hover {
+  background-image: url("img/skin-icon-remove.png");
 }

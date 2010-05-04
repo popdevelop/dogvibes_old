@@ -82,7 +82,8 @@ var ResultTable = function(config) {
     highlightClass: "playing",
     sortable: false,
     click: function() {},
-    dblclick: function() {}
+    dblclick: function() {},
+    callbacks: {}
   };
   
   /* Set user configuration */
@@ -136,9 +137,14 @@ var ResultTable = function(config) {
           if(typeof(value) == "number") {
             value = value.msec2time();
             content.addClass("time");
-          }        
+          }
           content.append(value);
         }
+        if(field in self.options.callbacks) {
+          content.id = id;
+          content.nbr = i;
+          self.options.callbacks[field](content);
+        }        
         tr.append(content);
       });
       tr.click(self.options.click);
@@ -290,7 +296,19 @@ var Playqueue = {
       dblclick: function() {
         var id = $(this).attr("name").removePrefix('Playqueue-item-no-');
         Dogvibes.playTrack(id, "-1");
-      }
+      },
+      /* Add a remove-icon  */
+      callbacks: {
+        space: function(element) {        
+          $('<span> remove </span>')
+            .attr("id", "Remove-id-"+element.nbr)
+            .attr("title", "remove track from playqueue")
+            .click(function() {
+              var id = $(this).attr("id").removePrefix("Remove-id-");
+              Dogvibes.removeTrack(id, "Playqueue.fetch");
+          }).appendTo(element);
+        }
+      }      
     });
     
     $(document).bind("Status.playqueue", Playqueue.fetch);
@@ -504,6 +522,7 @@ var Playlist = {
     {
       name: 'Playlist',
       highlightClass: "listplaying",
+      /* Click events */
       click: function() {
         var index = $(this).attr("name").removePrefix('Playlist-item-no-');
         Playlist.table.selectItem(index);    
@@ -511,6 +530,21 @@ var Playlist = {
       dblclick: function() {
         var index = $(this).attr('name').removePrefix('Playlist-item-no-');
         Playlist.playItem(index);
+      },
+      /* Add a remove-icon  */
+      callbacks: {
+        space: function(element) {        
+          $('<span> remove </span>')
+            .attr("id", "Remove-id-"+element.id)
+            .attr("title", "remove track from playlist")
+            .click(function() {
+              if(confirm("Remove track from playlist?")) {
+                var id = $(this).attr("id").removePrefix("Remove-id-");
+                var pid = Playlist.selectedList;
+                Dogvibes.removeFromPlaylist(id, pid, "Playlist.setPage");
+              }
+          }).appendTo(element);
+        }
       }
     });
 
@@ -780,11 +814,42 @@ $(document).ready(function() {
   /****************************************
    * Misc. behaviour. Application specific
    ****************************************/
+   
+  /* FIXME:  */
   $(UI.trackinfo).click(function() {
     $(UI.navigation).toggleClass('fullHeight');
     $(UI.currentsong).toggleClass('minimized');
   });
+  
+  /* Splitter */
+  $("#separator").draggable( {
+    containment: [150, 0, 300, 0],
+    axis: 'x',
+    drag: PanelSplit.drag
+  });
+  
 }); 
+
+var PanelSplit = {
+  left: 180,
+  drag: function(event, ui) {
+    PanelSplit.set(ui.position.left);
+  },
+  set: function(left) {
+    $(".resizable-right").css("width", left+"px");
+    $(".resizable-left").css("left", left+"px");
+    $(".resizable-top").each(function(i, el) {
+      var height = $(el).height();
+      $(el).height(height + (left - PanelSplit.left));
+    });    
+    $(".resizable-bottom").each(function(i, el) {
+      var height = $(el).css("bottom");
+      height = parseInt(height.substring(0, height.indexOf("px")));
+      $(el).css("bottom", (height + (left - PanelSplit.left)) + "px");
+    });
+    PanelSplit.left = left;
+  }
+};
 
 window.onbeforeunlod = function() {
   return "Are you sure you want to leave?";
