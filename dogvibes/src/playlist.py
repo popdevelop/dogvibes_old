@@ -177,7 +177,7 @@ class Playlist():
             self.db.commit_statement('''update playlist_tracks set position = position - 1 where playlist_id = ? and position > ?''', [self.id, old_position])
 
     def remove_track_nbr(self, nbr):
-#        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? limit ?,1''', [int(self.id), int(nbr)-1])
+        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? limit ?,1''', [int(self.id), int(nbr)-1])
         self.db.commit_statement('''select * from playlist_tracks where id = ?''', [nbr])
 
         row = self.db.fetchone()
@@ -189,7 +189,6 @@ class Playlist():
         self.db.commit_statement('''update playlist_tracks set position = position - 1 where playlist_id = ? and position > ?''', [self.id, row['position']])
 
     def remove_track_id(self, id):
-#        self.db.commit_statement('''select * from playlist_tracks where playlist_id = ? limit ?,1''', [int(self.id), int(id)-1])
         self.db.commit_statement('''select * from playlist_tracks where id = ?''', [id])
 
         row = self.db.fetchone()

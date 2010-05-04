@@ -49,9 +49,6 @@ class Amp():
 
         self.needs_push_update = False
 
-        # set playlist mode to normal
-        self.playlist_mode = "normal"
-
     # Soon to be API
     def connect_source(self, nbr):
         nbr = int(nbr)
@@ -227,12 +224,6 @@ class Amp():
         self.pipeline.seek_simple (gst.FORMAT_TIME, gst.SEEK_FLAG_FLUSH, ns)
         self.needs_push_update = True
 
-    def API_setPlayQueueMode(self, mode):
-        if (mode != "normal" and mode != "random" and mode != "repeat" and mode != "repeattrack"):
-            raise DogError, "Unknown tmpqueue mode:" + mode
-        self.playlist_mode = mode
-        self.needs_push_update = True
-
     def API_setVolume(self, level):
         level = float(level)
         if (level > 1.0 or level < 0.0):
@@ -258,14 +249,31 @@ class Amp():
 
         playlist = Playlist.get(self.active_playlist_id)
         if self.active_playlists_track_id != -1:
-            next_position = playlist.get_track_id(self.active_playlists_track_id).position - 1
+            try:
+                next_position = playlist.get_track_id(self.active_playlists_track_id).position - 1
+            except:
+                self.set_state(gst.STATE_NULL)
+                self.active_playlists_track_id = -1
+                logging.warning("Incorrect active_playlists_track_id")
+                return            
         else:
-            next_postion = 0
+            # Set the first active_play_list id
+            if playlist.length() > 0:
+                self.active_playlists_track_id = playlist.get_track_nbr(0)
+                next_postion = -1
+            else:
+                return
 
         if relative:
             next_position = next_position + tracknbr
         else:
-            next_position = playlist.get_track_id(tracknbr).position - 1
+            try:
+                next_position = playlist.get_track_id(tracknbr).position - 1
+            except:
+                self.set_state(gst.STATE_NULL)
+                self.active_playlists_track_id = -1
+                logging.warning("There is no next track after active track")
+                return                
 
         # If we are in tmpqueue either removetrack or push it to the top
         if self.is_in_tmpqueue():
@@ -308,15 +316,9 @@ class Amp():
             self.active_playlist_id = self.tmpqueue_id
             playlist = Playlist.get(self.active_playlist_id)
             next_position = 0
-        elif (self.playlist_mode == "random"):
-            next_position = random.randint(0, playlist.length() - 1)
-        elif (self.playlist_mode == "repeattrack"):
-            pass
         elif (next_position >= 0) and (next_position < playlist.length()):
             pass
         elif (next_position < 0):
-            next_position = 0
-        elif (next_position >= playlist.length()) and (self.playlist_mode == "repeat"):
             next_position = 0
         else:
             self.set_state(gst.STATE_NULL)
