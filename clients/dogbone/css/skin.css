@@ -114,6 +114,24 @@ a, a:hover, a:active {
 .theme-navigation ul.playlists li {
   background-image:url("img/skin-icon-playlist.gif");
 }
+.theme-navigation ul.playlists li span {  
+  position:absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background-image: none;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  text-indent: -999px;
+}
+.theme-navigation ul.playlists li:hover span {
+  background-image: url("img/skin-icon-remove-weak.png");
+}
+
+.theme-navigation ul.playlists li:hover span:hover {
+  background-image: url("img/skin-icon-remove.png");
+}
 
 .theme-navigation ul playlists li.playing {
   background-image:url("img/skin-icon-playing.png");
@@ -489,6 +507,7 @@ div.loading {
 .theme-tracktable tbody tr.listplaying td:first-child span {
   display: none;
 }
+
 .theme-tracktable tbody tr:hover td span { 
   background-image: url("img/skin-icon-remove-weak.png");
 }

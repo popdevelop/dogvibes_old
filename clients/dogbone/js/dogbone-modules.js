@@ -592,8 +592,19 @@ var Playlist = {
       return;
     }
     $(json.result).each(function(i, el) {
-      /* FIXME: remove inline onclick */
-      var item = $('<li id="Playlist-'+el.id+'"><a onclick="javascript: this.blur();" href="#playlist/'+el.id+'">'+el.name+'</a></li>');
+      /* Create list item */
+      var item = 
+      $('<li></li>')
+      .attr("id", "Playlist-"+el.id)
+      .append(
+        $('<a></a>')
+        .attr("href", "#playlist/"+el.id)
+        .text(el.name)
+        .click(function() {
+          $(this).blur();
+        })
+      );
+      /* Make droppable */
       item.droppable({
         hoverClass: 'drophover',
         tolerance: 'pointer',
@@ -603,6 +614,21 @@ var Playlist = {
           Dogvibes.addToPlaylist(id, uri);
         }
       });
+      /* Remove-button */
+      $('<span> remove </span>')
+      .attr("id", "Remove-id-" + el.id)
+      .attr("title", "remove this playlist")
+      .click(function() {
+        if(confirm("Do you want to remove this playlist?")) {
+          var id = $(this).attr("id").removePrefix("Remove-id-");
+          Dogvibes.removePlaylist(id, "Playlist.fetchAll");
+          /* FIXME: solve this nicer */
+          if(id == Playlist.selectedList) {
+            location.hash = "#home";
+          }
+        }
+      }).appendTo(item);
+      /* Double click to start playing */
       item.dblclick(function() {
         id = $(this).attr("id").removePrefix("Playlist-id-");
         Dogvibes.playTrack(0, id);
