@@ -16,7 +16,7 @@ class DogError(Exception):
 class Amp():
     def __init__(self, dogvibes, id):
         self.dogvibes = dogvibes
-        self.pipeline = gst.Pipeline ("amppipeline")
+        self.pipeline = gst.Pipeline("amppipeline" + id)
 
         # create the tee element
         self.tee = gst.element_factory_make("tee", "tee")
@@ -134,9 +134,7 @@ class Amp():
 
         # FIXME this should be speaker specific
         status['volume'] = self.dogvibes.speakers[0].get_volume()
-        status['playqueuehash'] = self.get_hash_from_play_queue()
-
-        track = None
+        status['playlistversion'] = Playlist.get_version()
 
         playlist = self.fetch_active_playlist()
 
@@ -145,10 +143,8 @@ class Amp():
             status['playlist_id'] = -1
         else:
             status['playlist_id'] = self.active_playlist_id
-        track = self.fetch_active_track()
-                
-        status['uri'] = "dummy"
 
+        track = self.fetch_active_track()            
         if track != None:
             status['uri'] = track.uri
             status['title'] = track.title
@@ -157,7 +153,9 @@ class Amp():
             status['duration'] = int(track.duration)
             status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
             status['id'] = self.active_playlists_track_id
-            status['index'] = track.position
+            status['index'] = track.position - 1
+        else:
+            status['uri'] = "dummy"
 
         (pending, state, timeout) = self.pipeline.get_state()
         if state == gst.STATE_PLAYING:
@@ -195,7 +193,6 @@ class Amp():
         self.needs_push_update = True
 
     def API_play(self):
-        # If no active track try to start one with change track
         playlist = self.fetch_active_playlist()
         track = self.fetch_active_track()
         if track != None:
@@ -214,6 +211,12 @@ class Amp():
 
     def API_removeTrack(self, nbr):
         nbr = int(nbr)
+
+        # For now if we are trying to remove the existing playing track. Do nothing.
+        if (nbr == self.active_playlist_id):
+            logging.warning("Not allowed to remove playing track")
+            return
+
         playlist = Playlist.get(self.active_playlist_id)
         playlist.remove_track_id(self.active_playlist_id, nbr)
         self.needs_push_update = True
@@ -379,7 +382,6 @@ class Amp():
     def is_in_tmpqueue(self):
         return (self.tmpqueue_id == self.active_playlist_id)
 
-    # FIXME: Merge fetch active!!!
     def fetch_active_playlist(self):
         try:
             playlist = Playlist.get(self.active_playlist_id)
@@ -402,9 +404,11 @@ class Amp():
                 track = playlist.get_track_id(self.active_playlists_track_id)
                 return track
             except:
-                logging.warning("Could not get active track")
+                logging.debug("Could not get active track")
                 return None
         else:
             # Try the first active_play_list id
-            self.active_playlists_track_id = playlist.get_track_nbr(0)
+            track = playlist.get_track_nbr(0)
+            self.active_playlists_track_id = track.ptid
+            return track
 

@@ -116,7 +116,7 @@ class Dogvibes():
     def API_removeTrackFromPlaylist(self, playlist_id, track_id):
         try:
             playlist = Playlist.get(playlist_id)
-            playlist.remove_track_nbr(int(track_id))
+            playlist.remove_track_id(int(track_id))
         except ValueError as e:
             raise
         self.needs_push_update = True
