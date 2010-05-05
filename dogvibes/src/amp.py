@@ -138,17 +138,15 @@ class Amp():
 
         track = None
 
-        playlist = Playlist.get(self.active_playlist_id)
-        if playlist.length() > 0:
-            if self.active_playlists_track_id != -1:
-                track = playlist.get_track_id(self.active_playlists_track_id)
-                # FIXME remove when no longer needed in client
-                status['index'] = playlist.get_track_id(self.active_playlists_track_id).position - 1
-                if self.is_in_tmpqueue():
-                    status['playlist_id'] = -1
-                else:
-                    status['playlist_id'] = self.active_playlist_id
+        playlist = self.fetch_active_playlist()
 
+        # -1 is in tmpqueue
+        if self.is_in_tmpqueue():
+            status['playlist_id'] = -1
+        else:
+            status['playlist_id'] = self.active_playlist_id
+        track = self.fetch_active_track()
+                
         status['uri'] = "dummy"
 
         if track != None:
@@ -159,6 +157,7 @@ class Amp():
             status['duration'] = int(track.duration)
             status['elapsedmseconds'] = self.API_getPlayedMilliSeconds()
             status['id'] = self.active_playlists_track_id
+            status['index'] = track.position
 
         (pending, state, timeout) = self.pipeline.get_state()
         if state == gst.STATE_PLAYING:
@@ -196,8 +195,11 @@ class Amp():
         self.needs_push_update = True
 
     def API_play(self):
-        playlist = Playlist.get(self.active_playlist_id)
-        self.play_only_if_null(playlist.get_track_id(self.active_playlists_track_id))
+        # If no active track try to start one with change track
+        playlist = self.fetch_active_playlist()
+        track = self.fetch_active_track()
+        if track != None:
+            self.play_only_if_null(track)      
         self.needs_push_update = True
 
     def API_pause(self):
@@ -244,35 +246,24 @@ class Amp():
     def change_track(self, tracknbr, relative):
         tracknbr = int(tracknbr)
 
-        if relative and (tracknbr > 1 or tracknbr < -1 or tracknbr == 0):
+        if relative and (tracknbr > 1 or tracknbr < -1):
             raise DogError, "Relative change track greater/less than 1 not implemented"
 
-        playlist = Playlist.get(self.active_playlist_id)
-        if self.active_playlists_track_id != -1:
-            try:
-                next_position = playlist.get_track_id(self.active_playlists_track_id).position - 1
-            except:
-                self.set_state(gst.STATE_NULL)
-                self.active_playlists_track_id = -1
-                logging.warning("Incorrect active_playlists_track_id")
-                return            
-        else:
-            # Set the first active_play_list id
-            if playlist.length() > 0:
-                self.active_playlists_track_id = playlist.get_track_nbr(0)
-                next_postion = -1
-            else:
-                return
+        playlist = self.fetch_active_playlist()
 
         if relative:
-            next_position = next_position + tracknbr
+            track = self.fetch_active_track()
+            if track == None:
+                logging.warning("Could not find any active track")
+                return
+            next_position = track.position - 1 + tracknbr
         else:
             try:
                 next_position = playlist.get_track_id(tracknbr).position - 1
             except:
                 self.set_state(gst.STATE_NULL)
                 self.active_playlists_track_id = -1
-                logging.warning("There is no next track after active track")
+                logging.warning("Could not find this id in the active playlist")
                 return                
 
         # If we are in tmpqueue either removetrack or push it to the top
@@ -387,3 +378,33 @@ class Amp():
 
     def is_in_tmpqueue(self):
         return (self.tmpqueue_id == self.active_playlist_id)
+
+    # FIXME: Merge fetch active!!!
+    def fetch_active_playlist(self):
+        try:
+            playlist = Playlist.get(self.active_playlist_id)
+            return playlist
+        except:
+            # The play list have been removed or disapperd use tmpqueue as fallback
+            self.active_playlist_id = self.tmpqueue_id
+            self.active_playlists_track_id = 0
+            playlist = Playlist.get(self.active_playlist_id)
+            return playlist
+
+    def fetch_active_track(self):
+        # Assume that fetch active playlist alreay been run
+        playlist = Playlist.get(self.active_playlist_id)
+        if playlist.length() <= 0:
+            return None
+
+        if self.active_playlists_track_id != -1:
+            try:
+                track = playlist.get_track_id(self.active_playlists_track_id)
+                return track
+            except:
+                logging.warning("Could not get active track")
+                return None
+        else:
+            # Try the first active_play_list id
+            self.active_playlists_track_id = playlist.get_track_nbr(0)
+
