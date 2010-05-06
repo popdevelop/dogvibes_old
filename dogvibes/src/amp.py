@@ -217,8 +217,8 @@ class Amp():
             logging.warning("Not allowed to remove playing track")
             return
 
-        playlist = Playlist.get(self.active_playlist_id)
-        playlist.remove_track_id(self.active_playlist_id, nbr)
+        playlist = Playlist.get(self.tmpqueue_id)
+        playlist.remove_track_id(nbr)
         self.needs_push_update = True
 
     def API_seek(self, mseconds):
