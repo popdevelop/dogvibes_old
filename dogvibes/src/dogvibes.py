@@ -16,7 +16,7 @@ from devicespeaker import DeviceSpeaker
 
 from track import Track
 from playlist import Playlist
-
+from source import Source
 
 
 class Dogvibes():
@@ -27,22 +27,27 @@ class Dogvibes():
         except Exception, e:
             print "ERROR: Cannot load configuration file\n"
             sys.exit(1)
-        #FIXME: Right now sources need to be at fixed positions due to some
-        #       hacks in the rest of the code.
 
-        self.sources = [None,None]
-        if(cfg['ENABLE_SPOTIFY_SOURCE'] == '1'):
-            spot_user = cfg["SPOTIFY_USER"]
-            spot_pass = cfg["SPOTIFY_PASS"]
-            self.sources[0] = (SpotifySource("spotify", spot_user, spot_pass))
-            # FIXME: this logs in to the spotify source for the moment
-            self.sources[0].get_src()
-            self.sources[0].create_playlists(spot_user, spot_pass)
+        self.sources = []
 
-        if(cfg['ENABLE_FILE_SOURCE'] == '1'):
-            self.sources[1] = (FileSource("filesource", cfg["FILE_SOURCE_ROOT"]))
+        # Hackidooda and laziness to always create correct source, remove in real release
+        if Source.length() > 0:
+            allsources = Source.get_all()
+            # FIXME this should be dynamic
+            for source in allsources:
+                if source.type == "spotify":
+                    spotifysource = SpotifySource("spotify", source.user, source.passw)
+                    self.sources.append(spotifysource)
+        else:
+            # This is just here because of laziness 
+            if(cfg['ENABLE_SPOTIFY_SOURCE'] == '1'):
+                spot_user = cfg["SPOTIFY_USER"]
+                spot_pass = cfg["SPOTIFY_PASS"]
+                self.API_createSpotifySource(spot_user, spot_pass)
+            if(cfg['ENABLE_FILE_SOURCE'] == '1'):
+                self.API_createFileSource(cfg["FILE_SOURCE_ROOT"])
 
-        # add all speakers
+        # add all speakers, should also be stored in database as sources
         self.speakers = [DeviceSpeaker("devicesink")]
 
         self.needs_push_update = False
@@ -54,7 +59,7 @@ class Dogvibes():
         amp0.API_connectSpeaker(0)
         self.amps = [amp0]
 
-        # add sources to amp
+        # add sources to amp, assume spotify source on first position, laziness
         amp0.connect_source(0)
 
     def create_track_from_uri(self, uri):
@@ -67,6 +72,21 @@ class Dogvibes():
         raise ValueError('Could not create track from URI')
 
     # API
+
+    def API_createSpotifySource(self, user, passw):
+        spotifysource = SpotifySource("spotify", user, passw)
+        # FIXME: this logs in to the spotify source for the moment
+        spotifysource.get_src()
+        self.sources.append(spotifysource)
+        Source.add(user, passw, "spotify")
+
+    def API_createFileSource(self, dir):
+        #FIXME implement me
+        #FileSource("filesource", cfg["FILE_SOURCE_ROOT"])
+        return
+
+    def API_getAllSources(self):
+        pass
 
     def API_search(self, query):
         # FIXME: need to lock this section
