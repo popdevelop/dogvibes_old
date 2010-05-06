@@ -254,20 +254,10 @@ class Amp():
 
         playlist = self.fetch_active_playlist()
 
-        if relative:
-            track = self.fetch_active_track()
-            if track == None:
-                logging.warning("Could not find any active track")
-                return
-            next_position = track.position - 1 + tracknbr
-        else:
-            try:
-                next_position = playlist.get_track_id(tracknbr).position - 1
-            except:
-                self.set_state(gst.STATE_NULL)
-                self.active_playlists_track_id = -1
-                logging.warning("Could not find this id in the active playlist")
-                return                
+        track = self.fetch_active_track()
+        if track == None:
+            logging.warning("Could not find any active track")
+            return
 
         # If we are in tmpqueue either removetrack or push it to the top
         if self.is_in_tmpqueue():
@@ -310,21 +300,31 @@ class Amp():
             self.active_playlist_id = self.tmpqueue_id
             playlist = Playlist.get(self.active_playlist_id)
             next_position = 0
-        elif (next_position >= 0) and (next_position < playlist.length()):
-            pass
-        elif (next_position < 0):
-            next_position = 0
         else:
+            # We are inside a playlist
+            if relative:
+                next_position = track.position - 1 + tracknbr
+            else:
+                try:
+                    next_position = playlist.get_track_id(tracknbr).position - 1
+                except:
+                    self.set_state(gst.STATE_NULL)
+                    self.active_playlists_track_id = -1
+                    logging.warning("Could not find this id in the active playlist")
+                    self.set_state(gst.STATE_NULL)
+                    return                
+
+        try:
+            track = playlist.get_track_nbr(next_position)
+        except:
             self.set_state(gst.STATE_NULL)
+            self.active_playlists_track_id = -1
+            logging.debug("Could not get to next posiiton in the active playlist")
             return
 
-        self.active_playlists_track_id = playlist.get_track_nbr(next_position).ptid
+        self.active_playlists_track_id = track.ptid
         self.set_state(gst.STATE_NULL)
         self.play_only_if_null(playlist.get_track_id(self.active_playlists_track_id))
-
-    def get_hash_from_play_queue(self):
-        ret = "dummy" #FIXME
-        return ret
 
     def pipeline_message(self, bus, message):
         t = message.type
