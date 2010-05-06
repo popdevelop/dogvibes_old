@@ -52,9 +52,14 @@ def register_dog():
 #    if ext_ip == DEFAULT_EXT_IP:
 #        print 'Could not get external IP. No connection to Internet?'
 
+    if cfg['MASTER_SERVER'] == 'dogvib.es':
+        int_ip = 'dogvib.es'
+    else:
+        int_ip = socket.gethostbyname(socket.gethostname())
+
     try:
 #        response = urllib.urlopen('http://dogvibes.com/registerDog?name=%s&password=%s&int_ip=%s&exp_ip=%s&ws_port=%s&http_port=%s&api_version=%s' % (cfg['DOGVIBES_USER'], cfg['DOGVIBES_PASS'], int_ip, ext_ip, cfg['WS_PORT'], cfg['HTTP_PORT'], API_VERSION))
-        response = urllib.urlopen('http://dogvibes.com/registerDog?name=%s&password=%s&api_version=%s' % (cfg['DOGVIBES_USER'], cfg['DOGVIBES_PASS'], API_VERSION))
+        response = urllib.urlopen('http://dogvibes.com/registerDog?name=%s&password=%s&int_ip=%s&api_version=%s' % (cfg['DOGVIBES_USER'], cfg['DOGVIBES_PASS'], int_ip, API_VERSION))
     except:
         print 'Could access dogvibes.com'
         return
@@ -209,6 +214,6 @@ if __name__ == "__main__":
     factory.protocol = DogProtocol
     reactor.connectTCP(cfg['MASTER_SERVER'], 11111, factory)
 
-#    register_dog()
+    register_dog()
 
     reactor.run()
