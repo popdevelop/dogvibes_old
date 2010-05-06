@@ -86,7 +86,7 @@ For the tech guys: Dogvibes was the first Linux audio player to fully integrate 
       <!-- Template for play queue content //-->
       <table id="Playqueue-content" class="theme-tracktable">
         <thead>
-          <tr>
+          <tr class="template">
           <th id="Playqueue-space">&nbsp;</th>
           <th id="Playqueue-title">Track</th>
           <th id="Playqueue-artist">Artist</th>
@@ -103,7 +103,7 @@ For the tech guys: Dogvibes was the first Linux audio player to fully integrate 
       <!-- Template for search content //-->
       <table id="Search-content" class="theme-tracktable">
         <thead>
-          <tr>
+          <tr class="template">
           <th id="Search-space">&nbsp;</th>
           <th id="Search-title">Track</th>
           <th id="Search-artist">Artist</th>
@@ -120,7 +120,7 @@ For the tech guys: Dogvibes was the first Linux audio player to fully integrate 
       <!-- Template for playlist content //-->
       <table id="Playlist-content" class="theme-tracktable">
         <thead>
-          <tr>
+          <tr class="template">
           <th id="Playlist-space">&nbsp;</th>
           <th id="Playlist-title">Track</th>
           <th id="Playlist-artist">Artist</th>
@@ -132,6 +132,24 @@ For the tech guys: Dogvibes was the first Linux audio player to fully integrate 
         </tbody>
       </table>
     </div>
+    
+    <div id="artist" title="Artist">
+      <h2 id="Artist-title"></h2>
+    </div>
+    
+    <div id="album" title="Album">
+      <h2 id="Album-title"></h2>
+      <img id="Album-art" src="dummy.jpg"/>
+      <table id="Album-content" class="theme-tracktable">
+        <tbody id="Album-items">
+        <tr class="template">
+          <td id="Album-track">1</td>
+          <td id="Album-title">Maja min maja</td>
+          <td id="Album-duration">3:45</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>    
   </div>
 </div>
 <div id="bottom" class="theme-bottom">

@@ -83,15 +83,20 @@ var ResultTable = function(config) {
     sortable: false,
     click: function() {},
     dblclick: function() {},
-    callbacks: {}
+    callbacks: {
+      album: function(element) {
+        var a = $('<a/>').attr('href', '#album/' + element.text());
+        element.contents().wrap(a);
+      },      
+      artist: function(element) {
+        var a = $('<a/>').attr('href', '#artist/' + element.text());
+        element.contents().wrap(a);
+      }    
+    }
   };
   
   /* Set user configuration */
-  for(var cfg in config) {
-    if(cfg in self.options) {
-      self.options[cfg] = config[cfg];
-    }
-  }
+  $.extend(true, this.options, config);
   
   this.ui = {
     content: "#" + self.options.name + "-content",
@@ -105,7 +110,7 @@ var ResultTable = function(config) {
   this.selectMulti = false;
   
   /* Configure table fields by looking for table headers */
-  $("th", self.ui.content).each(function(i, el) {
+  $(".template", self.ui.content).children().each(function(i, el) {
     if("id" in el) {
       var field = el.id.removePrefix(self.options.name + "-");
       if(field !== false) {
@@ -786,6 +791,34 @@ var Search = {
 };
 
 
+/* FIXME: correct artist/album handler in future */
+var Artist = {
+  albumItems: [
+    {track: "1", title: "Maja min maja", duration: "3:54" },
+    {track: "2", title: "Jag vill bo i en svamp", duration: "3:24" },
+    {track: "3", title: "Olyckan", duration: "2:59" },
+    {track: "4", title: "Maja min maja", duration: "3:54" },
+    {track: "5", title: "Maja min maja", duration: "3:54" },
+    {track: "6", title: "Maja min maja", duration: "3:54" }                 
+  ],
+  init: function() {
+    Artist.table = new ResultTable({ name: 'Album' });
+    Artist.table.empty();
+    $(document).bind("Page.artist", Artist.setPage);
+    $(document).bind("Page.album", function() { Artist.setPage(); });
+  },
+  setPage: function() {
+    Titlebar.set(Dogbone.page.title);
+    $("#"+Dogbone.page.title + "-title").text(Dogbone.page.param);
+    if(Dogbone.page.title == "Album") {
+      Artist.table.items = Artist.albumItems;
+      Artist.table.display();
+      var url = Dogvibes.albumArt("spotify://spotify:track:5ZINxPiu71f39pOp0qbTl4");
+      $("#Album-art").attr('src', url);
+    }
+  }
+}
+
 /***************************
  * Keybindings 
  ***************************/
@@ -828,6 +861,7 @@ $(document).ready(function() {
   Main.init();
   Search.init();
   Playlist.init();
+  Artist.init();
   /* Start server connection */
   Dogvibes.init(Config.defaultServer, Config.defaultUser);
   

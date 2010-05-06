@@ -8,6 +8,16 @@
  
  * { font: 11px/1.65 Lucida Grande,Helvetica,Arial,'Liberation Sans',FreeSans,sans-serif; }
 
+a, a:link, a:visited { 
+  color: #C3C3C3;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #FFF;
+}
+
 /* Mainly for avoiding blue outline in Chrome */
 *:focus {outline: none;}
 
@@ -34,10 +44,6 @@ tr.ui-sortable-helper td {
   cursor: default;
   color: #000;
   padding: 1px 10px; 
-}
-
-a, a:hover, a:active {
-  text-decoration: none;
 }
 
 .theme-top {
@@ -279,6 +285,7 @@ div.loading {
   background-position: 50% 50%;
 }
 
+
 #home {
   padding-left: 10px;
   width: 620px;
@@ -309,6 +316,29 @@ div.loading {
   width: 300px;
   float: left;
   margin-right: 10px;
+}
+
+#artist,
+#album {
+  padding-left: 20px;
+}
+/* Album page */
+#album h2 {
+  color: #FFF;
+  font-size: 18px;
+  margin-bottom: 0.5em;  
+}
+ 
+#album table {
+  float: left;
+  width: auto;
+}
+
+#album img {
+  float: left;
+  width: 140px;
+  margin: 0 20px 0 0;
+  
 }
 
 /*
@@ -435,7 +465,7 @@ div.loading {
 .theme-tracktable tbody td {
   padding:1px 5px;
   font-size: 11px;
-  color: #DDD;
+  color: #C3C3C3;
   cursor: default;
 }
 
@@ -448,6 +478,7 @@ div.loading {
   background-color: #a9d9fe;
 }
 
+.theme-tracktable tbody tr.selected td a,
 .theme-tracktable tbody tr.selected td{
   color: #000;
 }
@@ -474,6 +505,7 @@ div.loading {
   height: 37px;
 }
 
+.theme-tracktable tbody tr.playing td a,
 .theme-tracktable tbody tr.playing td {
   padding: 0 5px;
   color: #000;
