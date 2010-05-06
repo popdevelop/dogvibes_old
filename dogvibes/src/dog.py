@@ -75,16 +75,16 @@ class DogProtocol(Protocol):
 
     def connectionMade(self):
         print "Connected to dogvibes.com"
-        self.transport.write(cfg['DOGVIBES_USER']) # register username at dogvibes.com
+        self.transport.write(cfg['DOGVIBES_USER'] + r'\\') # register username at dogvibes.com
 
     def connectionLost(self, reason):
         print "Disconnected to dogvibes.com"
 
-    def dataReceived(self, data):
+    def dataReceived(self, command):
 
-        print data
+        print command
 
-        u = urlparse(data)
+        u = urlparse(command)
         c = u.path.split('/')
 
         try:
@@ -153,7 +153,12 @@ class DogProtocol(Protocol):
         if callback != None:
             data = "%s(%s)" % (callback, data)
 
-        self.transport.write(data)
+        # TODO: introduce a delay here to test api_server threading!
+        if raw:
+            self.transport.write(command + r'||' + '0' + r'\\')
+        else:
+            self.transport.write(command + r'||' + data + r'\\')
+#        self.transport.write(data + r'\\')
 
 if __name__ == "__main__":
 
