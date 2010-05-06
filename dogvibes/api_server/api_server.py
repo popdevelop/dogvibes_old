@@ -31,11 +31,19 @@ class Dog():
     def command_callback(self, data):
         data = data[:-2]
         command, result = data.split('||')
+        found = None
         for req in self.active_requests:
+            print "%s : %s" % (req.request.uri, command)
             if req.request.uri[-len(command):] == command:
                 self.active_requests.remove(req)
+                found = req
+                break
+
+        req = found
 
         # TODO: add more headers?
+        print self.active_requests
+        print req
         req.set_header("Content-Type", "text/javascript")
         req.write(result)
         req.finish()
@@ -45,7 +53,13 @@ class Dog():
 
     def send_command(self, command, request):
         self.current_request = request
-        self.stream.write(command)
+        try:
+            self.stream.write(command)
+        except IOError:
+            print "Bye, %s!" % self.username
+            self.stream.close()
+            dogs.remove(self)
+            return
 
         if self.active_requests == []:
             self.stream.read_until(r'\\', self.command_callback)
@@ -97,6 +111,16 @@ class WSHandler(websocket.WebSocketHandler):
     def send_result(self, data):
         self.send_message(data)
 
+def setup_dog_socket(io_loop):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setblocking(0)
+    sock.bind(("", 11111))
+    sock.listen(5000)
+
+    callback = functools.partial(connection_ready, sock)
+    io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
+
 if __name__ == '__main__':
     application = tornado.web.Application([
             (r"/([a-zA-Z0-9]+)/stream", WSHandler),
@@ -106,15 +130,9 @@ if __name__ == '__main__':
     http_server = httpserver.HTTPServer(application)
     http_server.listen(2000)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.setblocking(0)
-    sock.bind(("", 11111))
-    sock.listen(5000)
-
     io_loop = ioloop.IOLoop.instance()
-    callback = functools.partial(connection_ready, sock)
-    io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
+    setup_dog_socket(io_loop)
+
     try:
         io_loop.start()
     except KeyboardInterrupt:
