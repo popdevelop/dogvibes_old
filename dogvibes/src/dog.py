@@ -86,9 +86,12 @@ class DogProtocol(Protocol):
         print "Disconnected to dogvibes.com"
 
     def dataReceived(self, command):
+        commands = command.split(r'\\')[0:-1]
+        print commands
+        for c in commands:
+            self.run_command(c)
 
-        print command
-
+    def run_command(self, command):
         u = urlparse(command)
         c = u.path.split('/')
 
@@ -212,6 +215,7 @@ if __name__ == "__main__":
     from twisted.internet.protocol import ClientFactory
     factory = ClientFactory()
     factory.protocol = DogProtocol
+    print "Connecting to %s" % cfg['MASTER_SERVER']
     reactor.connectTCP(cfg['MASTER_SERVER'], 11111, factory)
 
     register_dog()
