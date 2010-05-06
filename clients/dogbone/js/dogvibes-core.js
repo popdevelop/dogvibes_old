@@ -207,16 +207,15 @@ window.Dogvibes =  {
 
     if(Dogvibes.status.playlist_id != oldStatus.playlist_id) {
       $(document).trigger("Status.playlist");
-    }  
+    }
     
-    if(Dogvibes.status.playqueuehash != oldStatus.playqueuehash) {
-      $(document).trigger("Status.playqueue");
+    if(Dogvibes.status.playlistversion != oldStatus.playlistversion) {
+      $(document).trigger("Status.playlistchange");
     }
 
     if(Dogvibes.status.elapsedmseconds != oldStatus.elapsedmseconds) {
       $(document).trigger("Status.elapsed");
     }
-     
     
     /* TODO: add more */
   },

@@ -262,10 +262,6 @@ var Main = {
     $(document).bind("Server.connected", function() {
       $(Main.ui.page).removeClass("disconnected");
     });
-    /* Flash the playqueue item when something happens */
-    $(document).bind("Status.playqueue", function() {
-      $(Main.ui.playqueue).effect('highlight'); 
-    });
   },
   setQueue: function() {
     Titlebar.set(Dogbone.page.title);
@@ -294,33 +290,32 @@ var Playqueue = {
         Playqueue.table.selectItem(index);       
       },
       dblclick: function() {
-        var id = $(this).attr("name").removePrefix('Playqueue-item-no-');
+        var id = $(this).attr("id").removePrefix('Playqueue-item-id-');
         Dogvibes.playTrack(id, "-1");
       },
       /* Add a remove-icon  */
       callbacks: {
         space: function(element) {        
           $('<span> remove </span>')
-            .attr("id", "Remove-id-"+element.nbr)
+            .attr("id", "Remove-id-"+element.id)
             .attr("title", "remove track from playqueue")
             .click(function() {
               var id = $(this).attr("id").removePrefix("Remove-id-");
-              Dogvibes.removeTrack(id, "Playqueue.fetch");
+              Dogvibes.removeTrack(id);
           }).appendTo(element);
         }
-      }      
+      }
     });
     
-    $(document).bind("Status.playqueue", Playqueue.fetch);
+    $(document).bind("Status.playlistchange", function() { Playqueue.fetch() });
     $(document).bind("Status.state", function() { Playqueue.set() });
     $(document).bind("Status.playlist", function() { Playqueue.set() });
     $(document).bind("Server.connected", Playqueue.fetch);
   },
   fetch: function() {
     if(Dogbone.page.id != "playqueue") return;
-    if(Dogvibes.server.connected) { // &&
-       //Dogvibes.status.playqueuehash != Playqueue.hash) {
-      Playqueue.hash = Dogvibes.status.playqueuehash;
+    if(Dogvibes.server.connected) { 
+      Playqueue.hash = Dogvibes.status.playlistversion;
       Playqueue.table.empty();
       $(Playqueue.ui.page).addClass("loading");
       Dogvibes.getAllTracksInQueue("Playqueue.update");
@@ -528,7 +523,7 @@ var Playlist = {
         Playlist.table.selectItem(index);    
       },
       dblclick: function() {
-        var index = $(this).attr('name').removePrefix('Playlist-item-no-');
+        var index = $(this).attr('id').removePrefix('Playlist-item-id-');
         Playlist.playItem(index);
       },
       /* Add a remove-icon  */
@@ -538,11 +533,9 @@ var Playlist = {
             .attr("id", "Remove-id-"+element.id)
             .attr("title", "remove track from playlist")
             .click(function() {
-              if(confirm("Remove track from playlist?")) {
-                var id = $(this).attr("id").removePrefix("Remove-id-");
-                var pid = Playlist.selectedList;
-                Dogvibes.removeFromPlaylist(id, pid, "Playlist.setPage");
-              }
+              var id = $(this).attr("id").removePrefix("Remove-id-");
+              var pid = Playlist.selectedList;
+              Dogvibes.removeFromPlaylist(id, pid, "Playlist.setPage");
           }).appendTo(element);
         }
       }
@@ -550,11 +543,12 @@ var Playlist = {
 
     /* Setup events */
     $(document).bind("Page.playlist", Playlist.setPage);
+    $(document).bind("Status.playlistchange", function() { Playlist.setPage(); });   
     $(document).bind("Server.connected", function() { Playlist.fetchAll(); });
     
     $(document).bind("Status.state", function() { Playlist.set(); });    
     $(document).bind("Status.songinfo", function() { Playlist.set(); });    
-    $(document).bind("Status.playlist", function() { Playlist.set(); });   
+    $(document).bind("Status.playlist", function() { Playlist.set(); });       
     /* Handle sorts */
     $(Playlist.table.ui.items).bind("sortupdate", function(event, ui) {
       var items = $(this).sortable('toArray');
