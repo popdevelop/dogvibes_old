@@ -31,8 +31,6 @@ class Dog():
     def command_callback(self, data):
         data = data[:-2]
         command, result = data.split('||')
-        print command
-        print result
         for req in self.active_requests:
             if req.request.uri[-len(command):] == command:
                 self.active_requests.remove(req)
@@ -86,29 +84,22 @@ def connection_ready(sock, fd, events):
 class HTTPHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self, username):
-        print self
-        print "A request from Mr. %s" % username
         process_command(self, username)
 
 class WSHandler(websocket.WebSocketHandler):
-    def open(self):
+    def open(self, username):
         self.receive_message(self.on_message)
 
-    def handle_dog_reply(self, data):
-        self.write_message(data) # u'"blala"
-
-    def on_message(self, message):
+    def on_message(self, command):
+        process_command(self.username)
         self.receive_message(self.on_message)
+
+    def send_result(self, data):
+        self.send_message(data)
 
 if __name__ == '__main__':
     application = tornado.web.Application([
-            (r"/", EchoWebSocket),
-            ])
-    http_server = httpserver.HTTPServer(application)
-    http_server.listen(9999)
-    # TODO: run WS on same port as HTTP but another path? like /musungen/events
-
-    application = tornado.web.Application([
+            (r"/([a-zA-Z0-9]+)/stream", WSHandler),
             (r"/([a-zA-Z0-9]+).*", HTTPHandler), # TODO: split only on '/', avoids favicon
             ])
 
