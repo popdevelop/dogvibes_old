@@ -13,7 +13,6 @@
 
 static SettingsViewController *sharedViewController;
 
-// Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
 	[super viewDidLoad];
 	
@@ -121,8 +120,7 @@ static SettingsViewController *sharedViewController;
 }
 
 - (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning]; // Releases the view if it doesn't have a superview
-    // Release anything that's not essential, such as cached data
+    [super didReceiveMemoryWarning];
 }
 
 - (void)dealloc {

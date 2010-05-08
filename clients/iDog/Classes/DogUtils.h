@@ -10,11 +10,12 @@
 
 
 @interface DogUtils : NSObject {
-
+	NSURLConnection *           _connection;
+    NSString *                  _filePath;
+    NSOutputStream *            _fileStream;
 }
 
--(NSString*) dogRequest:(NSString *)request;
+- (NSString*) dogRequest:(NSString *)request;
 - (UIImage *) dogGetAlbumArt:(NSString *)uri;
-- (NSURL *)smartURLForString:(NSString *)str;
 @end
 

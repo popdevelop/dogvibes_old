@@ -27,16 +27,11 @@
 {	
 	// create the master list
 	listContent = [[NSArray alloc] initWithObjects:	@"Please search for a song!", nil];
-	
-	// create our filtered list that will be the data source of our table, start its content from the master "listContent"
-	
+
 	//filteredListContent = [[NSMutableArray alloc] initWithCapacity: [listContent count]];
 	trackItems = [[NSMutableArray alloc] initWithCapacity: 1000];
 	trackURIs = [[NSMutableArray alloc] initWithCapacity: 1000];
 	[trackItems addObjectsFromArray: listContent];
-	
-	// this stored the current list in case the user cancels the filtering
-	//savedContent = [[NSMutableArray alloc] initWithCapacity: [listContent count]]; 
 	
 	// don't get in the way of user typing
 	mySearchBar.autocorrectionType = UITextAutocorrectionTypeNo;
@@ -67,7 +62,6 @@
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return [trackItems count];
 }
-
 
 - (UITableViewCell *)tableView:(UITableView *)tv cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     static NSString *kCellIdentifier = @"MyCell";
@@ -102,10 +96,6 @@
 {
 	// only show the status bar's cancel button while in edit mode
 	mySearchBar.showsCancelButton = YES;
-	
-	// flush and save the current list content in case the user cancels the search later
-	[savedContent removeAllObjects];
-	[savedContent addObjectsFromArray: trackItems];
 }
 
 - (void)searchBarTextDidEndEditing:(UISearchBar *)searchBar
@@ -123,7 +113,6 @@
 // called when cancel button pressed
 - (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar
 {
-	NSLog(@"Cancelled search!");
 	// if a valid search was entered but the user wanted to cancel, bring back the saved list content
 	if (searchBar.text.length > 0)
 	{
@@ -137,8 +126,6 @@
 // called when Search (in our case "Done") button pressed
 - (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar
 {
-	NSLog(@"searchButtonClicked!");
-	
 	DogUtils *dog = [[DogUtils alloc] init];
 	NSString *jsonData = [NSString alloc];
 	jsonData = [dog dogRequest:[NSString stringWithFormat:@"/dogvibes/search?query=%@",mySearchText, nil]];
@@ -161,7 +148,6 @@
 	[mySearchBar release];
 	[listContent release];
 	[filteredListContent release];
-	[savedContent release];
 	[trackItems release];
 	[trackURIs release];
 	[super dealloc];

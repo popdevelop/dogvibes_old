@@ -15,6 +15,9 @@
 	NSString *curTrack;
 	NSString *dogIP;
 	NSString *kDogVibesIP;
+	NSTimer *dogTimer;
+	int elapsedSec;
+	int duration;
 }
 
 @property (nonatomic, retain) IBOutlet UIWindow *window;
@@ -23,9 +26,9 @@
 @property (nonatomic, retain) NSString *curTrack;
 @property (nonatomic, retain) NSString *dogIP;
 @property (nonatomic, retain) NSString *kDogVibesIP;
+@property (nonatomic, retain) NSTimer *dogTimer;
 
 - (NSString*) getCurTrack;
 - (void) setCurTrack:(NSString *)uri;
-
 
 @end

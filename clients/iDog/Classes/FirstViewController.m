@@ -14,21 +14,31 @@
 
 @implementation FirstViewController
 
-// Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
+@synthesize playButton, nextButton, prevButton, jsonImage, seekSlider, volumeSlider, label;
+
 - (void)viewDidLoad {
     [super viewDidLoad];
 	[self check_system_prefs];
+	
+	seekSlider.minimumValue = 0;
+	seekSlider.maximumValue = 1000;
+	seekSlider.value = 0;
+	
+	timeLabel.text = [self timeFormatted:0];
 	
 	/* load album art */
 	UIImage *img = [UIImage alloc];
 	iDogAppDelegate *appDelegate = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
 	DogUtils *dog = [[DogUtils alloc] init];
 	
+	[appDelegate.dogTimer invalidate]; 
+	appDelegate.dogTimer = [NSTimer scheduledTimerWithTimeInterval: 1.0
+												target:self selector:@selector(timerFunc)
+											  userInfo:nil repeats:YES];
+		
 	if (visitCount != 0) {
-
 		NSString *jsonData = [NSString alloc];
 		jsonData = [dog dogRequest:@"/amp/0/getStatus"];
-
 		if (jsonData == nil) {
 			UIAlertView *alert = [[UIAlertView alloc] 
 								  initWithTitle:@"No reply from server!"   \
@@ -45,8 +55,14 @@
 			NSString *playState = [NSString stringWithFormat:@"%@",[result objectForKey:@"state"], nil];
 			
 			if ([playState compare:@"playing"] == 0) {
+				state = STATE_PLAYING;
 				[self setPlayButtonImage:[UIImage imageNamed:@"pause.png"]];
+				NSString *curDuration = [NSString stringWithFormat:@"%@",[result objectForKey:@"duration"], nil];
+				NSString *curElapsed = [NSString stringWithFormat:@"%@",[result objectForKey:@"elapsedmseconds"], nil];
+				seekSlider.maximumValue = [curDuration intValue] / 1000;
+				seekSlider.value = [curElapsed intValue] / 1000;
 			} else if (playState){
+				state = STATE_IDLE;
 				[self setPlayButtonImage:[UIImage imageNamed:@"play.png"]];
 			}
 			
@@ -57,17 +73,14 @@
 				img = [dog dogGetAlbumArt:[result objectForKey:@"uri"]];
 				NSLog(@"Update album art..");
 				jsonImage.image = [img retain];			
-			} else {
-				NSLog(@"same song as last time...");
 			}
 
-			label.text = [NSString stringWithFormat:@"%@ - %@", [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
+			label.text = [NSString stringWithFormat:@"%@\n%@\n%@", [result objectForKey:@"artist"], 
+						  [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
 			[appDelegate setCurTrack:(NSString *)[result objectForKey:@"uri"]];
 		}
 	}
-		
 	visitCount++;
-	
 	[img release];
 	[dog release];
 }
@@ -83,16 +96,14 @@
 	NSString *jsonData = [NSString alloc];
 	
 	/* update button */
-	if (state != 1) {
-		jsonData = [dog dogRequest:@"/amp/0/play"];
-		state = 1;
+	if (state != STATE_PLAYING) {
+		state = STATE_PLAYING;
 		[self setPlayButtonImage:[UIImage imageNamed:@"pause.png"]];
-		NSLog(@"switching to state %d ", state);
+		jsonData = [dog dogRequest:@"/amp/0/play"];
 	} else {
-		jsonData = [dog dogRequest:@"/amp/0/pause"];
-		state = 0;
+		state = STATE_IDLE;
 		[self setPlayButtonImage:[UIImage imageNamed:@"play.png"]];
-		NSLog(@"switching to state %d ", state);
+		jsonData = [dog dogRequest:@"/amp/0/pause"];
 	}
 	
 	[dog release];
@@ -107,14 +118,6 @@
 	jsonData = [dog dogRequest:@"/amp/0/previousTrack"];
 	[dog release];
 	[self updateTrackInfo];
-}
-
-- (IBAction)stopButtonPressed:(id)sender
-{
-	DogUtils *dog = [[DogUtils alloc] init];
-	NSString *jsonData = [NSString alloc];
-	jsonData = [dog dogRequest:@"/amp/0/stop"];
-	[dog release];
 }
 
 - (IBAction)nextButtonPressed:(id)sender
@@ -140,14 +143,26 @@
 	} else {
 		NSDictionary *trackDict = [jsonData JSONValue];
 		NSDictionary *result = [trackDict objectForKey:@"result"];
-		label.text = [NSString stringWithFormat:@"%@ - %@", [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
+		label.text = [NSString stringWithFormat:@"%@\n%@\n%@", [result objectForKey:@"artist"], 
+					  [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
 		if ([(NSString *)[result objectForKey:@"uri"] compare:[appDelegate getCurTrack]] != 0) {
 			/* only request image if we need.. */
 			img = [dog dogGetAlbumArt:[result objectForKey:@"uri"]];
-			NSLog(@"Update album art..");
 			jsonImage.image = [img retain];			
-		} else {
-			NSLog(@"same song as last time...");
+		}
+		
+		NSString *playState = [NSString stringWithFormat:@"%@",[result objectForKey:@"state"], nil];
+		
+		if ([playState compare:@"playing"] == 0) {
+			state = STATE_PLAYING;
+			[self setPlayButtonImage:[UIImage imageNamed:@"pause.png"]];
+			NSString *curDuration = [NSString stringWithFormat:@"%@",[result objectForKey:@"duration"], nil];
+			NSString *curElapsed = [NSString stringWithFormat:@"%@",[result objectForKey:@"elapsedmseconds"], nil];
+			seekSlider.maximumValue = [curDuration intValue] / 1000;
+			seekSlider.value = [curElapsed intValue] / 1000;
+		} else if (playState){
+			state = STATE_IDLE;
+			[self setPlayButtonImage:[UIImage imageNamed:@"play.png"]];
 		}
 		[appDelegate setCurTrack:(NSString *)[result objectForKey:@"uri"]];		
 	}
@@ -163,11 +178,36 @@
 	[dog release];
 }
 
+- (IBAction) seekChanged:(id)sender
+{
+	UISlider *mySlider = (UISlider *) sender;
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:[NSString stringWithFormat:@"/amp/0/seek?mseconds=%d",(int)round(mySlider.value*1000), nil]];
+	[dog release];
+}
+
+- (void) timerFunc {
+	if (state == STATE_PLAYING) {
+		seekSlider.value++;
+		timeLabel.text = [self timeFormatted:seekSlider.value];
+		if (seekSlider.value == seekSlider.maximumValue) {
+			[self updateTrackInfo];	
+		}
+	}
+}
+
+- (NSString *)timeFormatted:(int)totalSeconds
+{
+    int seconds = totalSeconds % 60; 
+    int minutes = (totalSeconds / 60) % 60; 
+    return [NSString stringWithFormat:@"%02d:%02d",minutes, seconds]; 
+}
+
 - (void) check_system_prefs {
 	iDogAppDelegate *iDogApp = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
 	iDogApp.kDogVibesIP = @"dogVibesIP";
 	NSString *testValue = [[NSUserDefaults standardUserDefaults] stringForKey:iDogApp.kDogVibesIP];
-	NSLog(@"trying to fetch ip from db ip:%@ ", testValue);
 	if (testValue == nil)
 	{
 		// no default values have been set, create them here based on what's in our Settings bundle info
@@ -201,15 +241,11 @@
 		[[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
 		[[NSUserDefaults standardUserDefaults] synchronize];
 	}
-	
-	// we're ready to do, so lastly set the key preference values
 	iDogApp.dogIP = [[NSUserDefaults standardUserDefaults] stringForKey:iDogApp.kDogVibesIP];
-	NSLog(@"done getting ip from db.. ");
 }
 
 - (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning]; // Releases the view if it doesn't have a superview
-    // Release anything that's not essential, such as cached data
+    [super didReceiveMemoryWarning];
 }
 
 - (void)dealloc {

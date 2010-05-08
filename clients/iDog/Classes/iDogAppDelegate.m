@@ -7,6 +7,7 @@
 //
 
 #import "iDogAppDelegate.h"
+#import "FirstViewController.h"
 
 @implementation iDogAppDelegate
 
@@ -14,17 +15,13 @@
 @synthesize tabBarController;
 @synthesize navController;
 @synthesize curTrack;
-@synthesize dogIP, kDogVibesIP;
+@synthesize dogIP, kDogVibesIP, dogTimer;
 
 - (void)applicationDidFinishLaunching:(UIApplication *)application {
-	NSLog(@"appFinishedLaunching...");
-    // Add the tab bar controller's current view as a subview of the window
-    [window addSubview:tabBarController.view];
+	[window addSubview:tabBarController.view];
 }
 
-// Optional UITabBarControllerDelegate method
 - (void)tabBarController:(UITabBarController *)tabBarController didSelectViewController:(UIViewController *)viewController {
-	NSLog(@"didSelectViewController...");
 	[viewController viewDidLoad];
 }
 
