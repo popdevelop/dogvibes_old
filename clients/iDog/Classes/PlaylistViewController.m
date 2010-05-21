@@ -14,13 +14,22 @@
 
 @implementation PlaylistViewController
 
-@synthesize playlistTableView, trackItems, trackURIs;
+@synthesize playlistTableView, trackItems, trackURIs, trackDetails;
+
+- (void)awakeFromNib
+{
+    trackItems = [[NSMutableArray alloc] initWithCapacity: 100];
+    trackDetails = [[NSMutableArray alloc] initWithCapacity: 100];
+	trackURIs = [[NSMutableArray alloc] initWithCapacity: 100];
+}
 
 - (void)viewDidLoad {
 	[super viewDidLoad];
-	trackItems = [[NSMutableArray alloc] initWithCapacity: 100];
-	trackURIs = [[NSMutableArray alloc] initWithCapacity: 100];
-
+	
+    [trackURIs removeAllObjects];
+    [trackItems removeAllObjects];
+    [trackDetails removeAllObjects];
+	
 	DogUtils *dog = [[DogUtils alloc] init];
 	NSString *jsonData = [NSString alloc];
 	jsonData = [dog dogRequest:[NSString stringWithFormat:@"/amp/0/getAllTracksInQueue", nil]];
@@ -31,9 +40,10 @@
 		NSDictionary *result = [trackDict objectForKey:@"result"];
 
 		for (id key in result) {
-			NSLog(@"%@", key);
 			if ([key objectForKey:@"title"]) {
 				[trackItems addObject:(NSString *)[key objectForKey:@"title"]];
+                NSString *track = [NSString stringWithFormat:@"%@ - %@", [key objectForKey:@"artist"], [key objectForKey:@"album"], nil];
+                [trackDetails addObject:track];
 				[trackURIs addObject:(NSString *)[key objectForKey:@"uri"]];
 			}
 		}
@@ -50,10 +60,11 @@
     static NSString *kCellIdentifier = @"MyCell";
     UITableViewCell *cell = [playlistTableView dequeueReusableCellWithIdentifier:kCellIdentifier];
     if (cell == nil) {
-        cell = [[[UITableViewCell alloc] initWithFrame:CGRectZero reuseIdentifier:kCellIdentifier] autorelease];
+        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:kCellIdentifier] autorelease];
         cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     }
-    cell.text = [trackItems objectAtIndex:indexPath.row];
+    cell.textLabel.text = [trackItems objectAtIndex:indexPath.row];
+    cell.detailTextLabel.text = [trackDetails objectAtIndex:indexPath.row];
     return cell;
 }
 
@@ -66,10 +77,6 @@
 
 - (void)viewWillAppear:(BOOL)animated {
 	[super viewWillAppear:animated];
-}
-
-- (void)viewDidAppear:(BOOL)animated {
-	[super viewDidAppear:animated];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -90,6 +97,7 @@
 	[trackItems release];
 	[trackURIs release];
 	[playlistTableView release];
+    [trackDetails release];
 	[super dealloc];
 }
 

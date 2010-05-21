@@ -17,21 +17,17 @@
 @implementation SearchViewController
 
 @synthesize jsonArray, jsonItem, mySearchBar, myTableView, mySearchText;
-@synthesize listContent, filteredListContent, savedContent, trackItems, trackURIs;
+@synthesize listContent, filteredListContent, savedContent, trackItems, trackURIs, trackDetails;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
 }
 
 - (void)awakeFromNib
-{	
-	// create the master list
-	listContent = [[NSArray alloc] initWithObjects:	@"Please search for a song!", nil];
-
-	//filteredListContent = [[NSMutableArray alloc] initWithCapacity: [listContent count]];
+{
 	trackItems = [[NSMutableArray alloc] initWithCapacity: 1000];
+    trackDetails = [[NSMutableArray alloc] initWithCapacity: 1000];
 	trackURIs = [[NSMutableArray alloc] initWithCapacity: 1000];
-	[trackItems addObjectsFromArray: listContent];
 	
 	// don't get in the way of user typing
 	mySearchBar.autocorrectionType = UITextAutocorrectionTypeNo;
@@ -67,10 +63,11 @@
     static NSString *kCellIdentifier = @"MyCell";
     UITableViewCell *cell = [myTableView dequeueReusableCellWithIdentifier:kCellIdentifier];
     if (cell == nil) {
-        cell = [[[UITableViewCell alloc] initWithFrame:CGRectZero reuseIdentifier:kCellIdentifier] autorelease];
+        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:kCellIdentifier] autorelease];
         cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     }
-    cell.text = [trackItems objectAtIndex:indexPath.row];
+    cell.textLabel.text = [trackItems objectAtIndex:indexPath.row];
+    cell.detailTextLabel.text = [trackDetails objectAtIndex:indexPath.row];
     return cell;
 }
 
@@ -107,6 +104,7 @@
 {
 	[trackItems removeAllObjects];	// clear the filtered array first
 	[trackURIs removeAllObjects];
+    [trackDetails removeAllObjects];
 	mySearchText = [searchText retain];
 }
 
@@ -117,6 +115,8 @@
 	if (searchBar.text.length > 0)
 	{
 		[trackItems removeAllObjects];
+        [trackURIs removeAllObjects];
+        [trackDetails removeAllObjects];
 	}
 	[myTableView reloadData];
 	[searchBar resignFirstResponder];
@@ -134,7 +134,9 @@
 		jsonArray = [jsonData JSONValue];
 		NSDictionary *tsdic = [jsonData JSONValue];
 		for (id key in [tsdic objectForKey:@"result"]) {
-			[trackItems addObject:(NSString *)[key objectForKey:@"title"]];
+            NSString *track = [NSString stringWithFormat:@"%@ - %@", [key objectForKey:@"artist"], [key objectForKey:@"album"], nil];
+            [trackItems addObject:(NSString *)[key objectForKey:@"title"]];
+            [trackDetails addObject:track];
 			[trackURIs addObject:(NSString *)[key objectForKey:@"uri"]];
 		}
 		[myTableView reloadData];
@@ -150,6 +152,7 @@
 	[filteredListContent release];
 	[trackItems release];
 	[trackURIs release];
+    [trackDetails release];
 	[super dealloc];
 }
 

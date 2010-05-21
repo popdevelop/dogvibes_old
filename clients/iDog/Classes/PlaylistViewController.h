@@ -13,10 +13,12 @@
 	UITableView *playlistTableView;
 	NSMutableArray *trackItems;
 	NSMutableArray *trackURIs;
+    NSMutableArray *trackDetails;
 }
 
 @property (nonatomic, retain) IBOutlet UITableView *playlistTableView;
 @property (nonatomic, retain) NSMutableArray *trackItems;
 @property (nonatomic, retain) NSMutableArray *trackURIs;
+@property (nonatomic, retain) NSMutableArray *trackDetails;
 
 @end

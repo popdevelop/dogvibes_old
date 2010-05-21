@@ -46,4 +46,7 @@ enum {
 - (void)check_system_prefs;
 - (void)timerFunc;
 - (NSString *)timeFormatted:(int)totalSeconds;
+
+/* export the settingsviewcontroller */
++(FirstViewController *) sharedFirstViewController;
 @end

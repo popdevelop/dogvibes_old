@@ -14,11 +14,12 @@
 
 @implementation FirstViewController
 
-@synthesize playButton, nextButton, prevButton, jsonImage, seekSlider, volumeSlider, label;
+static FirstViewController *sharedFirstViewController;
+@synthesize playButton, nextButton, prevButton, jsonImage, seekSlider, volumeSlider, label, timeLabel;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-	[self check_system_prefs];
+    [self check_system_prefs];
 	
 	seekSlider.minimumValue = 0;
 	seekSlider.maximumValue = 1000;
@@ -33,9 +34,9 @@
 	
 	[appDelegate.dogTimer invalidate]; 
 	appDelegate.dogTimer = [NSTimer scheduledTimerWithTimeInterval: 1.0
-												target:self selector:@selector(timerFunc)
-											  userInfo:nil repeats:YES];
-		
+															target:self selector:@selector(timerFunc)
+														  userInfo:nil repeats:YES];
+	
 	if (visitCount != 0) {
 		NSString *jsonData = [NSString alloc];
 		jsonData = [dog dogRequest:@"/amp/0/getStatus"];
@@ -53,14 +54,17 @@
 			NSDictionary *trackDict = [jsonData JSONValue];
 			NSDictionary *result = [trackDict objectForKey:@"result"];
 			NSString *playState = [NSString stringWithFormat:@"%@",[result objectForKey:@"state"], nil];
-			
+            NSString *curDuration = [NSString stringWithFormat:@"%@",[result objectForKey:@"duration"], nil];
+            NSString *curElapsed = [NSString stringWithFormat:@"%@",[result objectForKey:@"elapsedmseconds"], nil];
+            NSString *curVolume = [NSString stringWithFormat:@"%@",[result objectForKey:@"volume"], nil];
+            seekSlider.maximumValue = [curDuration intValue] / 1000;
+            seekSlider.value = [curElapsed intValue] / 1000;
+            volumeSlider.value = [curVolume floatValue];
+            NSLog(@"%f", [curVolume floatValue]);
+            
 			if ([playState compare:@"playing"] == 0) {
 				state = STATE_PLAYING;
 				[self setPlayButtonImage:[UIImage imageNamed:@"pause.png"]];
-				NSString *curDuration = [NSString stringWithFormat:@"%@",[result objectForKey:@"duration"], nil];
-				NSString *curElapsed = [NSString stringWithFormat:@"%@",[result objectForKey:@"elapsedmseconds"], nil];
-				seekSlider.maximumValue = [curDuration intValue] / 1000;
-				seekSlider.value = [curElapsed intValue] / 1000;
 			} else if (playState){
 				state = STATE_IDLE;
 				[self setPlayButtonImage:[UIImage imageNamed:@"play.png"]];
@@ -70,11 +74,12 @@
 			
 			if ([(NSString *)[result objectForKey:@"uri"] compare:[appDelegate getCurTrack]] != 0) {
 				/* only request image if we need.. */
-				img = [dog dogGetAlbumArt:[result objectForKey:@"uri"]];
+				img = [dog dogGetAlbumArt:[NSString stringWithFormat:@"artist=%@&album=%@", [result objectForKey:@"artist"], 
+										   [result objectForKey:@"album"], nil]];
 				NSLog(@"Update album art..");
 				jsonImage.image = [img retain];			
 			}
-
+			
 			label.text = [NSString stringWithFormat:@"%@\n%@\n%@", [result objectForKey:@"artist"], 
 						  [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
 			[appDelegate setCurTrack:(NSString *)[result objectForKey:@"uri"]];
@@ -83,6 +88,10 @@
 	visitCount++;
 	[img release];
 	[dog release];
+}
+
+- (void)viewDidAppear:(BOOL)animated
+{
 }
 
 - (void)setPlayButtonImage:(UIImage *)image
@@ -147,7 +156,9 @@
 					  [result objectForKey:@"title"], [result objectForKey:@"album"], nil];
 		if ([(NSString *)[result objectForKey:@"uri"] compare:[appDelegate getCurTrack]] != 0) {
 			/* only request image if we need.. */
-			img = [dog dogGetAlbumArt:[result objectForKey:@"uri"]];
+			NSLog(@"Update albumart!");
+			img = [dog dogGetAlbumArt:[NSString stringWithFormat:@"artist=%@&album=%@", [result objectForKey:@"artist"], 
+								 [result objectForKey:@"album"], nil]];
 			jsonImage.image = [img retain];			
 		}
 		
@@ -243,6 +254,25 @@
 	}
 	iDogApp.dogIP = [[NSUserDefaults standardUserDefaults] stringForKey:iDogApp.kDogVibesIP];
 }
+
++(FirstViewController *)sharedFirstViewController {
+	if (!sharedFirstViewController)
+		sharedFirstViewController = [[FirstViewController alloc] init];
+	return sharedFirstViewController;
+}
+
++(id)alloc
+{
+	NSAssert(sharedFirstViewController == nil, @"Attempted to allocate a second instance of a singleton.");
+	sharedFirstViewController = [super alloc];
+	return sharedFirstViewController;
+}
+
++(id)copy {
+	NSAssert(sharedFirstViewController == nil, @"Attempted to copy the singleton");
+	return sharedFirstViewController;
+}
+
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];

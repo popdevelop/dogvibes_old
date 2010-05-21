@@ -10,9 +10,7 @@
 
 
 @interface DogUtils : NSObject {
-	NSURLConnection *           _connection;
-    NSString *                  _filePath;
-    NSOutputStream *            _fileStream;
+	NSMutableArray *responseData;
 }
 
 - (NSString*) dogRequest:(NSString *)request;

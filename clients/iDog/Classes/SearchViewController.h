@@ -19,6 +19,7 @@
 	NSMutableArray				*savedContent;			// the saved content in case the user cancels a search
 	
 	NSMutableArray *trackItems;
+    NSMutableArray *trackDetails;
 	NSMutableArray *trackURIs;
 
 	NSString *mySearchText;
@@ -33,6 +34,7 @@
 @property (nonatomic, retain) NSMutableArray *filteredListContent;
 @property (nonatomic, retain) NSMutableArray *savedContent;
 @property (nonatomic, retain) NSMutableArray *trackItems;
+@property (nonatomic, retain) NSMutableArray *trackDetails;
 @property (nonatomic, retain) NSMutableArray *trackURIs;
 @property (nonatomic, retain) NSString *mySearchText;
 

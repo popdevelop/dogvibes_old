@@ -14,18 +14,13 @@
 	IBOutlet UILabel *label;
 	IBOutlet UIButton *statusBtn;
 	IBOutlet UITextView *textView;
-	IBOutlet UISwitch *spk0;
-	IBOutlet UISwitch *spk1;
-	IBOutlet UISwitch *spk2;
 }
+
+@property (nonatomic, retain) IBOutlet UIButton *statusBtn;
+@property (nonatomic, retain) IBOutlet UILabel *label;
 
 /* button handlers */
 - (IBAction)statusButtonPressed:(id)sender;
-
-/* slider handlers */
-- (IBAction)slider0Changed:(id)sender;
-- (IBAction)slider1Changed:(id)sender;
-- (IBAction)slider2Changed:(id)sender;
 
 /* textfield handlers */
 - (IBAction)IPtextFieldChanged:(id)sender;

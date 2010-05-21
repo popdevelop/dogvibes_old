@@ -18,20 +18,20 @@
 @synthesize dogIP, kDogVibesIP, dogTimer;
 
 - (void)applicationDidFinishLaunching:(UIApplication *)application {
+    tabBarController.delegate = self;
 	[window addSubview:tabBarController.view];
+    [window makeKeyAndVisible];
 }
 
 - (void)tabBarController:(UITabBarController *)tabBarController didSelectViewController:(UIViewController *)viewController {
-	[viewController viewDidLoad];
+    [viewController viewDidLoad];
 }
 
 - (NSString*) getCurTrack {
-	NSLog(@"cur track is: %@ ", self.curTrack);
 	return curTrack;
 }
 
 - (void) setCurTrack:(NSString *)uri {
-	NSLog(@"cur track updated to: %@ ", uri);
 	[curTrack autorelease];
 	curTrack = [uri retain];
 }

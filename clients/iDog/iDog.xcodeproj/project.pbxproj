@@ -18,6 +18,7 @@
 		047115F50FCCC02300C755A5 /* TrackView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 047115F40FCCC02300C755A5 /* TrackView.xib */; };
 		047117B00FCF387A00C755A5 /* dogvibes_logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 047117AF0FCF387A00C755A5 /* dogvibes_logo.png */; };
 		0471180E0FCF450A00C755A5 /* Track.m in Sources */ = {isa = PBXBuildFile; fileRef = 0471180D0FCF450A00C755A5 /* Track.m */; };
+		04DA1CBA1198C00600CFF41B /* MainView.m in Sources */ = {isa = PBXBuildFile; fileRef = 04DA1CB91198C00600CFF41B /* MainView.m */; };
 		04E4067B11754C3200FEE649 /* NSObject+SBJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 04E4067011754C3200FEE649 /* NSObject+SBJSON.m */; };
 		04E4067C11754C3200FEE649 /* NSString+SBJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 04E4067211754C3200FEE649 /* NSString+SBJSON.m */; };
 		04E4067D11754C3200FEE649 /* SBJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 04E4067411754C3200FEE649 /* SBJSON.m */; };
@@ -54,6 +55,8 @@
 		047117AF0FCF387A00C755A5 /* dogvibes_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = dogvibes_logo.png; sourceTree = "<group>"; };
 		0471180C0FCF450A00C755A5 /* Track.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Track.h; sourceTree = "<group>"; };
 		0471180D0FCF450A00C755A5 /* Track.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Track.m; sourceTree = "<group>"; };
+		04DA1CB81198C00600CFF41B /* MainView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainView.h; sourceTree = "<group>"; };
+		04DA1CB91198C00600CFF41B /* MainView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MainView.m; sourceTree = "<group>"; };
 		04E4066E11754C3200FEE649 /* JSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSON.h; sourceTree = "<group>"; };
 		04E4066F11754C3200FEE649 /* NSObject+SBJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+SBJSON.h"; sourceTree = "<group>"; };
 		04E4067011754C3200FEE649 /* NSObject+SBJSON.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+SBJSON.m"; sourceTree = "<group>"; };
@@ -144,6 +147,8 @@
 				0471180D0FCF450A00C755A5 /* Track.m */,
 				047006F810B1FB8500F4B025 /* DogUtils.h */,
 				047006F910B1FB8500F4B025 /* DogUtils.m */,
+				04DA1CB81198C00600CFF41B /* MainView.h */,
+				04DA1CB91198C00600CFF41B /* MainView.m */,
 			);
 			path = Classes;
 			sourceTree = "<group>";
@@ -286,6 +291,7 @@
 				04E4067E11754C3200FEE649 /* SBJsonBase.m in Sources */,
 				04E4067F11754C3200FEE649 /* SBJsonParser.m in Sources */,
 				04E4068011754C3200FEE649 /* SBJsonWriter.m in Sources */,
+				04DA1CBA1198C00600CFF41B /* MainView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -340,12 +346,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer: Johan Nystr� (F9898RH6SJ)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
+				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "E257F821-7E53-4E92-BAFF-DAD8657EA9A8";
 				SDKROOT = iphoneos3.1.3;
 			};
 			name = Debug;
@@ -354,12 +361,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer: Johan Nystr� (F9898RH6SJ)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
+				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "E257F821-7E53-4E92-BAFF-DAD8657EA9A8";
 				SDKROOT = iphoneos3.1.3;
 			};
 			name = Release;

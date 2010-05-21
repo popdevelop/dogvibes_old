@@ -7,53 +7,39 @@
 //
 
 #import "iDogAppDelegate.h"
+#import "DogUtils.h"
 #import "SettingsViewController.h"
 
 @implementation SettingsViewController
+
+@synthesize statusBtn, label;
 
 static SettingsViewController *sharedViewController;
 
 - (void)viewDidLoad {
 	[super viewDidLoad];
-	
 	iDogAppDelegate *iDogApp = (iDogAppDelegate *)[[UIApplication sharedApplication] delegate];
-	NSLog(@"%@", iDogApp.dogIP);
 	if (iDogApp.dogIP != nil) {
 	  IPtextField.text = iDogApp.dogIP;
 	}
-    
 }
 
 - (IBAction)statusButtonPressed:(id)sender
 {
-	NSURL *jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/getStatus",[self getIPfromTextField], nil]];
-	NSString *jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
-	
+	DogUtils *dog = [[DogUtils alloc] init];
+	NSString *jsonData = [NSString alloc];
+	jsonData = [dog dogRequest:@"/amp/0/getStatus"];
+		
 	if (jsonData == nil) {
 		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
 		[alert show];
 		[alert release];
 	} else {
-		label.text = jsonData;
+		label.backgroundColor = [UIColor greenColor];
 	}
-}
-
-/* gui handlers */
-- (IBAction)slider0Changed:(id)sender
-{
-	NSString *jsonData;
-	NSURL *jsonURL;
-	if ( spk0.on )
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/connectSpeaker?nbr=0",[self getIPfromTextField], nil]];
-	else
-		jsonURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/amp/0/disconnectSpeaker?nbr=0", [self getIPfromTextField], nil]];
 	
-	jsonData = [[NSString alloc] initWithContentsOfURL:jsonURL];
-	if (jsonData == nil) {
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Webservice Down" message:@"The webservice you are accessing is down. Please try again later."  delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
-		[alert show];
-		[alert release];
-	}
+	[dog release];
+	[jsonData release];
 }
 
 - (IBAction)IPtextFieldChanged:(id)sender
